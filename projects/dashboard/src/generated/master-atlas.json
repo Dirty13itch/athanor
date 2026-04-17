@@ -1,6 +1,6 @@
 {
   "version": "2026-04-15.1",
-  "generated_at": "2026-04-17T19:32:04.172477+00:00",
+  "generated_at": "2026-04-17T22:14:46.732367+00:00",
   "status": "active",
   "source_of_truth": {
     "lane_registry": "configs/devstack-capability-lane-registry.json",
@@ -9,10 +9,10 @@
     "dashboard_feed": "C:/Athanor/projects/dashboard/src/generated/master-atlas.json"
   },
   "summary": {
-    "top_priority_lane": "protocol-first-builder-kernel",
+    "top_priority_lane": "letta-memory-plane",
     "top_routing_lane": "codex_cloudsafe",
     "active_count": 0,
-    "ready_for_review_count": 1,
+    "ready_for_review_count": 0,
     "publication_ready_count": 0,
     "turnover_status": "ready_for_low_touch_execution",
     "repo_dirty_file_count": 2,
@@ -27,7 +27,7 @@
     }
   ],
   "readiness_ledger": {
-    "generated_at": "2026-04-17T19:32:04.171346+00:00",
+    "generated_at": "2026-04-17T22:14:46.731339+00:00",
     "records": [
       {
         "capability_id": "agent-gateway-layer",
@@ -395,11 +395,11 @@
       {
         "capability_id": "protocol-first-builder-kernel",
         "label": "Protocol-First Builder Kernel",
-        "stage": "proved",
-        "authority_class": "build_system",
-        "lane_status": "ready_for_review",
-        "readiness_state": "packet_ready",
-        "execution_state": "ready_for_review",
+        "stage": "adopted",
+        "authority_class": "adopted_system",
+        "lane_status": "parked",
+        "readiness_state": "adopted",
+        "execution_state": "adopted",
         "scope_kind": "capability",
         "task_class": "multi_file_implementation",
         "target_kind": "athanor_core",
@@ -412,19 +412,17 @@
           "product_foundry"
         ],
         "affected_namespaces": [],
-        "packet_status": "ready_for_review",
-        "release_tier": "offline_eval",
+        "packet_status": "accepted",
+        "release_tier": "shadow",
         "runtime_rollout_state": "linked_not_live",
-        "proof_state": "evidence_only",
-        "approval_state": "operator_review_required_before_adoption",
+        "proof_state": "adopted_runtime_proof",
+        "approval_state": "already_adopted",
         "membrane_status": "aligned_to_athanor",
-        "blocker_state": "blocked",
-        "implementable_now": false,
-        "blocking_gate": "operator_review_release_tier_progression",
-        "missing_proof": [
-          "operator_review_release_tier_progression"
-        ],
-        "next_action": "Use dev-dashboard-compose-deploy-packet as the bounded rollout path, complete operator packet review, and only then decide whether shadow-tier promotion is admissible without widening beyond builder:codex:direct_cli.",
+        "blocker_state": "clear",
+        "implementable_now": true,
+        "blocking_gate": null,
+        "missing_proof": [],
+        "next_action": "Keep the accepted shadow packet current, use the existing dev-dashboard-compose-deploy-packet for any future live rollout decision, and reopen only for a bounded runtime rollout or a new builder delta.",
         "source_safe_remaining": [],
         "approval_gated_remaining": [],
         "runtime_target": "Athanor builder front door, routing kernel, worker selection, and verification orchestration delivered through the governed dashboard compose lane",
@@ -438,12 +436,13 @@
         "rollback_or_disable_path": "Demote the builder kernel back to devstack-only proof artifacts and preserve the existing Athanor shell and routing surfaces without adopting a new control layer.",
         "archive_instructions": "Archive superseded builder-stack planning notes that still describe devstack as a permanent separate user-facing stack. Keep the proof brief, routing matrix, and scenario suite as lineage.",
         "notes": [
-          "This capability describes target Athanor behavior while remaining devstack-owned until adoption proof is complete.",
-          "The first proof step is a bounded route slice rather than a broad control-plane rewrite.",
+          "This capability is now a shadow-adopted Athanor control-plane boundary while devstack remains the proving lane for future builder deltas.",
+          "The first proof step was a bounded route slice rather than a broad control-plane rewrite.",
           "The 2026-04-17 bounded live smoke proved builder:codex:direct_cli end to end with approval gating, a resumable handle, structured result transport, and passing verification.",
           "Builder-generated `.codex` residue is scrubbed from user-facing changed-file accounting before the final ResultPacket is published.",
           "The 2026-04-17 formal builder eval proved the direct builder route with TSC-backed verification, fail-closed negative routing, coherent operator projections, and explicit non-takeover bootstrap posture.",
-          "The governed runtime path for live builder-front-door rollout is the existing dev-dashboard-compose lane and dev-dashboard-compose-deploy-packet; no builder-specific runtime packet is required yet."
+          "The 2026-04-17 shadow adoption closes operator packet review for the bounded builder front door without advancing runtime rollout beyond linked_not_live.",
+          "The governed runtime path for later live builder-front-door rollout remains the existing dev-dashboard-compose lane and dev-dashboard-compose-deploy-packet; no builder-specific runtime packet is required yet."
         ]
       },
       {
@@ -698,21 +697,19 @@
       "runtime_target": "Athanor bounded worker-lane orchestration and governed coding-worker experiments"
     },
     {
-      "packet_id": "pending-protocol-first-builder-kernel",
+      "packet_id": "protocol-first-builder-kernel-promotion-packet",
       "capability_id": "protocol-first-builder-kernel",
       "policy_class": "private_but_cloud_allowed",
       "approval_packet_class": "review_required",
       "autonomy_phase": "full_system_phase_3",
-      "release_tier": "offline_eval",
+      "release_tier": "shadow",
       "rollback_evidence_state": "documented",
       "drill_posture": "healthy",
       "freshness_state": "fresh",
       "target_runtime_blast_radius": "orchestrator_extension",
-      "admissibility_state": "blocked",
+      "admissibility_state": "admissible",
       "may_execute_automatically_now": false,
-      "blocked_by": [
-        "operator_review_release_tier_progression"
-      ],
+      "blocked_by": [],
       "runtime_target": "Athanor builder front door, routing kernel, worker selection, and verification orchestration delivered through the governed dashboard compose lane"
     },
     {
@@ -1056,7 +1053,7 @@
           "judge_role": "judge_verifier",
           "policy_class": "private_but_cloud_allowed"
         },
-        "last_run_at": "2026-04-17T19:16:07.754081+00:00",
+        "last_run_at": "2026-04-17T22:09:25.898936+00:00",
         "linked_promotion_packet": "C:/athanor-devstack/docs/promotion-packets/protocol-first-builder-kernel.md",
         "notes": [
           "This run proves only the bounded Codex direct-CLI builder slice; it does not silently promote a general internal builder takeover.",
@@ -1064,13 +1061,16 @@
           "2026-04-17T18:48:29.819600+00:00: Builder kernel formal eval remains blocked until the live route, fail-closed routing checks, and bootstrap boundaries all pass together.",
           "2026-04-17T19:02:18.295741+00:00: Builder kernel formal eval is green: the direct live route passed TSC-backed verification, fail-closed routing checks held, operator projections stayed coherent, and bootstrap takeover remains explicit.",
           "2026-04-17T19:09:07.424704+00:00: Builder kernel formal eval is green: the direct live route passed TSC-backed verification, fail-closed routing checks held, operator projections stayed coherent, and bootstrap takeover remains explicit.",
-          "2026-04-17T19:16:07.754081+00:00: Builder kernel formal eval is green: the direct live route passed TSC-backed verification, fail-closed routing checks held, operator projections stayed coherent, and bootstrap takeover remains explicit."
+          "2026-04-17T19:16:07.754081+00:00: Builder kernel formal eval is green: the direct live route passed TSC-backed verification, fail-closed routing checks held, operator projections stayed coherent, and bootstrap takeover remains explicit.",
+          "2026-04-17T19:38:11.399766+00:00: Builder kernel formal eval is green: the direct live route passed TSC-backed verification, fail-closed routing checks held, operator projections stayed coherent, bootstrap takeover remains explicit, and the dashboard deploy packet is now the bounded rollout path.",
+          "2026-04-17T22:03:45.401860+00:00: Builder kernel formal eval is green: the direct live route passed TSC-backed verification, fail-closed routing checks held, operator projections stayed coherent, bootstrap takeover remains explicit, and the dashboard deploy packet is now the bounded rollout path.",
+          "2026-04-17T22:09:25.898936+00:00: Builder kernel formal eval is green: the direct live route passed TSC-backed verification, fail-closed routing checks held, operator projections stayed coherent, bootstrap takeover remains explicit, and the dashboard deploy packet is now the bounded rollout path."
         ],
         "promotion_validity": "valid",
         "run_id": "protocol-first-builder-kernel-eval-2026q2",
         "source_safe_remaining": [
           "Keep Codex and Claude external bootstrap builders live until the takeover-promotion-check family is explicitly green and operator-reviewed.",
-          "Keep runtime packet linkage pending until a bounded builder runtime packet exists for wider adoption."
+          "Keep dev-dashboard-compose-deploy-packet as the only bounded builder rollout path until a distinct runtime owner or rollback surface justifies a separate packet."
         ],
         "status": "completed",
         "task_class": "builder_kernel_boundary_eval",
@@ -1591,7 +1591,7 @@
     ],
     "source_of_truth": "config/automation-backbone/eval-run-ledger.json",
     "status": "active",
-    "updated_at": "2026-04-17T19:16:07.754081+00:00",
+    "updated_at": "2026-04-17T22:09:25.898936+00:00",
     "version": "2026-04-16.1"
   },
   "artifact_provenance_ledger": {
@@ -2725,7 +2725,7 @@
       "scheduler_active_transitions": 0,
       "scheduler_backed_gpu_count": 8,
       "scheduler_conflict_gpu_count": 1,
-      "scheduler_observed_at": "2026-04-17T16:38:16.515543+00:00",
+      "scheduler_observed_at": "2026-04-17T21:39:29.984123+00:00",
       "scheduler_queue_depth": 0,
       "scheduler_slot_count": 5,
       "scheduler_source": "reports/truth-inventory/gpu-scheduler-baseline-eval.json",
@@ -2736,7 +2736,7 @@
       }
     },
     "contract_ref": "config/automation-backbone/capacity-telemetry-contract.json",
-    "generated_at": "2026-04-17T18:15:34.101387+00:00",
+    "generated_at": "2026-04-17T21:39:51.295991+00:00",
     "gpu_samples": [
       {
         "gpu_id": "desk-rtx3060",
@@ -2763,7 +2763,7 @@
         "harvest_target": false,
         "model": "NVIDIA RTX 5060 Ti",
         "node_id": "dev",
-        "observed_at": "2026-04-17T16:38:16.515543+00:00",
+        "observed_at": "2026-04-17T21:39:29.984123+00:00",
         "oldest_wait_seconds": 0,
         "owner_lane": "embedding_and_reranker_support",
         "projection_conflict": "shared_gpu_multiple_zones",
@@ -2776,14 +2776,14 @@
         "scheduler_slot_id": "D:0",
         "scheduler_state": "ACTIVE",
         "scheduler_zone_id": "D",
-        "utilization_percent": 69
+        "utilization_percent": 70
       },
       {
         "gpu_id": "foundry-rtx4090",
         "harvest_target": false,
         "model": "NVIDIA RTX 4090",
         "node_id": "foundry",
-        "observed_at": "2026-04-17T16:38:16.515543+00:00",
+        "observed_at": "2026-04-17T21:39:29.984123+00:00",
         "oldest_wait_seconds": 0,
         "owner_lane": "interactive_text_generation_reserve",
         "projection_conflict": null,
@@ -2803,7 +2803,7 @@
         "harvest_target": true,
         "model": "NVIDIA RTX 5070 Ti",
         "node_id": "foundry",
-        "observed_at": "2026-04-17T16:38:16.515543+00:00",
+        "observed_at": "2026-04-17T21:39:29.984123+00:00",
         "oldest_wait_seconds": 0,
         "owner_lane": "sovereign_bulk",
         "projection_conflict": null,
@@ -2823,7 +2823,7 @@
         "harvest_target": true,
         "model": "NVIDIA RTX 5070 Ti",
         "node_id": "foundry",
-        "observed_at": "2026-04-17T16:38:16.515543+00:00",
+        "observed_at": "2026-04-17T21:39:29.984123+00:00",
         "oldest_wait_seconds": 0,
         "owner_lane": "sovereign_bulk",
         "projection_conflict": null,
@@ -2843,7 +2843,7 @@
         "harvest_target": true,
         "model": "NVIDIA RTX 5070 Ti",
         "node_id": "foundry",
-        "observed_at": "2026-04-17T16:38:16.515543+00:00",
+        "observed_at": "2026-04-17T21:39:29.984123+00:00",
         "oldest_wait_seconds": 0,
         "owner_lane": "sovereign_bulk",
         "projection_conflict": null,
@@ -2863,7 +2863,7 @@
         "harvest_target": true,
         "model": "NVIDIA RTX 5070 Ti",
         "node_id": "foundry",
-        "observed_at": "2026-04-17T16:38:16.515543+00:00",
+        "observed_at": "2026-04-17T21:39:29.984123+00:00",
         "oldest_wait_seconds": 0,
         "owner_lane": "sovereign_bulk",
         "projection_conflict": null,
@@ -2883,7 +2883,7 @@
         "harvest_target": false,
         "model": "NVIDIA RTX 5090",
         "node_id": "workshop",
-        "observed_at": "2026-04-17T16:38:16.515543+00:00",
+        "observed_at": "2026-04-17T21:39:29.984123+00:00",
         "oldest_wait_seconds": 0,
         "owner_lane": "sovereign_creative_interactive_reserve",
         "projection_conflict": null,
@@ -2903,7 +2903,7 @@
         "harvest_target": true,
         "model": "NVIDIA RTX 5060 Ti",
         "node_id": "workshop",
-        "observed_at": "2026-04-17T16:38:16.515543+00:00",
+        "observed_at": "2026-04-17T21:39:29.984123+00:00",
         "oldest_wait_seconds": 0,
         "owner_lane": "vision_worker_and_batch_creative_support",
         "projection_conflict": null,
@@ -3257,7 +3257,7 @@
       {
         "background_fill_gpu_slots": 0,
         "cpu_model": "Intel Core i7-13700K",
-        "freshness_seconds": 1899034,
+        "freshness_seconds": 1911291,
         "host": "DESK",
         "interactive_reserve_gpu_slots": 1,
         "interactive_reserve_preserved": true,
@@ -3274,13 +3274,13 @@
       {
         "background_fill_gpu_slots": 0,
         "cpu_model": "AMD Ryzen 9 9900X",
-        "freshness_seconds": 5837,
+        "freshness_seconds": 21,
         "host": "DEV",
         "interactive_reserve_gpu_slots": 1,
         "interactive_reserve_preserved": true,
         "node_id": "dev",
         "node_role": "runtime_authority_ops_center",
-        "observed_at": "2026-04-17T16:38:16.515543+00:00",
+        "observed_at": "2026-04-17T21:39:29.984123+00:00",
         "ram_gb": 64,
         "sample_source": "reports/truth-inventory/gpu-scheduler-baseline-eval.json",
         "sample_state": "live_projection",
@@ -3291,13 +3291,13 @@
       {
         "background_fill_gpu_slots": 4,
         "cpu_model": "AMD EPYC 7663",
-        "freshness_seconds": 5837,
+        "freshness_seconds": 21,
         "host": "FOUNDRY",
         "interactive_reserve_gpu_slots": 1,
         "interactive_reserve_preserved": true,
         "node_id": "foundry",
         "node_role": "heavy_compute",
-        "observed_at": "2026-04-17T16:38:16.515543+00:00",
+        "observed_at": "2026-04-17T21:39:29.984123+00:00",
         "ram_gb": 224,
         "sample_source": "reports/truth-inventory/gpu-scheduler-baseline-eval.json",
         "sample_state": "live_projection",
@@ -3308,13 +3308,13 @@
       {
         "background_fill_gpu_slots": 1,
         "cpu_model": "AMD Threadripper 7960X",
-        "freshness_seconds": 5837,
+        "freshness_seconds": 21,
         "host": "WORKSHOP",
         "interactive_reserve_gpu_slots": 1,
         "interactive_reserve_preserved": true,
         "node_id": "workshop",
         "node_role": "creative_compute",
-        "observed_at": "2026-04-17T16:38:16.515543+00:00",
+        "observed_at": "2026-04-17T21:39:29.984123+00:00",
         "ram_gb": 128,
         "sample_source": "reports/truth-inventory/gpu-scheduler-baseline-eval.json",
         "sample_state": "live_projection",
@@ -3325,7 +3325,7 @@
       {
         "background_fill_gpu_slots": 1,
         "cpu_model": "AMD Ryzen 9 9950X",
-        "freshness_seconds": 1987534,
+        "freshness_seconds": 1999791,
         "host": "VAULT",
         "interactive_reserve_gpu_slots": 0,
         "interactive_reserve_preserved": true,
@@ -3349,14 +3349,14 @@
         "harvest_intent": "support_lane_hold",
         "harvestable_gpu_count": 0,
         "idle_window_open": false,
-        "max_utilization_percent": 69,
+        "max_utilization_percent": 70,
         "member_gpu_ids": [
           "dev-rtx5060ti"
         ],
         "node_ids": [
           "dev"
         ],
-        "observed_at": "2026-04-17T16:38:16.515543+00:00",
+        "observed_at": "2026-04-17T21:39:29.984123+00:00",
         "projection_conflicts": [
           "shared_gpu_multiple_zones"
         ],
@@ -3382,7 +3382,7 @@
         "node_ids": [
           "foundry"
         ],
-        "observed_at": "2026-04-17T16:38:16.515543+00:00",
+        "observed_at": "2026-04-17T21:39:29.984123+00:00",
         "projection_conflicts": [],
         "queue_depth": 0,
         "sample_state": "live_projection",
@@ -3412,7 +3412,7 @@
         "node_ids": [
           "foundry"
         ],
-        "observed_at": "2026-04-17T16:38:16.515543+00:00",
+        "observed_at": "2026-04-17T21:39:29.984123+00:00",
         "projection_conflicts": [],
         "queue_depth": 0,
         "sample_state": "live_projection",
@@ -3436,7 +3436,7 @@
         "node_ids": [
           "workshop"
         ],
-        "observed_at": "2026-04-17T16:38:16.515543+00:00",
+        "observed_at": "2026-04-17T21:39:29.984123+00:00",
         "projection_conflicts": [],
         "queue_depth": 0,
         "sample_state": "live_projection",
@@ -3460,7 +3460,7 @@
         "node_ids": [
           "workshop"
         ],
-        "observed_at": "2026-04-17T16:38:16.515543+00:00",
+        "observed_at": "2026-04-17T21:39:29.984123+00:00",
         "projection_conflicts": [],
         "queue_depth": 0,
         "sample_state": "live_projection",
@@ -3559,7 +3559,7 @@
     ]
   },
   "governance_confidence": {
-    "generated_at": "2026-04-17T19:32:04.171251+00:00",
+    "generated_at": "2026-04-17T22:14:46.731261+00:00",
     "current_autonomy_phase": "full_system_phase_3",
     "freshness_window_days": 30,
     "overall_status": "healthy",
@@ -3616,7 +3616,7 @@
     ]
   },
   "turnover_readiness": {
-    "generated_at": "2026-04-17T19:32:04.172352+00:00",
+    "generated_at": "2026-04-17T22:14:46.732240+00:00",
     "current_mode": "devstack_primary_for_build_proving_and_shadow",
     "target_mode": "local_devstack_primary_for_low_touch_execution",
     "build_system_handoff_state": "active_now",
@@ -3645,11 +3645,11 @@
         "F",
         "W"
       ],
-      "observed_at": "2026-04-17T16:38:16.515543+00:00",
+      "observed_at": "2026-04-17T21:39:29.984123+00:00",
       "protected_reserve_slot_count": 2,
       "provisional_harvest_candidate_count": 1,
       "ready_for_harvest_now": true,
-      "sample_age_seconds": 5848,
+      "sample_age_seconds": 2082,
       "sample_posture": "scheduler_projection_backed",
       "scheduler_queue_depth": 0,
       "scheduler_slot_count": 5
@@ -3678,119 +3678,126 @@
       "dirty_file_threshold": 25
     },
     "autonomous_queue_count": 12,
-    "dispatchable_autonomous_queue_count": 12,
-    "top_dispatchable_autonomous_task_id": "burn_class:overnight_harvest",
-    "top_dispatchable_autonomous_task_title": "Overnight Harvest",
+    "dispatchable_autonomous_queue_count": 9,
+    "top_dispatchable_autonomous_task_id": "workstream:validation-and-publication",
+    "top_dispatchable_autonomous_task_title": "Validation and Publication",
     "automation_feedback_summary": {
-      "anti_spin_escalation": null,
-      "anti_spin_same_task_claims_12h": 1,
-      "anti_spin_same_task_claims_24h": 1,
-      "anti_spin_same_task_id": "burn_class:overnight_harvest",
-      "anti_spin_state": "clear",
+      "anti_spin_escalation": "redirect_or_require_review",
+      "anti_spin_same_task_claims_12h": 6,
+      "anti_spin_same_task_claims_24h": 6,
+      "anti_spin_same_task_id": "workstream:validation-and-publication",
+      "anti_spin_state": "spin_detected",
       "changed_last_run": false,
-      "consecutive_no_change_runs": 1,
+      "consecutive_no_change_runs": 2,
       "dispatch_last_outcome": "claimed",
-      "dispatch_last_success_at": null,
-      "failure_count": 2,
+      "dispatch_last_success_at": "1776462614.618750",
+      "failure_count": 1,
       "feedback_scope": "ralph_loop",
-      "feedback_state": "healthy",
+      "feedback_state": "spin_detected",
       "last_action_class": "autonomous_planning",
       "last_automation_id": "ralph-loop",
-      "last_failure_at": "1776444455.279654",
+      "last_failure_at": "1776462291.360664",
       "last_lane": "ralph_loop",
       "last_outcome": "success",
-      "last_real_delta_at": null,
-      "last_real_delta_task_id": null,
-      "last_recorded_at": "1776449745.133015",
-      "last_success_at": "1776449745.133015",
-      "recent_dispatch_outcome_count": 6,
+      "last_real_delta_at": "2026-04-17T21:50:14.618750+00:00",
+      "last_real_delta_task_id": "capability:protocol-first-builder-kernel",
+      "last_recorded_at": "1776464052.706180",
+      "last_success_at": "1776464052.706180",
+      "recent_dispatch_outcome_count": 7,
       "recent_dispatch_outcomes": [
         {
           "action_class": "autonomous_planning",
           "automation_id": "ralph-loop",
-          "completed_at": "1776449745.133015",
+          "completed_at": "1776464052.706180",
           "dispatch_outcome": "claimed",
           "lane": "ralph_loop",
           "subscription": null,
           "success": null,
-          "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim burn_class:overnight_harvest via already_dispatched.",
-          "task_id": "burn_class:overnight_harvest",
-          "task_title": "Overnight Harvest"
+          "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim workstream:validation-and-publication via already_dispatched.",
+          "task_id": "workstream:validation-and-publication",
+          "task_title": "Validation and Publication"
         },
         {
           "action_class": "autonomous_planning",
           "automation_id": "ralph-loop",
-          "completed_at": "1776444465.854562",
+          "completed_at": "1776463932.317271",
           "dispatch_outcome": "claimed",
           "lane": "ralph_loop",
           "subscription": null,
           "success": null,
-          "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim burn_class:local_bulk_sovereign via already_dispatched.",
-          "task_id": "burn_class:local_bulk_sovereign",
-          "task_title": "Local Bulk Sovereign"
+          "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim workstream:validation-and-publication via already_dispatched.",
+          "task_id": "workstream:validation-and-publication",
+          "task_title": "Validation and Publication"
         },
         {
           "action_class": "autonomous_planning",
           "automation_id": "ralph-loop",
-          "completed_at": "1776402602.681694",
-          "dispatch_outcome": "claimed",
+          "completed_at": "1776462614.618750",
+          "dispatch_outcome": "success",
           "lane": "ralph_loop",
           "subscription": null,
-          "success": null,
-          "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim deferred_family:audit-and-eval-artifacts via already_dispatched.",
-          "task_id": "deferred_family:audit-and-eval-artifacts",
-          "task_title": "Audit and Eval Artifacts"
+          "success": true,
+          "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim capability:protocol-first-builder-kernel via dispatched.",
+          "task_id": "capability:protocol-first-builder-kernel",
+          "task_title": "Protocol-First Builder Kernel"
         },
         {
           "action_class": "autonomous_planning",
           "automation_id": "ralph-loop",
-          "completed_at": "1776401905.065262",
+          "completed_at": "1776462501.880652",
           "dispatch_outcome": "claimed",
           "lane": "ralph_loop",
           "subscription": null,
           "success": null,
-          "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim deferred_family:operator-tooling-and-helper-surfaces via already_dispatched.",
-          "task_id": "deferred_family:operator-tooling-and-helper-surfaces",
-          "task_title": "Operator Tooling and Helper Surfaces"
+          "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim workstream:validation-and-publication via already_dispatched.",
+          "task_id": "workstream:validation-and-publication",
+          "task_title": "Validation and Publication"
         },
         {
           "action_class": "autonomous_planning",
           "automation_id": "ralph-loop",
-          "completed_at": "1776401492.104094",
+          "completed_at": "1776462373.693579",
           "dispatch_outcome": "claimed",
           "lane": "ralph_loop",
           "subscription": null,
           "success": null,
-          "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim deferred_family:reference-and-archive-prune via already_dispatched.",
-          "task_id": "deferred_family:reference-and-archive-prune",
-          "task_title": "Reference and Archive Prune"
+          "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim workstream:validation-and-publication via already_dispatched.",
+          "task_id": "workstream:validation-and-publication",
+          "task_title": "Validation and Publication"
         },
         {
           "action_class": "autonomous_planning",
           "automation_id": "ralph-loop",
-          "completed_at": "1776399767.019918",
+          "completed_at": "1776462181.065264",
           "dispatch_outcome": "claimed",
           "lane": "ralph_loop",
           "subscription": null,
           "success": null,
-          "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim workstream:capacity-and-harvest-truth via already_dispatched.",
-          "task_id": "workstream:capacity-and-harvest-truth",
-          "task_title": "Capacity and Harvest Truth"
+          "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim workstream:validation-and-publication via already_dispatched.",
+          "task_id": "workstream:validation-and-publication",
+          "task_title": "Validation and Publication"
+        },
+        {
+          "action_class": "autonomous_planning",
+          "automation_id": "ralph-loop",
+          "completed_at": "1776462180.361403",
+          "dispatch_outcome": "claimed",
+          "lane": "ralph_loop",
+          "subscription": null,
+          "success": null,
+          "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim workstream:validation-and-publication via already_dispatched.",
+          "task_id": "workstream:validation-and-publication",
+          "task_title": "Validation and Publication"
         }
       ],
       "recent_no_delta_task_ids": [
-        "burn_class:overnight_harvest",
-        "burn_class:local_bulk_sovereign",
-        "deferred_family:audit-and-eval-artifacts",
-        "deferred_family:operator-tooling-and-helper-surfaces",
-        "deferred_family:reference-and-archive-prune",
-        "workstream:capacity-and-harvest-truth"
+        "workstream:validation-and-publication"
       ],
       "recent_run_count": 8,
-      "recognized_run_count": 8,
+      "recognized_run_count": 7,
       "source_stream": "athanor:automation:runs",
       "success_count": 6,
-      "unknown_count": 0
+      "unknown_count": 1
     },
     "checkpoint_slices": [
       {
@@ -4193,32 +4200,13 @@
       "governance_posture": "healthy",
       "router_shadow_phase": 1,
       "turnover_capability_count": 2,
-      "packet_ready_count": 1,
+      "packet_ready_count": 0,
       "blocked_packet_count": 0,
       "top_missing_proof": null,
       "checkpoint_slice_count": 6
     }
   },
   "recommendations": [
-    {
-      "recommendation_id": "best-next-implementation-wave",
-      "subject": "protocol-first-builder-kernel",
-      "summary": "Finish the highest-priority ready-for-review lane first.",
-      "reason": "operator_review_release_tier_progression",
-      "evidence_refs": [
-        "C:/athanor-devstack/configs/devstack-capability-lane-registry.json",
-        "C:/athanor-devstack/docs/promotion-packets/protocol-first-builder-kernel.md"
-      ]
-    },
-    {
-      "recommendation_id": "best-next-promotion-candidate",
-      "subject": "protocol-first-builder-kernel",
-      "summary": "Use the same lane as the immediate promotion candidate.",
-      "reason": "It is already marked ready_for_review and outranks other ready lanes by priority.",
-      "evidence_refs": [
-        "C:/athanor-devstack/configs/devstack-capability-lane-registry.json"
-      ]
-    },
     {
       "recommendation_id": "best-local-hardware-use-right-now",
       "subject": "foundry-bulk-harvest",
@@ -4251,7 +4239,7 @@
   ],
   "quota_truth": {
     "default_timezone": "America/Chicago",
-    "generated_at": "2026-04-17T18:15:34.618509+00:00",
+    "generated_at": "2026-04-17T21:39:51.752380+00:00",
     "records": [
       {
         "budget_remaining_usd": null,
@@ -4261,15 +4249,15 @@
         "evidence_source": "subscription-burn state",
         "family_id": "claude_max",
         "harvest_priority": "normal",
-        "last_observed_at": "2026-04-17T18:15:34.618509+00:00",
-        "next_reset_at": "2026-04-17T23:15:34.618505+00:00",
+        "last_observed_at": "2026-04-17T21:39:51.752380+00:00",
+        "next_reset_at": "2026-04-18T02:39:51.752376+00:00",
         "pricing_status": "official_verified",
         "product_id": "claude_max",
         "provider_id": "anthropic_claude_code",
         "remaining_units": 1,
         "reserve_floor": {},
         "running": false,
-        "stale_after": "2026-04-18T00:15:34.618509+00:00",
+        "stale_after": "2026-04-18T03:39:51.752380+00:00",
         "usage_mode": "subscription",
         "window_type": "rolling_window"
       },
@@ -4281,7 +4269,7 @@
         "evidence_source": "subscription-burn state",
         "family_id": "chatgpt_pro",
         "harvest_priority": "normal",
-        "last_observed_at": "2026-04-17T18:15:34.618509+00:00",
+        "last_observed_at": "2026-04-17T21:39:51.752380+00:00",
         "next_reset_at": "2026-04-18T05:00:00+00:00",
         "pricing_status": "official_verified",
         "product_id": "chatgpt_pro",
@@ -4289,7 +4277,7 @@
         "remaining_units": 200,
         "reserve_floor": {},
         "running": false,
-        "stale_after": "2026-04-18T00:15:34.618509+00:00",
+        "stale_after": "2026-04-18T03:39:51.752380+00:00",
         "usage_mode": "subscription",
         "window_type": "daily_reset"
       },
@@ -4301,7 +4289,7 @@
         "evidence_source": "subscription-burn state",
         "family_id": "gemini_advanced",
         "harvest_priority": "normal",
-        "last_observed_at": "2026-04-17T18:15:34.618509+00:00",
+        "last_observed_at": "2026-04-17T21:39:51.752380+00:00",
         "next_reset_at": "2026-04-18T05:00:00+00:00",
         "pricing_status": "official_verified",
         "product_id": "gemini_advanced",
@@ -4309,7 +4297,7 @@
         "remaining_units": 100,
         "reserve_floor": {},
         "running": false,
-        "stale_after": "2026-04-18T00:15:34.618509+00:00",
+        "stale_after": "2026-04-18T03:39:51.752380+00:00",
         "usage_mode": "subscription",
         "window_type": "daily_reset"
       },
@@ -4321,15 +4309,15 @@
         "evidence_source": "subscription-burn state",
         "family_id": "kimi_allegretto",
         "harvest_priority": "normal",
-        "last_observed_at": "2026-04-17T18:15:34.618509+00:00",
-        "next_reset_at": "2026-04-17T23:15:34.618505+00:00",
+        "last_observed_at": "2026-04-17T21:39:51.752380+00:00",
+        "next_reset_at": "2026-04-18T02:39:51.752376+00:00",
         "pricing_status": "official-source-present-cost-unverified",
         "product_id": "kimi_allegretto",
         "provider_id": "moonshot_kimi",
         "remaining_units": 30,
         "reserve_floor": {},
         "running": false,
-        "stale_after": "2026-04-18T00:15:34.618509+00:00",
+        "stale_after": "2026-04-18T03:39:51.752380+00:00",
         "usage_mode": "subscription",
         "window_type": "rolling_window"
       },
@@ -4407,7 +4395,7 @@
           "value": 0.0
         },
         "running": false,
-        "stale_after": "2026-04-17T19:15:34.618509+00:00",
+        "stale_after": "2026-04-17T22:39:51.752380+00:00",
         "usage_mode": "metered_api",
         "window_type": "daily_budget"
       },
@@ -4431,7 +4419,7 @@
           "value": 0.0
         },
         "running": false,
-        "stale_after": "2026-04-17T19:15:34.618509+00:00",
+        "stale_after": "2026-04-17T22:39:51.752380+00:00",
         "usage_mode": "metered_api",
         "window_type": "daily_budget"
       },
@@ -4467,7 +4455,7 @@
           ],
           "sample_posture": "scheduler_projection_backed",
           "scheduler_active_transitions": 0,
-          "scheduler_observed_at": "2026-04-17T16:38:16.515543+00:00",
+          "scheduler_observed_at": "2026-04-17T21:39:29.984123+00:00",
           "scheduler_queue_depth": 0,
           "scheduler_slot_count": 5,
           "scheduler_slot_samples": [
@@ -4485,7 +4473,7 @@
               "node_ids": [
                 "dev"
               ],
-              "observed_at": "2026-04-17T16:38:16.515543+00:00",
+              "observed_at": "2026-04-17T21:39:29.984123+00:00",
               "projection_conflict": "shared_gpu_multiple_zones",
               "projection_conflicts": [
                 "shared_gpu_multiple_zones"
@@ -4496,7 +4484,7 @@
               "scheduler_state": "ACTIVE",
               "scheduler_zone_id": "D",
               "slot_target_id": "dev-shared-support",
-              "utilization_percent": 69
+              "utilization_percent": 70
             },
             {
               "admissible_gpu_ids": [],
@@ -4512,7 +4500,7 @@
               "node_ids": [
                 "foundry"
               ],
-              "observed_at": "2026-04-17T16:38:16.515543+00:00",
+              "observed_at": "2026-04-17T21:39:29.984123+00:00",
               "projection_conflict": null,
               "projection_conflicts": [],
               "queue_depth": 0,
@@ -4543,7 +4531,7 @@
               "node_ids": [
                 "foundry"
               ],
-              "observed_at": "2026-04-17T16:38:16.515543+00:00",
+              "observed_at": "2026-04-17T21:39:29.984123+00:00",
               "projection_conflict": null,
               "projection_conflicts": [],
               "queue_depth": 0,
@@ -4568,7 +4556,7 @@
               "node_ids": [
                 "workshop"
               ],
-              "observed_at": "2026-04-17T16:38:16.515543+00:00",
+              "observed_at": "2026-04-17T21:39:29.984123+00:00",
               "projection_conflict": null,
               "projection_conflicts": [],
               "queue_depth": 0,
@@ -4593,7 +4581,7 @@
               "node_ids": [
                 "workshop"
               ],
-              "observed_at": "2026-04-17T16:38:16.515543+00:00",
+              "observed_at": "2026-04-17T21:39:29.984123+00:00",
               "projection_conflict": null,
               "projection_conflicts": [],
               "queue_depth": 0,
@@ -4613,7 +4601,7 @@
         "evidence_source": "reports/truth-inventory/capacity-telemetry.json",
         "family_id": "athanor_local_compute",
         "harvest_priority": "protect_reserve_then_harvest",
-        "last_observed_at": "2026-04-17T18:15:34.101387+00:00",
+        "last_observed_at": "2026-04-17T21:39:51.295991+00:00",
         "next_reset_at": null,
         "pricing_status": "sunk_cost",
         "product_id": "athanor_local_compute",
@@ -4624,7 +4612,7 @@
           "value": "protect_reserve_then_harvest"
         },
         "running": false,
-        "stale_after": "2026-04-17T18:17:34.618509+00:00",
+        "stale_after": "2026-04-17T21:41:51.752380+00:00",
         "usage_mode": "local_compute",
         "window_type": "continuous_capacity"
       }
@@ -5476,23 +5464,24 @@
           "config/automation-backbone/failure-routing-matrix.json",
           "docs/operations/ATHANOR-OPERATING-SYSTEM.md"
         ],
-        "authority_class": "build_system",
+        "authority_class": "adopted_system",
         "data_handling_profile_id": "cloud_safe",
         "id": "protocol-first-builder-kernel",
         "label": "Protocol-First Builder Kernel",
         "landing_project": "config/automation-backbone",
         "next_release_tier_on_green": "shadow",
         "notes": [
-          "This capability describes target Athanor behavior while remaining devstack-owned until adoption proof is complete.",
-          "The first proof step is a bounded route slice rather than a broad control-plane rewrite.",
+          "This capability is now a shadow-adopted Athanor control-plane boundary while devstack remains the proving lane for future builder deltas.",
+          "The first proof step was a bounded route slice rather than a broad control-plane rewrite.",
           "The 2026-04-17 bounded live smoke proved builder:codex:direct_cli end to end with approval gating, a resumable handle, structured result transport, and passing verification.",
           "Builder-generated `.codex` residue is scrubbed from user-facing changed-file accounting before the final ResultPacket is published.",
           "The 2026-04-17 formal builder eval proved the direct builder route with TSC-backed verification, fail-closed negative routing, coherent operator projections, and explicit non-takeover bootstrap posture.",
-          "The governed runtime path for live builder-front-door rollout is the existing dev-dashboard-compose lane and dev-dashboard-compose-deploy-packet; no builder-specific runtime packet is required yet."
+          "The 2026-04-17 shadow adoption closes operator packet review for the bounded builder front door without advancing runtime rollout beyond linked_not_live.",
+          "The governed runtime path for later live builder-front-door rollout remains the existing dev-dashboard-compose lane and dev-dashboard-compose-deploy-packet; no builder-specific runtime packet is required yet."
         ],
         "owner": "shaun",
         "pilot_blocker_class": null,
-        "promotion_packet_id": "pending-protocol-first-builder-kernel",
+        "promotion_packet_id": "protocol-first-builder-kernel-promotion-packet",
         "proof_artifacts": [
           "C:/athanor-devstack/docs/DEVSTACK-BUILDER-ARCHITECTURE-BRIEF.md",
           "C:/athanor-devstack/configs/devstack-builder-adapter-routing-matrix.json",
@@ -5517,9 +5506,9 @@
           "C:/athanor-devstack/docs/promotion-packets/protocol-first-builder-kernel.md"
         ],
         "source_lane_id": "protocol-first-builder-kernel",
-        "source_packet_id": "pending-protocol-first-builder-kernel",
+        "source_packet_id": "protocol-first-builder-kernel-promotion-packet",
         "source_repo": "C:/athanor-devstack",
-        "stage": "proved"
+        "stage": "adopted"
       },
       {
         "acceptance_criteria": [
@@ -5669,8 +5658,8 @@
     "promotion_contract": "promotion_packet",
     "source_of_truth": "config/automation-backbone/capability-adoption-registry.json",
     "status": "active",
-    "updated_at": "2026-04-17T19:16:07.754081+00:00",
-    "version": "2026-04-15.1"
+    "updated_at": "2026-04-17T22:30:00Z",
+    "version": "2026-04-17.2"
   },
   "capability_pilot_readiness": {
     "generated_at": "2026-04-16T15:11:19.861884+00:00",
@@ -6787,8 +6776,8 @@
     "version": "2026-04-11.4"
   },
   "lane_selection_matrix": {
-    "version": "2026-04-11.2",
-    "updated_at": "2026-04-11T17:05:00-05:00",
+    "version": "2026-04-17.1",
+    "updated_at": "2026-04-17T17:18:00-05:00",
     "status": "active",
     "source_of_truth": "config/automation-backbone/lane-selection-matrix.json",
     "shadow_rollout": {
@@ -6879,7 +6868,16 @@
           "deepseek_cloudsafe_bulk",
           "kimi_constrained_burst"
         ],
-        "selection_reason": "Prefer premium implementation quality first, then fall back to sovereign local coding when privacy or reserve posture requires it."
+        "selection_reason": "Prefer the adopted bounded builder front door first: Codex direct CLI in an isolated repo worktree with explicit approval and verification, then fall back to sovereign local coding when privacy or reserve posture requires it.",
+        "builder_route_contract": {
+          "route_id": "builder:codex:direct_cli",
+          "activation_state": "live_ready",
+          "adoption_state": "shadow_adopted",
+          "workspace_mode": "repo_worktree",
+          "needs_github": false,
+          "approval_gate": "operator_approval_required_before_worktree_mutation",
+          "verification_profile": "targeted_tests_and_diff_review"
+        }
       },
       {
         "task_class": "architecture_review",
@@ -7064,8 +7062,8 @@
     }
   },
   "failure_routing_matrix": {
-    "version": "2026-04-11.1",
-    "updated_at": "2026-04-11T09:00:00-05:00",
+    "version": "2026-04-17.1",
+    "updated_at": "2026-04-17T17:18:00-05:00",
     "status": "active",
     "source_of_truth": "config/automation-backbone/failure-routing-matrix.json",
     "alert_thresholds": {
@@ -7074,13 +7072,15 @@
         "degraded_mode_active",
         "protected_reserve_breached",
         "collector_stale_beyond_hard_threshold",
-        "privacy_legal_route_conflict"
+        "privacy_legal_route_conflict",
+        "builder_policy_conflict"
       ],
       "warning": [
         "family_below_reserve_floor_plus_ten_percent",
         "eval_freshness_within_three_days_of_expiry",
         "queue_saturation_on_harvest_lanes",
-        "glm_or_kimi_doc_vs_observed_contract_mismatch"
+        "glm_or_kimi_doc_vs_observed_contract_mismatch",
+        "builder_verification_failed"
       ],
       "info": [
         "quota_window_opening",
@@ -7188,6 +7188,36 @@
         ],
         "operator_surface": "dashboard_operator_stream",
         "recovery_gate": "degraded_mode_cleared"
+      },
+      {
+        "failure_class": "builder_verification_failed",
+        "affected_family": "builder_codex_direct_cli",
+        "sensitivity_scope": "private_but_cloud_allowed",
+        "allowed_fallbacks": [
+          "claude_code_rescue",
+          "sovereign_coder",
+          "manual_operator_review"
+        ],
+        "blocked_workloads": [
+          "automatic_success_promotion"
+        ],
+        "operator_surface": "dashboard_operator_stream",
+        "recovery_gate": "builder_verification_green_or_operator_override"
+      },
+      {
+        "failure_class": "builder_policy_conflict",
+        "affected_family": "builder_front_door",
+        "sensitivity_scope": "mixed",
+        "allowed_fallbacks": [
+          "sovereign_coder",
+          "external_bootstrap_builder",
+          "manual_operator_review"
+        ],
+        "blocked_workloads": [
+          "cloud_builder_mutation_for_disallowed_scope"
+        ],
+        "operator_surface": "dashboard_operator_stream",
+        "recovery_gate": "route_policy_conformance_restored"
       }
     ]
   },
@@ -9119,7 +9149,7 @@
       },
       "degraded": true,
       "degraded_failure_class": "quota_exhausted",
-      "selection_reason": "Prefer premium implementation quality first, then fall back to sovereign local coding when privacy or reserve posture requires it."
+      "selection_reason": "Prefer the adopted bounded builder front door first: Codex direct CLI in an isolated repo worktree with explicit approval and verification, then fall back to sovereign local coding when privacy or reserve posture requires it."
     },
     {
       "task_class": "architecture_review",
@@ -9249,7 +9279,7 @@
     }
   ],
   "router_shadow_summary": {
-    "generated_at": "2026-04-17T19:32:04.172243+00:00",
+    "generated_at": "2026-04-17T22:14:46.732145+00:00",
     "phase": 1,
     "phase_label": "router_shadow_mode",
     "shadow_disagreement_rate": 0.0,
@@ -9259,11 +9289,11 @@
     "ready_for_phase_2": true
   },
   "routing_decisions_latest": {
-    "generated_at": "2026-04-17T19:32:04.172443+00:00",
+    "generated_at": "2026-04-17T22:14:46.732326+00:00",
     "alert_state": "warning",
     "active_override_count": 0,
     "quota_posture": {
-      "generated_at": "2026-04-17T19:32:04.172425+00:00",
+      "generated_at": "2026-04-17T22:14:46.732311+00:00",
       "quota_posture": "max_burn_with_thin_reserve",
       "respect_vendor_policy_before_harvest": true,
       "other_metered_disabled_for_auto_harvest_by_default": true,
@@ -9316,7 +9346,7 @@
       }
     },
     "router_shadow_summary": {
-      "generated_at": "2026-04-17T19:32:04.172243+00:00",
+      "generated_at": "2026-04-17T22:14:46.732145+00:00",
       "phase": 1,
       "phase_label": "router_shadow_mode",
       "shadow_disagreement_rate": 0.0,
@@ -9360,7 +9390,7 @@
         },
         "degraded": true,
         "degraded_failure_class": "quota_exhausted",
-        "selection_reason": "Prefer premium implementation quality first, then fall back to sovereign local coding when privacy or reserve posture requires it."
+        "selection_reason": "Prefer the adopted bounded builder front door first: Codex direct CLI in an isolated repo worktree with explicit approval and verification, then fall back to sovereign local coding when privacy or reserve posture requires it."
       },
       {
         "task_class": "architecture_review",
@@ -9491,7 +9521,7 @@
     ],
     "safe_surface_summary": {
       "last_outcome": "idle",
-      "last_success_at": "2026-04-17T08:11:46.245Z",
+      "last_success_at": "2026-04-17T20:26:41.082Z",
       "current_task_id": null,
       "on_deck_task_id": "watch-refresh-foundry-remote-verification-baseline",
       "queue_count": 27,
@@ -9502,13 +9532,13 @@
       "top_dispatchable_task_id": null,
       "top_dispatchable_title": null,
       "governed_dispatch_status": "claimed",
-      "governed_current_task_id": "burn_class:overnight_harvest",
-      "governed_on_deck_task_id": "burn_class:cheap_bulk_cloud"
+      "governed_current_task_id": "workstream:validation-and-publication",
+      "governed_on_deck_task_id": null
     }
   },
   "safe_surface_summary": {
     "last_outcome": "idle",
-    "last_success_at": "2026-04-17T08:11:46.245Z",
+    "last_success_at": "2026-04-17T20:26:41.082Z",
     "current_task_id": null,
     "on_deck_task_id": "watch-refresh-foundry-remote-verification-baseline",
     "queue_count": 27,
@@ -9519,193 +9549,171 @@
     "top_dispatchable_task_id": null,
     "top_dispatchable_title": null,
     "governed_dispatch_status": "claimed",
-    "governed_current_task_id": "burn_class:overnight_harvest",
-    "governed_on_deck_task_id": "burn_class:cheap_bulk_cloud"
+    "governed_current_task_id": "workstream:validation-and-publication",
+    "governed_on_deck_task_id": null
   },
   "autonomous_queue_summary": {
     "queue_count": 12,
-    "dispatchable_queue_count": 12,
-    "blocked_queue_count": 0,
-    "top_dispatchable_task_id": "burn_class:overnight_harvest",
-    "top_dispatchable_title": "Overnight Harvest",
-    "top_dispatchable_value_class": "capacity_truth_drift",
-    "top_dispatchable_lane_family": "capacity_truth_repair",
+    "dispatchable_queue_count": 9,
+    "blocked_queue_count": 3,
+    "top_dispatchable_task_id": "workstream:validation-and-publication",
+    "top_dispatchable_title": "Validation and Publication",
+    "top_dispatchable_value_class": "failing_eval_or_validator",
+    "top_dispatchable_lane_family": "validation_and_checkpoint",
     "last_outcome": "claimed",
-    "last_success_at": null,
-    "recent_dispatch_outcome_count": 6,
+    "last_success_at": "1776462614.618750",
+    "recent_dispatch_outcome_count": 7,
     "recent_dispatch_outcomes": [
       {
         "action_class": "autonomous_planning",
         "automation_id": "ralph-loop",
-        "completed_at": "1776449745.133015",
+        "completed_at": "1776464052.706180",
         "dispatch_outcome": "claimed",
         "lane": "ralph_loop",
         "subscription": null,
         "success": null,
-        "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim burn_class:overnight_harvest via already_dispatched.",
-        "task_id": "burn_class:overnight_harvest",
-        "task_title": "Overnight Harvest"
+        "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim workstream:validation-and-publication via already_dispatched.",
+        "task_id": "workstream:validation-and-publication",
+        "task_title": "Validation and Publication"
       },
       {
         "action_class": "autonomous_planning",
         "automation_id": "ralph-loop",
-        "completed_at": "1776444465.854562",
+        "completed_at": "1776463932.317271",
         "dispatch_outcome": "claimed",
         "lane": "ralph_loop",
         "subscription": null,
         "success": null,
-        "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim burn_class:local_bulk_sovereign via already_dispatched.",
-        "task_id": "burn_class:local_bulk_sovereign",
-        "task_title": "Local Bulk Sovereign"
+        "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim workstream:validation-and-publication via already_dispatched.",
+        "task_id": "workstream:validation-and-publication",
+        "task_title": "Validation and Publication"
       },
       {
         "action_class": "autonomous_planning",
         "automation_id": "ralph-loop",
-        "completed_at": "1776402602.681694",
-        "dispatch_outcome": "claimed",
+        "completed_at": "1776462614.618750",
+        "dispatch_outcome": "success",
         "lane": "ralph_loop",
         "subscription": null,
-        "success": null,
-        "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim deferred_family:audit-and-eval-artifacts via already_dispatched.",
-        "task_id": "deferred_family:audit-and-eval-artifacts",
-        "task_title": "Audit and Eval Artifacts"
+        "success": true,
+        "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim capability:protocol-first-builder-kernel via dispatched.",
+        "task_id": "capability:protocol-first-builder-kernel",
+        "task_title": "Protocol-First Builder Kernel"
       },
       {
         "action_class": "autonomous_planning",
         "automation_id": "ralph-loop",
-        "completed_at": "1776401905.065262",
+        "completed_at": "1776462501.880652",
         "dispatch_outcome": "claimed",
         "lane": "ralph_loop",
         "subscription": null,
         "success": null,
-        "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim deferred_family:operator-tooling-and-helper-surfaces via already_dispatched.",
-        "task_id": "deferred_family:operator-tooling-and-helper-surfaces",
-        "task_title": "Operator Tooling and Helper Surfaces"
+        "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim workstream:validation-and-publication via already_dispatched.",
+        "task_id": "workstream:validation-and-publication",
+        "task_title": "Validation and Publication"
       },
       {
         "action_class": "autonomous_planning",
         "automation_id": "ralph-loop",
-        "completed_at": "1776401492.104094",
+        "completed_at": "1776462373.693579",
         "dispatch_outcome": "claimed",
         "lane": "ralph_loop",
         "subscription": null,
         "success": null,
-        "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim deferred_family:reference-and-archive-prune via already_dispatched.",
-        "task_id": "deferred_family:reference-and-archive-prune",
-        "task_title": "Reference and Archive Prune"
+        "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim workstream:validation-and-publication via already_dispatched.",
+        "task_id": "workstream:validation-and-publication",
+        "task_title": "Validation and Publication"
       },
       {
         "action_class": "autonomous_planning",
         "automation_id": "ralph-loop",
-        "completed_at": "1776399767.019918",
+        "completed_at": "1776462181.065264",
         "dispatch_outcome": "claimed",
         "lane": "ralph_loop",
         "subscription": null,
         "success": null,
-        "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim workstream:capacity-and-harvest-truth via already_dispatched.",
-        "task_id": "workstream:capacity-and-harvest-truth",
-        "task_title": "Capacity and Harvest Truth"
+        "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim workstream:validation-and-publication via already_dispatched.",
+        "task_id": "workstream:validation-and-publication",
+        "task_title": "Validation and Publication"
+      },
+      {
+        "action_class": "autonomous_planning",
+        "automation_id": "ralph-loop",
+        "completed_at": "1776462180.361403",
+        "dispatch_outcome": "claimed",
+        "lane": "ralph_loop",
+        "subscription": null,
+        "success": null,
+        "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim workstream:validation-and-publication via already_dispatched.",
+        "task_id": "workstream:validation-and-publication",
+        "task_title": "Validation and Publication"
       }
     ],
     "governed_dispatch_claim": {
+      "anti_spin_state": "spin_detected",
       "approved_actions": [
-        "bounded_cloud_safe_backlog",
-        "branch_bounded_devstack_proof",
-        "safe_surface_repo_task",
-        "eval_run",
-        "static_analysis",
-        "deterministic_refactor",
-        "non_destructive_batch_transform"
+        "discovery",
+        "telemetry_collection",
+        "drift_check",
+        "queue_refresh",
+        "report_generation",
+        "dry_run_planning"
       ],
-      "approved_mutation_class": "auto_harvest",
+      "approved_mutation_class": "auto_read_only",
       "approved_mutation_classes": [
         "auto_harvest",
         "auto_read_only"
       ],
-      "approved_mutation_label": "Auto harvest",
+      "approved_mutation_label": "Auto read only",
       "blocking_reason": null,
-      "capacity_signal": {
-        "harvestable_by_slot": {
-          "F:TP4": 4,
-          "W:1": 1
-        },
-        "harvestable_by_zone": {
-          "F": 4,
-          "W": 1
-        },
-        "harvestable_scheduler_slot_count": 2,
-        "harvestable_zone_ids": [
-          "F",
-          "W"
-        ],
-        "idle_harvest_slots_open": true,
-        "observed_at": "2026-04-17T16:38:16.515543+00:00",
-        "open_harvest_slot_ids": [
-          "F:TP4",
-          "W:1"
-        ],
-        "open_harvest_slot_target_ids": [
-          "foundry-bulk-pool",
-          "workshop-batch-support"
-        ],
-        "present": true,
-        "protected_reserve_slot_count": 2,
-        "provisional_harvest_candidate_count": 1,
-        "provisional_harvestable_by_node": {
-          "vault": 1
-        },
-        "remaining_units": 5,
-        "sample_posture": "scheduler_projection_backed",
-        "scheduler_observed_at": "2026-04-17T16:38:16.515543+00:00",
-        "scheduler_queue_depth": 0,
-        "scheduler_slot_count": 5,
-        "slot_pressure_state": "open_harvest_window",
-        "stale_after": "2026-04-17T16:40:17.032665+00:00"
-      },
-      "claim_id": "ralph-claim-20260417T181534942125+0000-burn_class-overnight_harvest",
+      "capacity_signal": {},
+      "claim_id": "ralph-claim-20260417T221210286830+0000-workstream-validation-and-publication",
       "claim_rotation_reason": "recent_no_delta_suppressed",
-      "claim_rotation_source_task_id": "burn_class:overnight_harvest",
+      "claim_rotation_source_task_id": "workstream:validation-and-publication",
       "claim_source": "reports/ralph-loop/latest.json#ranked_autonomous_queue",
-      "claimed_at": "2026-04-17T18:15:34.942125+00:00",
-      "closure_rule": "Keep burn class overnight_harvest on an eligible routed lane and record ordinary execution evidence.",
-      "current_lane_family": "capacity_truth_repair",
+      "claimed_at": "2026-04-17T22:12:10.286830+00:00",
+      "closure_rule": "Advance validation-and-publication until validation_and_checkpoint is no longer leading.",
+      "current_lane_family": "validation_and_checkpoint",
       "current_repo": "/mnt/c/Athanor",
-      "current_source_type": "burn_class",
-      "current_task_id": "burn_class:overnight_harvest",
-      "current_task_title": "Overnight Harvest",
-      "current_workstream_id": null,
+      "current_source_type": "workstream",
+      "current_task_id": "workstream:validation-and-publication",
+      "current_task_title": "Validation and Publication",
+      "current_workstream_id": "validation-and-publication",
       "dispatch_outcome": "claimed",
-      "eligible_queue_count": 5,
+      "eligible_queue_count": 1,
       "fallback_lane_family": "operator_follow_through",
-      "no_delta_evidence_refs": [],
-      "observed_at": "2026-04-17T18:15:34.942125+00:00",
-      "on_deck_lane_family": "dispatch_truth_repair",
-      "on_deck_task_id": "burn_class:cheap_bulk_cloud",
-      "on_deck_task_title": "Cheap Bulk Cloud",
-      "preferred_lane_family": "capacity_truth_repair",
-      "proof_command_or_eval_surface": "reports/truth-inventory/capacity-telemetry.json",
-      "reopen_reason_scope": null,
+      "no_delta_evidence_refs": [
+        "reports/truth-inventory/latest.json",
+        "audit/automation/contract-healer-latest.json",
+        "docs/operations/ATHANOR-TOTAL-COMPLETION-PROGRAM.md"
+      ],
+      "observed_at": "2026-04-17T22:14:10.622978+00:00",
+      "on_deck_lane_family": null,
+      "on_deck_task_id": null,
+      "on_deck_task_title": null,
+      "preferred_lane_family": "validation_and_checkpoint",
+      "proof_command_or_eval_surface": "/usr/bin/python3 scripts/validate_platform_contract.py",
+      "reopen_reason_scope": "material_repo_delta_any",
       "repo_side_no_delta": false,
       "risk_class": "low",
       "rotation_ready": false,
       "status": "claimed",
-      "value_class": "capacity_truth_drift"
+      "value_class": "failing_eval_or_validator"
     }
   },
   "governed_dispatch_state": {
     "advisory_blockers": [],
     "approved_actions": [
-      "bounded_cloud_safe_backlog",
-      "branch_bounded_devstack_proof",
-      "safe_surface_repo_task",
-      "eval_run",
-      "static_analysis",
-      "deterministic_refactor",
-      "non_destructive_batch_transform"
+      "discovery",
+      "telemetry_collection",
+      "drift_check",
+      "queue_refresh",
+      "report_generation",
+      "dry_run_planning"
     ],
-    "approved_mutation_class": "auto_harvest",
-    "approved_mutation_label": "Auto harvest",
-    "blocked_queue_count": 0,
+    "approved_mutation_class": "auto_read_only",
+    "approved_mutation_label": "Auto read only",
+    "blocked_queue_count": 3,
     "blocking_reason": null,
     "capacity_harvest_summary": {
       "admission_state": "open_harvest_window",
@@ -9715,78 +9723,41 @@
         "F",
         "W"
       ],
-      "observed_at": "2026-04-17T16:38:16.515543+00:00",
+      "observed_at": "2026-04-17T21:39:29.984123+00:00",
       "protected_reserve_slot_count": 2,
       "provisional_harvest_candidate_count": 1,
       "ready_for_harvest_now": true,
-      "sample_age_seconds": 5848,
+      "sample_age_seconds": 2082,
       "sample_posture": "scheduler_projection_backed",
       "scheduler_queue_depth": 0,
       "scheduler_slot_count": 5
     },
-    "capacity_signal": {
-      "harvestable_by_slot": {
-        "F:TP4": 4,
-        "W:1": 1
-      },
-      "harvestable_by_zone": {
-        "F": 4,
-        "W": 1
-      },
-      "harvestable_scheduler_slot_count": 2,
-      "harvestable_zone_ids": [
-        "F",
-        "W"
-      ],
-      "idle_harvest_slots_open": true,
-      "observed_at": "2026-04-17T16:38:16.515543+00:00",
-      "open_harvest_slot_ids": [
-        "F:TP4",
-        "W:1"
-      ],
-      "open_harvest_slot_target_ids": [
-        "foundry-bulk-pool",
-        "workshop-batch-support"
-      ],
-      "present": true,
-      "protected_reserve_slot_count": 2,
-      "provisional_harvest_candidate_count": 1,
-      "provisional_harvestable_by_node": {
-        "vault": 1
-      },
-      "remaining_units": 5,
-      "sample_posture": "scheduler_projection_backed",
-      "scheduler_observed_at": "2026-04-17T16:38:16.515543+00:00",
-      "scheduler_queue_depth": 0,
-      "scheduler_slot_count": 5,
-      "slot_pressure_state": "open_harvest_window",
-      "stale_after": "2026-04-17T16:40:17.032665+00:00"
-    },
-    "claim_id": "ralph-claim-20260417T181534942125+0000-burn_class-overnight_harvest",
+    "capacity_signal": {},
+    "claim_id": "ralph-claim-20260417T221210286830+0000-workstream-validation-and-publication",
     "claim_source": "reports/ralph-loop/latest.json#ranked_autonomous_queue",
-    "claimed_at": "2026-04-17T18:15:34.942125+00:00",
-    "closure_rule": "Keep burn class overnight_harvest on an eligible routed lane and record ordinary execution evidence.",
+    "claimed_at": "2026-04-17T22:12:10.286830+00:00",
+    "closure_rule": "Advance validation-and-publication until validation_and_checkpoint is no longer leading.",
     "current_repo": "/mnt/c/Athanor",
-    "current_source_type": "burn_class",
-    "current_task_id": "burn_class:overnight_harvest",
-    "current_task_title": "Overnight Harvest",
-    "current_workstream_id": null,
+    "current_source_type": "workstream",
+    "current_task_id": "workstream:validation-and-publication",
+    "current_task_title": "Validation and Publication",
+    "current_workstream_id": "validation-and-publication",
     "dispatch_outcome": "claimed",
     "dispatch_phase_label": "governed_dispatch_shadow",
-    "dispatchable_queue_count": 5,
-    "eligible_queue_count": 5,
+    "dispatchable_queue_count": 1,
+    "eligible_queue_count": 1,
     "execution": {
       "agent_server_base_url": "http://192.168.1.244:9000",
-      "backlog_id": "backlog-c40b0536",
+      "backlog_id": "backlog-ef8165ca",
       "backlog_status": "scheduled",
-      "claim_id": "ralph-claim-20260417T181534942125+0000-burn_class-overnight_harvest",
-      "current_task_id": "burn_class:overnight_harvest",
-      "current_task_title": "Overnight Harvest",
+      "claim_id": "ralph-claim-20260417T221210286830+0000-workstream-validation-and-publication",
+      "current_task_id": "workstream:validation-and-publication",
+      "current_task_title": "Validation and Publication",
       "dispatch_outcome": "claimed",
       "dispatch_path": null,
       "dispatch_status_code": null,
       "error": null,
-      "generated_at": "2026-04-17T18:15:34.942125+00:00",
+      "generated_at": "2026-04-17T22:14:10.622978+00:00",
       "governor_level": "A",
       "governor_reason": "Source 'operator_backlog' is permitted inside autonomy phase full_system_phase_3; agent='coding-agent', workload='coding_implementation'",
       "lookup_task_status_code": 200,
@@ -9803,95 +9774,61 @@
       "retry_of_task_id": null,
       "source_of_truth": "scripts/run_ralph_loop_pass.py",
       "status": "already_dispatched",
-      "task_id": "870a962e1bda",
+      "task_id": "86eb4de898b7",
       "task_source": "operator_backlog",
       "task_status": "completed"
     },
     "fallback_lane_family": "operator_follow_through",
-    "generated_at": "2026-04-17T18:15:34.942125+00:00",
+    "generated_at": "2026-04-17T22:14:10.622978+00:00",
     "governed_dispatch_claim": {
       "approved_actions": [
-        "bounded_cloud_safe_backlog",
-        "branch_bounded_devstack_proof",
-        "safe_surface_repo_task",
-        "eval_run",
-        "static_analysis",
-        "deterministic_refactor",
-        "non_destructive_batch_transform"
+        "discovery",
+        "telemetry_collection",
+        "drift_check",
+        "queue_refresh",
+        "report_generation",
+        "dry_run_planning"
       ],
-      "approved_mutation_class": "auto_harvest",
+      "approved_mutation_class": "auto_read_only",
       "approved_mutation_classes": [
         "auto_harvest",
         "auto_read_only"
       ],
-      "approved_mutation_label": "Auto harvest",
+      "approved_mutation_label": "Auto read only",
       "blocking_reason": null,
-      "capacity_signal": {
-        "harvestable_by_slot": {
-          "F:TP4": 4,
-          "W:1": 1
-        },
-        "harvestable_by_zone": {
-          "F": 4,
-          "W": 1
-        },
-        "harvestable_scheduler_slot_count": 2,
-        "harvestable_zone_ids": [
-          "F",
-          "W"
-        ],
-        "idle_harvest_slots_open": true,
-        "observed_at": "2026-04-17T16:38:16.515543+00:00",
-        "open_harvest_slot_ids": [
-          "F:TP4",
-          "W:1"
-        ],
-        "open_harvest_slot_target_ids": [
-          "foundry-bulk-pool",
-          "workshop-batch-support"
-        ],
-        "present": true,
-        "protected_reserve_slot_count": 2,
-        "provisional_harvest_candidate_count": 1,
-        "provisional_harvestable_by_node": {
-          "vault": 1
-        },
-        "remaining_units": 5,
-        "sample_posture": "scheduler_projection_backed",
-        "scheduler_observed_at": "2026-04-17T16:38:16.515543+00:00",
-        "scheduler_queue_depth": 0,
-        "scheduler_slot_count": 5,
-        "slot_pressure_state": "open_harvest_window",
-        "stale_after": "2026-04-17T16:40:17.032665+00:00"
-      },
-      "claim_id": "ralph-claim-20260417T181534942125+0000-burn_class-overnight_harvest",
+      "capacity_signal": {},
+      "claim_id": "ralph-claim-20260417T221210286830+0000-workstream-validation-and-publication",
       "claim_rotation_reason": "recent_no_delta_suppressed",
-      "claim_rotation_source_task_id": "burn_class:overnight_harvest",
+      "claim_rotation_source_task_id": "workstream:validation-and-publication",
       "claim_source": "reports/ralph-loop/latest.json#ranked_autonomous_queue",
-      "claimed_at": "2026-04-17T18:15:34.942125+00:00",
-      "closure_rule": "Keep burn class overnight_harvest on an eligible routed lane and record ordinary execution evidence.",
-      "current_lane_family": "capacity_truth_repair",
+      "claimed_at": "2026-04-17T22:12:10.286830+00:00",
+      "closure_rule": "Advance validation-and-publication until validation_and_checkpoint is no longer leading.",
+      "current_lane_family": "validation_and_checkpoint",
       "current_repo": "/mnt/c/Athanor",
-      "current_source_type": "burn_class",
-      "current_task_id": "burn_class:overnight_harvest",
-      "current_task_title": "Overnight Harvest",
-      "current_workstream_id": null,
+      "current_source_type": "workstream",
+      "current_task_id": "workstream:validation-and-publication",
+      "current_task_title": "Validation and Publication",
+      "current_workstream_id": "validation-and-publication",
       "dispatch_outcome": "claimed",
-      "eligible_queue_count": 5,
+      "eligible_queue_count": 1,
       "fallback_lane_family": "operator_follow_through",
-      "no_delta_evidence_refs": [],
-      "observed_at": "2026-04-17T18:15:34.942125+00:00",
-      "on_deck_lane_family": "dispatch_truth_repair",
-      "on_deck_task_id": "burn_class:cheap_bulk_cloud",
-      "on_deck_task_title": "Cheap Bulk Cloud",
-      "preferred_lane_family": "capacity_truth_repair",
-      "proof_command_or_eval_surface": "reports/truth-inventory/capacity-telemetry.json",
-      "reopen_reason_scope": null,
+      "no_delta_evidence_refs": [
+        "reports/truth-inventory/latest.json",
+        "audit/automation/contract-healer-latest.json",
+        "docs/operations/ATHANOR-TOTAL-COMPLETION-PROGRAM.md"
+      ],
+      "observed_at": "2026-04-17T22:14:10.622978+00:00",
+      "on_deck_lane_family": null,
+      "on_deck_task_id": null,
+      "on_deck_task_title": null,
+      "preferred_lane_family": "validation_and_checkpoint",
+      "proof_command_or_eval_surface": "/usr/bin/python3 scripts/validate_platform_contract.py",
+      "reopen_reason_scope": "material_repo_delta_any",
       "repo_side_no_delta": false,
       "risk_class": "low",
       "rotation_ready": false,
       "status": "claimed",
-      "value_class": "capacity_truth_drift"
+      "value_class": "failing_eval_or_validator"
     },
     "governed_dispatch_ready": true,
     "last_dispatch_outcome": null,
@@ -9899,14 +9836,14 @@
     "materialization": {
       "advisory_blockers": [],
       "agent_server_base_url": "http://192.168.1.244:9000",
-      "backlog_id": "backlog-c40b0536",
+      "backlog_id": "backlog-ef8165ca",
       "backlog_status": "scheduled",
-      "claim_id": "ralph-claim-20260417T181534942125+0000-burn_class-overnight_harvest",
-      "current_task_id": "burn_class:overnight_harvest",
-      "current_task_title": "Overnight Harvest",
+      "claim_id": "ralph-claim-20260417T221210286830+0000-workstream-validation-and-publication",
+      "current_task_id": "workstream:validation-and-publication",
+      "current_task_title": "Validation and Publication",
       "error": null,
-      "generated_at": "2026-04-17T18:15:34.942125+00:00",
-      "latest_task_id": "870a962e1bda",
+      "generated_at": "2026-04-17T22:14:10.622978+00:00",
+      "latest_task_id": "86eb4de898b7",
       "materialization_source": "governed_dispatch_state",
       "operator_backlog_path": "/v1/operator/backlog",
       "post_status_code": null,
@@ -9922,18 +9859,22 @@
       "status": "already_materialized",
       "task_source": null
     },
-    "no_delta_evidence_refs": [],
-    "observed_at": "2026-04-17T18:15:34.942125+00:00",
-    "on_deck_lane_family": "dispatch_truth_repair",
-    "on_deck_task_id": "burn_class:cheap_bulk_cloud",
-    "on_deck_task_title": "Cheap Bulk Cloud",
-    "preferred_lane_family": "capacity_truth_repair",
-    "proof_command_or_eval_surface": "reports/truth-inventory/capacity-telemetry.json",
+    "no_delta_evidence_refs": [
+      "reports/truth-inventory/latest.json",
+      "audit/automation/contract-healer-latest.json",
+      "docs/operations/ATHANOR-TOTAL-COMPLETION-PROGRAM.md"
+    ],
+    "observed_at": "2026-04-17T22:14:10.622978+00:00",
+    "on_deck_lane_family": null,
+    "on_deck_task_id": null,
+    "on_deck_task_title": null,
+    "preferred_lane_family": "validation_and_checkpoint",
+    "proof_command_or_eval_surface": "/usr/bin/python3 scripts/validate_platform_contract.py",
     "provider_gate_state": "completed",
     "queue_count": 12,
     "recent_dispatch_outcome_count": 0,
     "recent_dispatch_outcomes": [],
-    "reopen_reason_scope": null,
+    "reopen_reason_scope": "material_repo_delta_any",
     "repo_side_no_delta": false,
     "report_path": "reports/truth-inventory/governed-dispatch-state.json",
     "risk_class": "low",
@@ -9942,25 +9883,25 @@
     "safe_surface_queue_count": 27,
     "source_of_truth": "scripts/run_ralph_loop_pass.py",
     "status": "claimed",
-    "top_dispatchable_lane_family": "capacity_truth_repair",
-    "top_dispatchable_task_id": "burn_class:overnight_harvest",
-    "top_dispatchable_title": "Overnight Harvest",
-    "value_class": "capacity_truth_drift",
+    "top_dispatchable_lane_family": "validation_and_checkpoint",
+    "top_dispatchable_task_id": "workstream:validation-and-publication",
+    "top_dispatchable_title": "Validation and Publication",
+    "value_class": "failing_eval_or_validator",
     "work_economy_ready_now": true,
     "work_economy_status": "ready"
   },
   "governed_dispatch_execution": {
     "agent_server_base_url": "http://192.168.1.244:9000",
-    "backlog_id": "backlog-c40b0536",
+    "backlog_id": "backlog-ef8165ca",
     "backlog_status": "scheduled",
-    "claim_id": "ralph-claim-20260417T181534942125+0000-burn_class-overnight_harvest",
-    "current_task_id": "burn_class:overnight_harvest",
-    "current_task_title": "Overnight Harvest",
+    "claim_id": "ralph-claim-20260417T221210286830+0000-workstream-validation-and-publication",
+    "current_task_id": "workstream:validation-and-publication",
+    "current_task_title": "Validation and Publication",
     "dispatch_outcome": "claimed",
     "dispatch_path": null,
     "dispatch_status_code": null,
     "error": null,
-    "generated_at": "2026-04-17T18:15:34.942125+00:00",
+    "generated_at": "2026-04-17T22:14:10.622978+00:00",
     "governor_level": "A",
     "governor_reason": "Source 'operator_backlog' is permitted inside autonomy phase full_system_phase_3; agent='coding-agent', workload='coding_implementation'",
     "lookup_task_status_code": 200,
@@ -9977,7 +9918,7 @@
     "retry_of_task_id": null,
     "source_of_truth": "scripts/run_ralph_loop_pass.py",
     "status": "already_dispatched",
-    "task_id": "870a962e1bda",
+    "task_id": "86eb4de898b7",
     "task_source": "operator_backlog",
     "task_status": "completed"
   },
@@ -10000,19 +9941,19 @@
     }
   ],
   "dashboard_summary": {
-    "generated_at": "2026-04-17T19:32:04.172461+00:00",
+    "generated_at": "2026-04-17T22:14:46.732350+00:00",
     "capability_count": 10,
-    "adopted_count": 6,
-    "packet_ready_count": 1,
+    "adopted_count": 7,
+    "packet_ready_count": 0,
     "proving_count": 3,
-    "blocked_capability_count": 4,
-    "blocked_packet_count": 5,
+    "blocked_capability_count": 3,
+    "blocked_packet_count": 4,
     "governance_posture": "healthy",
     "governance_blocker_count": 0,
     "governance_blockers": [],
     "top_missing_proof": "formal_eval_run",
-    "best_next_implementation_wave": "protocol-first-builder-kernel",
-    "best_next_promotion_candidate": "protocol-first-builder-kernel",
+    "best_next_implementation_wave": null,
+    "best_next_promotion_candidate": null,
     "turnover_status": "ready_for_low_touch_execution",
     "turnover_ready_now": true,
     "turnover_next_gate": null,
@@ -10053,10 +9994,10 @@
     "active_override_count": 0,
     "safe_surface_queue_count": 27,
     "autonomous_queue_count": 12,
-    "autonomous_dispatchable_queue_count": 12,
-    "autonomous_top_task_id": "burn_class:overnight_harvest",
-    "autonomous_top_task_title": "Overnight Harvest",
-    "automation_feedback_state": "healthy",
+    "autonomous_dispatchable_queue_count": 9,
+    "autonomous_top_task_id": "workstream:validation-and-publication",
+    "autonomous_top_task_title": "Validation and Publication",
+    "automation_feedback_state": "spin_detected",
     "automation_feedback_recent_run_count": 8,
     "deferred_operator_input_count": 3,
     "deferred_operator_inputs": [
@@ -10097,18 +10038,6 @@
     },
     "recommendation_summaries": [
       {
-        "id": "best-next-implementation-wave",
-        "subject": "protocol-first-builder-kernel",
-        "summary": "Finish the highest-priority ready-for-review lane first.",
-        "reason": "operator_review_release_tier_progression"
-      },
-      {
-        "id": "best-next-promotion-candidate",
-        "subject": "protocol-first-builder-kernel",
-        "summary": "Use the same lane as the immediate promotion candidate.",
-        "reason": "It is already marked ready_for_review and outranks other ready lanes by priority."
-      },
-      {
         "id": "best-local-hardware-use-right-now",
         "subject": "foundry-bulk-harvest",
         "summary": "Harvest Foundry bulk capacity while preserving one interactive GPU-equivalent reserve.",
@@ -10119,6 +10048,12 @@
         "subject": "sovereign_coder",
         "summary": "Route private implementation and migrations to the sovereign local coding lane first.",
         "reason": "It preserves cloud budget, aligns with sunk-cost local compute, and keeps private code on the local path."
+      },
+      {
+        "id": "best-next-cleanup-pass",
+        "subject": "formal_eval_run",
+        "summary": "Clean up the highest-frequency readiness gap before widening automation.",
+        "reason": "The most common missing readiness evidence right now is `formal_eval_run`."
       }
     ]
   }

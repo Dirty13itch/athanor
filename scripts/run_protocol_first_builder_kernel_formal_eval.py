@@ -208,7 +208,8 @@ def _update_registries(
         capability_notes.append(note)
     capability["notes"] = capability_notes
     if promotion_validity == "valid":
-        capability["stage"] = "proved"
+        if str(capability.get("stage") or "").strip() != "adopted":
+            capability["stage"] = "proved"
         capability["release_tier"] = "shadow"
 
     eval_payload["updated_at"] = now

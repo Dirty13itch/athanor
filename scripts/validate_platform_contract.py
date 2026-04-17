@@ -115,6 +115,7 @@ PROMETHEUS_EXPECTED_OPERATOR_SURFACE_IDS = {
     "ws_pty_bridge",
 }
 PROMETHEUS_EXCLUDED_OPERATOR_SURFACE_IDS = {
+    "builder_front_door",
     "desk_goose_operator_shell",
     "workshop_shadow_command_center",
 }

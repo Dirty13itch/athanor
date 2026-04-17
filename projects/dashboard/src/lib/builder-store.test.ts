@@ -72,4 +72,20 @@ describe("builder store", () => {
     expect(approvals[0]?.related_task_id).toBe(session.id);
     expect(approvals[0]?.task_agent_id).toBe("codex");
   });
+
+  it("keeps the live codex route bounded to repo worktrees", async () => {
+    const session = await createBuilderSession({
+      goal: "Do not widen the first builder kernel route beyond repo worktrees.",
+      task_class: "multi_file_implementation",
+      sensitivity_class: "private_but_cloud_allowed",
+      workspace_mode: "same_repo",
+      needs_background: false,
+      needs_github: false,
+      acceptance_criteria: ["Keep same-repo mutation off the live builder slice."],
+    });
+
+    expect(session.route_decision.route_id).toBe("builder:claude_code:rescue");
+    expect(session.route_decision.activation_state).toBe("planned_future");
+    expect(session.status).toBe("blocked");
+  });
 });

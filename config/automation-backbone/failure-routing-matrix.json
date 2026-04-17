@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-11.1",
-  "updated_at": "2026-04-11T09:00:00-05:00",
+  "version": "2026-04-17.1",
+  "updated_at": "2026-04-17T17:18:00-05:00",
   "status": "active",
   "source_of_truth": "config/automation-backbone/failure-routing-matrix.json",
   "alert_thresholds": {
@@ -9,13 +9,15 @@
       "degraded_mode_active",
       "protected_reserve_breached",
       "collector_stale_beyond_hard_threshold",
-      "privacy_legal_route_conflict"
+      "privacy_legal_route_conflict",
+      "builder_policy_conflict"
     ],
     "warning": [
       "family_below_reserve_floor_plus_ten_percent",
       "eval_freshness_within_three_days_of_expiry",
       "queue_saturation_on_harvest_lanes",
-      "glm_or_kimi_doc_vs_observed_contract_mismatch"
+      "glm_or_kimi_doc_vs_observed_contract_mismatch",
+      "builder_verification_failed"
     ],
     "info": [
       "quota_window_opening",
@@ -123,6 +125,36 @@
       ],
       "operator_surface": "dashboard_operator_stream",
       "recovery_gate": "degraded_mode_cleared"
+    },
+    {
+      "failure_class": "builder_verification_failed",
+      "affected_family": "builder_codex_direct_cli",
+      "sensitivity_scope": "private_but_cloud_allowed",
+      "allowed_fallbacks": [
+        "claude_code_rescue",
+        "sovereign_coder",
+        "manual_operator_review"
+      ],
+      "blocked_workloads": [
+        "automatic_success_promotion"
+      ],
+      "operator_surface": "dashboard_operator_stream",
+      "recovery_gate": "builder_verification_green_or_operator_override"
+    },
+    {
+      "failure_class": "builder_policy_conflict",
+      "affected_family": "builder_front_door",
+      "sensitivity_scope": "mixed",
+      "allowed_fallbacks": [
+        "sovereign_coder",
+        "external_bootstrap_builder",
+        "manual_operator_review"
+      ],
+      "blocked_workloads": [
+        "cloud_builder_mutation_for_disallowed_scope"
+      ],
+      "operator_surface": "dashboard_operator_stream",
+      "recovery_gate": "route_policy_conformance_restored"
     }
   ]
 }

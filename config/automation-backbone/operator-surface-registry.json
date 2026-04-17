@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-12.1",
-  "updated_at": "2026-04-12T09:45:00Z",
+  "version": "2026-04-17.1",
+  "updated_at": "2026-04-17T22:18:00Z",
   "status": "active",
   "source_of_truth": "config/automation-backbone/operator-surface-registry.json",
   "canonical_front_door": {
@@ -10,11 +10,11 @@
     "reverse_proxy": "caddy",
     "runtime_target": "http://dev.athanor.local:3001/",
     "deployment_goal": "containerized_command_center_behind_reverse_proxy",
-      "notes": [
-        "https://athanor.local/ is the only canonical human front door.",
-        "DEV serves the command center from the containerized dashboard runtime behind Caddy.",
-        "DESK hostname resolution is now verified locally through the scripted hosts-file rollout."
-      ]
+    "notes": [
+      "https://athanor.local/ is the only canonical human front door.",
+      "DEV serves the command center from the containerized dashboard runtime behind Caddy.",
+      "DESK hostname resolution is now verified locally through the scripted hosts-file rollout."
+    ]
   },
   "front_door_contract": {
     "canonical_portal_id": "athanor_command_center",
@@ -24,7 +24,9 @@
     "current_runtime_mode": "containerized_service_behind_caddy",
     "target_runtime_mode": "containerized_service_behind_caddy",
     "allow_multiple_active_portals": false,
-    "phase_promotion_gate": "The DEV command center remains reachable from operator desktops at athanor.local, the WORKSHOP shadow portal stays retired, and browser smoke stays green."
+    "phase_promotion_gate": "The DEV command center remains reachable from operator desktops at athanor.local, the WORKSHOP shadow portal stays retired, and browser smoke stays green.",
+    "builder_surface_id": "builder_front_door",
+    "builder_surface_url": "https://athanor.local/builder"
   },
   "host_aliases": [
     {
@@ -88,6 +90,29 @@
       ]
     },
     {
+      "id": "builder_front_door",
+      "surface_group": "builder_front_door",
+      "service_id": "dashboard",
+      "label": "Builder Front Door",
+      "surface_kind": "domain_app",
+      "node": "dev",
+      "canonical_url": "https://athanor.local/builder",
+      "runtime_url": "http://dev.athanor.local:3001/builder",
+      "auth_class": "operator",
+      "deployment_mode": "containerized_service_behind_caddy",
+      "navigation_role": "launchpad",
+      "operator_role": "build_system",
+      "status": "active_specialist",
+      "owner": "shaun",
+      "retirement_state": "keep",
+      "target_deployment_mode": "containerized_service_behind_caddy",
+      "notes": [
+        "Bounded builder front door inside the canonical Athanor command center.",
+        "The adopted live slice is builder:codex:direct_cli for multi_file_implementation/private_but_cloud_allowed/repo_worktree with needs_github=false.",
+        "Operator approval, structured ResultPacket output, resumable handle continuity, and verification success remain required before success is reported."
+      ]
+    },
+    {
       "id": "workshop_shadow_command_center",
       "surface_group": "athanor_command_center",
       "label": "Athanor Command Center (WORKSHOP shadow)",
@@ -125,7 +150,11 @@
       "runtime_packet_id": "desk-goose-operator-shell-rollout-packet",
       "helper_path": "C:/Users/Shaun/AppData/Local/Athanor/operator-shell/run-goose-athanor-shell.ps1",
       "default_execution_mode": "goose_wrapped",
-      "allowed_execution_modes": ["direct_cli", "goose_wrapped", "litellm_routed"],
+      "allowed_execution_modes": [
+        "direct_cli",
+        "goose_wrapped",
+        "litellm_routed"
+      ],
       "fallback_operator_path": "Direct terminal plus specialist CLI lanes remain the bounded fallback path.",
       "mcp_extension_policy": "deny_by_default_until_allowlist_evidence_lands",
       "allowed_mcp_extensions": [],

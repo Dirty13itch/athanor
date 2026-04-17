@@ -5,8 +5,8 @@ Do not edit manually.
 
 ## Front Door Contract
 
-- Registry version: `2026-04-12.1`
-- Cached truth snapshot: `2026-04-17T20:13:43.334406+00:00`
+- Registry version: `2026-04-17.1`
+- Cached truth snapshot: `2026-04-17T21:38:50.759027+00:00`
 - Recorded portal id: `athanor_command_center`
 - Recorded operator URL: `https://athanor.local/`
 - Recorded front-door node: `dev`
@@ -18,8 +18,8 @@ Do not edit manually.
 
 ## Summary
 
-- Human-facing surfaces tracked: `38`
-- Launchpad-approved surfaces: `21`
+- Human-facing surfaces tracked: `39`
+- Launchpad-approved surfaces: `22`
 - Active production portal count: `1`
 - Shadow portal count: `0`
 - Duplicate active production portals observed: none
@@ -28,7 +28,7 @@ Do not edit manually.
 
 | Kind | Count |
 | --- | --- |
-| `domain_app` | 2 |
+| `domain_app` | 3 |
 | `internal_api` | 14 |
 | `portal` | 1 |
 | `retired` | 1 |
@@ -40,7 +40,7 @@ Do not edit manually.
 | --- | --- |
 | `active_internal` | 13 |
 | `active_production` | 1 |
-| `active_specialist` | 22 |
+| `active_specialist` | 23 |
 | `retired` | 2 |
 
 ## Canonical Portal
@@ -58,7 +58,7 @@ Do not edit manually.
 - DEV runtime probe target: `dev`
 - DEV deployment mode observed: `containerized_service_behind_caddy`
 - Dashboard container running: `True`
-- Dashboard container status: `Up 18 minutes`
+- Dashboard container status: `Up 2 hours`
 - Dashboard container image: `athanor/dashboard:latest`
 - Dashboard container ports: ``
 - Dashboard compose working dir: `/opt/athanor/dashboard`
@@ -81,6 +81,7 @@ No shadow portals are currently registered.
 
 | Surface | Node | Kind | Canonical URL | Operator role | Canonical probe |
 | --- | --- | --- | --- | --- | --- |
+| `Builder Front Door` | `dev` | `domain_app` | `https://athanor.local/builder` | `build_system` | `not_probed` |
 | `Grafana` | `vault` | `specialist_tool` | `http://vault.athanor.local:3000/` | `observability` | `200` |
 | `Prometheus` | `vault` | `specialist_tool` | `http://vault.athanor.local:9090/` | `observability` | `200` |
 | `Uptime Kuma` | `vault` | `specialist_tool` | `http://vault.athanor.local:3009/` | `observability` | `200` |
@@ -108,6 +109,7 @@ No shadow portals are currently registered.
 | Surface | Kind | Node | Status | Navigation | Canonical URL | Runtime URL | Runtime probe |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `athanor_command_center` | `portal` | `dev` | `active_production` | `front_door` | `https://athanor.local/` | `http://dev.athanor.local:3001/` | `200` |
+| `builder_front_door` | `domain_app` | `dev` | `active_specialist` | `launchpad` | `https://athanor.local/builder` | `http://dev.athanor.local:3001/builder` | `not_probed` |
 | `workshop_shadow_command_center` | `retired` | `workshop` | `retired` | `hidden` | `https://athanor.local/` | `http://interface.athanor.local:3001/` | `200` |
 | `desk_goose_operator_shell` | `specialist_tool` | `desk` | `active_specialist` | `hidden` | `local-shell://desk/goose-operator-shell` | `C:/Users/Shaun/AppData/Local/Athanor/operator-shell/run-goose-athanor-shell.ps1` | `not_probed` |
 | `quality_gate` | `internal_api` | `dev` | `retired` | `hidden` | `http://dev.athanor.local:8790/health` | `http://192.168.1.189:8790/health` | `200` |

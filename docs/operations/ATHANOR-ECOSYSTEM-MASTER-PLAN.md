@@ -14,8 +14,8 @@ Do not edit manually.
 ### Proved
 
 - Devstack turnover status is `ready_for_low_touch_execution`.
-- Devstack top packet-drafting lane is `protocol-first-builder-kernel`.
-- Atlas tracks `10` capabilities with `6` adopted and `3` concept lanes.
+- Devstack top packet-drafting lane is `letta-memory-plane`.
+- Atlas tracks `10` capabilities with `7` adopted and `3` concept lanes.
 
 ### Adopted
 

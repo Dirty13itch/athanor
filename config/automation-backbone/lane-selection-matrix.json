@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-11.2",
-  "updated_at": "2026-04-11T17:05:00-05:00",
+  "version": "2026-04-17.1",
+  "updated_at": "2026-04-17T17:18:00-05:00",
   "status": "active",
   "source_of_truth": "config/automation-backbone/lane-selection-matrix.json",
   "shadow_rollout": {
@@ -91,7 +91,16 @@
         "deepseek_cloudsafe_bulk",
         "kimi_constrained_burst"
       ],
-      "selection_reason": "Prefer premium implementation quality first, then fall back to sovereign local coding when privacy or reserve posture requires it."
+      "selection_reason": "Prefer the adopted bounded builder front door first: Codex direct CLI in an isolated repo worktree with explicit approval and verification, then fall back to sovereign local coding when privacy or reserve posture requires it.",
+      "builder_route_contract": {
+        "route_id": "builder:codex:direct_cli",
+        "activation_state": "live_ready",
+        "adoption_state": "shadow_adopted",
+        "workspace_mode": "repo_worktree",
+        "needs_github": false,
+        "approval_gate": "operator_approval_required_before_worktree_mutation",
+        "verification_profile": "targeted_tests_and_diff_review"
+      }
     },
     {
       "task_class": "architecture_review",

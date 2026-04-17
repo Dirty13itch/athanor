@@ -1,6 +1,22 @@
 {
   "externalTools": [
     {
+      "canonicalDetail": null,
+      "canonicalState": "not_probed",
+      "canonicalUrl": "https://athanor.local/builder",
+      "category": "tool",
+      "description": "Bounded builder front door inside the canonical Athanor command center.",
+      "id": "builder_front_door",
+      "label": "Builder Front Door",
+      "node": "DEV",
+      "operatorRole": "build_system",
+      "runtimeDetail": null,
+      "runtimeState": "not_probed",
+      "runtimeUrl": "http://dev.athanor.local:3001/builder",
+      "status": "active_specialist",
+      "url": "https://athanor.local/builder"
+    },
+    {
       "canonicalDetail": "200",
       "canonicalState": "reachable",
       "canonicalUrl": "http://vault.athanor.local:3090/",
@@ -352,8 +368,14 @@
     "status": "active_production",
     "targetDeploymentMode": "containerized_service_behind_caddy"
   },
-  "generatedAt": "2026-04-17T20:13:43.334406+00:00",
+  "generatedAt": "2026-04-17T21:38:50.759027+00:00",
   "quickLinks": [
+    {
+      "category": "tool",
+      "name": "Builder Front Door",
+      "node": "DEV",
+      "url": "https://athanor.local/builder"
+    },
     {
       "category": "ai",
       "name": "Open WebUI (VAULT)",
@@ -481,7 +503,7 @@
       "url": "http://vault.athanor.local:8880/"
     }
   ],
-  "registryUpdatedAt": "2026-04-12T09:45:00Z",
-  "runtimeObservedAt": "2026-04-17T20:13:43.334406+00:00",
+  "registryUpdatedAt": "2026-04-17T22:18:00Z",
+  "runtimeObservedAt": "2026-04-17T21:38:50.759027+00:00",
   "sourceOfTruth": "config/automation-backbone/operator-surface-registry.json + reports/truth-inventory/latest.json#operator_surface_probe"
 }

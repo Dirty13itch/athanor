@@ -213,6 +213,7 @@ function buildRouteDecision(taskEnvelope: BuilderTaskEnvelope): BuilderRouteDeci
   if (
     taskEnvelope.task_class === "multi_file_implementation" &&
     taskEnvelope.sensitivity_class === "private_but_cloud_allowed" &&
+    taskEnvelope.workspace_mode === "repo_worktree" &&
     !taskEnvelope.needs_github
   ) {
     return {

@@ -4,11 +4,11 @@
 ## Posture
 
 - Atlas turnover status: `ready_for_low_touch_execution`
-- Atlas top priority lane: `protocol-first-builder-kernel`
-- Forge board top priority lane: `protocol-first-builder-kernel`
-- Adopted capabilities tracked in atlas: `6`
+- Atlas top priority lane: `letta-memory-plane`
+- Forge board top priority lane: `letta-memory-plane`
+- Adopted capabilities tracked in atlas: `7`
 - Concept capabilities tracked in atlas: `3`
-- Devstack dirty count: `1`
+- Devstack dirty count: `15`
 - Devstack contract validator: `pass`
 
 ## Membrane Findings

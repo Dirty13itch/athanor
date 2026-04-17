@@ -1,31 +1,34 @@
 # Publication Triage Summary
 
 - Active sequence: `2026-04-15-publication-triage-governance`
-- Dirty entries: `3`
-- Slice-matched entries: `0`
-- Deferred-family entries: `3`
+- Dirty entries: `14`
+- Slice-matched entries: `7`
+- Deferred-family entries: `5`
 - Ambiguous entries: `0`
-- Unclassified entries: `0`
+- Unclassified entries: `2`
 - Local-noise entries: `0`
 
 ## Slice Coverage
 
 | Slice | Status | Dirty matches | Missing publication refs | Missing generated artifacts |
 | --- | --- | --- | --- | --- |
-| `backbone-contracts-and-truth-writers` | `published` | `0` | `0` | `0` |
+| `backbone-contracts-and-truth-writers` | `published` | `1` | `0` | `0` |
 | `runtime-ownership-provider-truth-and-reconciliation` | `published` | `0` | `0` | `0` |
-| `pilot-eval-substrate-and-operator-test-machinery` | `published` | `0` | `0` | `0` |
-| `graphrag-promotion-wave` | `published` | `0` | `0` | `0` |
+| `pilot-eval-substrate-and-operator-test-machinery` | `published` | `1` | `0` | `0` |
+| `graphrag-promotion-wave` | `published` | `1` | `0` | `0` |
 | `gpu-scheduler-extension-wave` | `published` | `0` | `0` | `0` |
-| `forge-atlas-dashboard-and-startup-truth` | `published` | `0` | `0` | `0` |
+| `forge-atlas-dashboard-and-startup-truth` | `published` | `4` | `0` | `0` |
 
 ## Backbone Contracts and Truth Writers (`backbone-contracts-and-truth-writers`)
 
-- Dirty matches: `0`
+- Dirty matches: `1`
 - Publication refs: `20`
 - Working-tree hints: `25`
 - Missing publication refs: `0`
 - Missing generated artifacts: `0`
+
+Sample dirty paths:
+- `M` scripts/validate_platform_contract.py
 
 ## Runtime Ownership, Provider Truth, and Reconciliation (`runtime-ownership-provider-truth-and-reconciliation`)
 
@@ -37,19 +40,25 @@
 
 ## Pilot Eval Substrate and Operator-Test Machinery (`pilot-eval-substrate-and-operator-test-machinery`)
 
-- Dirty matches: `0`
+- Dirty matches: `1`
 - Publication refs: `16`
 - Working-tree hints: `15`
 - Missing publication refs: `0`
 - Missing generated artifacts: `0`
 
+Sample dirty paths:
+- `M` config/automation-backbone/eval-run-ledger.json
+
 ## GraphRAG Promotion Wave (`graphrag-promotion-wave`)
 
-- Dirty matches: `0`
+- Dirty matches: `1`
 - Publication refs: `6`
 - Working-tree hints: `3`
 - Missing publication refs: `0`
 - Missing generated artifacts: `0`
+
+Sample dirty paths:
+- `M` config/automation-backbone/capability-adoption-registry.json
 
 ## GPU Scheduler Extension Wave (`gpu-scheduler-extension-wave`)
 
@@ -61,11 +70,17 @@
 
 ## Forge, Atlas, Dashboard, and Startup Truth (`forge-atlas-dashboard-and-startup-truth`)
 
-- Dirty matches: `0`
+- Dirty matches: `4`
 - Publication refs: `9`
 - Working-tree hints: `9`
 - Missing publication refs: `0`
 - Missing generated artifacts: `0`
+
+Sample dirty paths:
+- `M` projects/dashboard/src/generated/master-atlas.json
+- `M` projects/dashboard/src/generated/operator-surfaces.json
+- `M` projects/dashboard/src/lib/builder-store.test.ts
+- `M` projects/dashboard/src/lib/builder-store.ts
 
 ## Deferred Family Coverage
 
@@ -73,10 +88,10 @@
 | --- | --- | --- |
 | `reference-and-archive-prune` | `archive_or_reference` | `0` |
 | `operator-tooling-and-helper-surfaces` | `operator_tooling` | `0` |
-| `audit-and-eval-artifacts` | `audit_artifact` | `1` |
+| `audit-and-eval-artifacts` | `audit_artifact` | `0` |
 | `deployment-authority-follow-on` | `deferred_out_of_sequence` | `0` |
 | `runtime-service-follow-on` | `runtime_follow_on` | `0` |
-| `control-plane-follow-on` | `deferred_out_of_sequence` | `2` |
+| `control-plane-follow-on` | `deferred_out_of_sequence` | `5` |
 | `tenant-product-lanes` | `tenant_surface` | `0` |
 
 ## Deferred: Reference and Archive Prune (`reference-and-archive-prune`)
@@ -104,16 +119,13 @@
 ## Deferred: Audit and Eval Artifacts (`audit-and-eval-artifacts`)
 
 - Disposition: `audit_artifact`
-- Dirty matches: `1`
+- Dirty matches: `0`
 - Path hints: `4`
 - Scope: Audit bundles, eval outputs, recipe fixtures, and verification traces that should stay typed as evidence or harness material rather than publication-slice truth.
 - Execution class: `cash_now`
 - Next action: Register, snapshot, or relocate evidence outputs so audit and eval artifacts stay as proof, not accidental authority.
 - Success condition: Evidence artifacts are either generated and freshness-checked or clearly typed as archive-only harness material.
 - Owner workstreams: `validation-and-publication`, `startup-docs-and-prune`
-
-Sample dirty paths:
-- `M` audit/automation/contract-healer-latest.json
 
 ## Deferred: Deployment Authority Follow-on (`deployment-authority-follow-on`)
 
@@ -140,7 +152,7 @@ Sample dirty paths:
 ## Deferred: Control-Plane Follow-on (`control-plane-follow-on`)
 
 - Disposition: `deferred_out_of_sequence`
-- Dirty matches: `2`
+- Dirty matches: `5`
 - Path hints: `4`
 - Scope: Implementation-authority control-plane, agent-runtime, and operations packet work that is real but intentionally outside the six ready checkpoint slices.
 - Execution class: `program_slice`
@@ -149,8 +161,11 @@ Sample dirty paths:
 - Owner workstreams: `authority-and-mainline`, `validation-and-publication`
 
 Sample dirty paths:
-- `M` scripts/run_ralph_loop_pass.py
-- `M` scripts/tests/test_ralph_loop_contracts.py
+- `M` config/automation-backbone/failure-routing-matrix.json
+- `M` config/automation-backbone/lane-selection-matrix.json
+- `M` config/automation-backbone/operator-surface-registry.json
+- `M` docs/operations/ATHANOR-OPERATING-SYSTEM.md
+- `M` scripts/run_protocol_first_builder_kernel_formal_eval.py
 
 ## Deferred: Tenant Product Lanes (`tenant-product-lanes`)
 
@@ -162,3 +177,8 @@ Sample dirty paths:
 - Next action: Push tenant roots through product-specific classification, packet lanes, and local-root governance instead of Athanor checkpoint publication.
 - Success condition: Tenant product changes route through their governed tenant lanes without leaking into Athanor checkpoint slices.
 - Owner workstreams: `tenant-architecture-and-classification`, `validation-and-publication`
+
+## Unclassified Entries
+
+- `M` reports/truth-inventory/protocol-first-builder-kernel-live-smoke.json
+- `??` .data/
