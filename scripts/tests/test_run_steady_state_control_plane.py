@@ -27,14 +27,14 @@ def test_build_commands_runs_fixed_point_order_with_steady_state_writer():
         ['scripts/collect_truth_inventory.py'],
         ['scripts/generate_truth_inventory_reports.py'],
         ['scripts/write_next_rotation_preflight.py', '--json'],
+        ['scripts/triage_publication_tranche.py', '--write', 'docs/operations/PUBLICATION-TRIAGE-REPORT.md'],
+        ['scripts/generate_publication_deferred_family_queue.py'],
         ['scripts/write_finish_scoreboard.py', '--json'],
         ['scripts/write_runtime_packet_inbox.py', '--json'],
         ['scripts/write_steady_state_status.py', '--json'],
         ['scripts/generate_ecosystem_master_plan.py'],
         ['scripts/generate_full_system_audit.py', '--skip-checks'],
         ['scripts/session_restart_brief.py', '--json'],
-        ['scripts/triage_publication_tranche.py', '--write', 'docs/operations/PUBLICATION-TRIAGE-REPORT.md'],
-        ['scripts/generate_publication_deferred_family_queue.py'],
         ['scripts/validate_platform_contract.py'],
     ]
     assert [cmd[1:] for cmd in commands] == expected

@@ -26,11 +26,11 @@ def test_build_commands_defaults_include_expected_sequence():
     assert commands[4][1:] == ['scripts/collect_truth_inventory.py']
     assert commands[5][1:] == ['scripts/generate_truth_inventory_reports.py']
     assert commands[6][1:] == ['scripts/write_next_rotation_preflight.py', '--json']
-    assert commands[7][1:] == ['scripts/write_finish_scoreboard.py', '--json']
-    assert commands[8][1:] == ['scripts/write_runtime_packet_inbox.py', '--json']
-    assert commands[9][1:] == ['scripts/write_steady_state_status.py', '--json']
-    assert commands[10][1:] == ['scripts/triage_publication_tranche.py', '--write', 'docs/operations/PUBLICATION-TRIAGE-REPORT.md']
-    assert commands[11][1:] == ['scripts/generate_publication_deferred_family_queue.py']
+    assert commands[7][1:] == ['scripts/triage_publication_tranche.py', '--write', 'docs/operations/PUBLICATION-TRIAGE-REPORT.md']
+    assert commands[8][1:] == ['scripts/generate_publication_deferred_family_queue.py']
+    assert commands[9][1:] == ['scripts/write_finish_scoreboard.py', '--json']
+    assert commands[10][1:] == ['scripts/write_runtime_packet_inbox.py', '--json']
+    assert commands[11][1:] == ['scripts/write_steady_state_status.py', '--json']
     assert commands[-1][1:] == ['scripts/validate_platform_contract.py']
     assert all(cmd[1] != 'scripts/session_restart_brief.py' for cmd in commands)
 
@@ -42,9 +42,9 @@ def test_build_commands_can_include_restart_brief_and_skip_ralph():
         ['scripts/generate_documentation_index.py'],
         ['scripts/collect_truth_inventory.py'],
         ['scripts/generate_truth_inventory_reports.py'],
-        ['scripts/session_restart_brief.py', '--json'],
         ['scripts/triage_publication_tranche.py', '--write', 'docs/operations/PUBLICATION-TRIAGE-REPORT.md'],
         ['scripts/generate_publication_deferred_family_queue.py'],
+        ['scripts/session_restart_brief.py', '--json'],
     ]
     assert [cmd[1:] for cmd in commands][-1] == ['scripts/validate_platform_contract.py']
     assert all(cmd[1] != 'scripts/run_ralph_loop_pass.py' for cmd in commands)
