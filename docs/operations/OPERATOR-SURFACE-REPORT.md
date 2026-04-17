@@ -6,7 +6,7 @@ Do not edit manually.
 ## Front Door Contract
 
 - Registry version: `2026-04-12.1`
-- Cached truth snapshot: `2026-04-17T02:11:07.337208+00:00`
+- Cached truth snapshot: `2026-04-17T04:12:52.397591+00:00`
 - Recorded portal id: `athanor_command_center`
 - Recorded operator URL: `https://athanor.local/`
 - Recorded front-door node: `dev`

@@ -6,7 +6,7 @@ Do not edit manually.
 ## Summary
 
 - Registry version: `2026-04-16.2`
-- Cached truth snapshot: `2026-04-17T02:11:07.337208+00:00`
+- Cached truth snapshot: `2026-04-17T04:12:52.397591+00:00`
 - Promotion gate: `runtime_ownership_maturity`
 - Goal: Make runtime ownership explicit enough that host-level maintenance no longer depends on undocumented operator memory.
 - Implementation authority: `desk-main` -> `C:/Athanor`
@@ -240,7 +240,7 @@ Do not edit manually.
 - Nested source dir present: `False`
 - bak-codex files: none
 - Container running: `True`
-- Container status: `Up 7 hours`
+- Container status: `Up 9 hours`
 - Compose working dir: `/opt/athanor/agents`
 - Compose config files: `/opt/athanor/agents/docker-compose.yml`
 - Runtime import path: `/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py`

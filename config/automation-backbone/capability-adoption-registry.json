@@ -465,6 +465,65 @@
       "data_handling_profile_id": "cloud_safe"
     },
     {
+      "id": "protocol-first-builder-kernel",
+      "label": "Protocol-First Builder Kernel",
+      "owner": "shaun",
+      "source_repo": "C:/athanor-devstack",
+      "source_artifacts": [
+        "C:/athanor-devstack/docs/DEVSTACK-BUILDER-ARCHITECTURE-BRIEF.md",
+        "C:/athanor-devstack/configs/devstack-builder-adapter-routing-matrix.json",
+        "C:/athanor-devstack/docs/operations/DEVSTACK-BUILDER-SCENARIOS.md",
+        "C:/athanor-devstack/docs/promotion-packets/protocol-first-builder-kernel.md"
+      ],
+      "stage": "prototype",
+      "authority_class": "build_system",
+      "runtime_target": "Athanor builder front door, routing kernel, worker selection, and verification orchestration",
+      "proof_artifacts": [
+        "C:/athanor-devstack/docs/DEVSTACK-BUILDER-ARCHITECTURE-BRIEF.md",
+        "C:/athanor-devstack/configs/devstack-builder-adapter-routing-matrix.json",
+        "C:/athanor-devstack/docs/operations/DEVSTACK-BUILDER-SCENARIOS.md",
+        "C:/athanor-devstack/docs/promotion-packets/protocol-first-builder-kernel.md"
+      ],
+      "acceptance_criteria": [
+        "Athanor exposes one builder front door instead of a visible bundle of equal tools.",
+        "The builder kernel remains thin and does not become a universal super-agent.",
+        "Workers return structured result packets instead of transcript fan-in.",
+        "Verification completes before success is reported.",
+        "Private and adult-sensitive local tasks fail closed against cloud transfer.",
+        "Goose remains bounded and OpenHands remains pilot-only unless later proof changes that status."
+      ],
+      "athanor_target_surfaces": [
+        "config/automation-backbone/operator-surface-registry.json",
+        "config/automation-backbone/lane-selection-matrix.json",
+        "config/automation-backbone/failure-routing-matrix.json",
+        "docs/operations/ATHANOR-OPERATING-SYSTEM.md"
+      ],
+      "promotion_packet_id": "pending-protocol-first-builder-kernel",
+      "runtime_ownership_lanes": [
+        "pending"
+      ],
+      "runtime_packet_ids": [
+        "pending"
+      ],
+      "pilot_blocker_class": "bounded_kernel_execution_slice_unproven",
+      "rollback_or_disable_path": "Demote the builder kernel back to devstack-only proof artifacts and preserve the existing Athanor shell and routing surfaces without adopting a new control layer.",
+      "archive_instructions": "Archive superseded builder-stack planning notes that still describe devstack as a permanent separate user-facing stack. Keep the proof brief, routing matrix, and scenario suite as lineage.",
+      "notes": [
+        "This capability describes target Athanor behavior while remaining devstack-owned until adoption proof is complete.",
+        "The first proof step is a bounded route slice rather than a broad control-plane rewrite."
+      ],
+      "source_lane_id": "protocol-first-builder-kernel",
+      "source_packet_id": "pending-protocol-first-builder-kernel",
+      "affected_domains": [
+        "operator_control",
+        "product_foundry"
+      ],
+      "affected_namespaces": [],
+      "landing_project": "config/automation-backbone",
+      "release_tier": "offline_eval",
+      "data_handling_profile_id": "cloud_safe"
+    },
+    {
       "id": "letta-memory-plane",
       "label": "Letta Memory Plane",
       "owner": "shaun",

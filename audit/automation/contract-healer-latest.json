@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-16T23:04:09.441512+00:00",
+  "generated_at": "2026-04-17T04:22:38.061703+00:00",
   "lane": "contract_healer",
   "action_class": "drift_report_generation",
   "success": false,
@@ -11,8 +11,8 @@
       ],
       "returncode": 1,
       "stdout": "",
-      "stderr": "FAIL: Generated doc is stale: docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md (/mnt/c/Athanor/docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md is stale\n/mnt/c/Athanor/docs/operations/DEVSTACK-MEMBRANE-AUDIT.md is stale)\nFAIL: Generated doc is stale: docs/operations/AUDIT-REMEDIATION-BACKLOG.md (/mnt/c/Athanor/docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md is stale\n/mnt/c/Athanor/docs/operations/DEVSTACK-MEMBRANE-AUDIT.md is stale)\nFAIL: Generated doc is stale: docs/operations/DEVSTACK-MEMBRANE-AUDIT.md (/mnt/c/Athanor/docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md is stale\n/mnt/c/Athanor/docs/operations/DEVSTACK-MEMBRANE-AUDIT.md is stale)\nFAIL: Generated doc is stale: docs/operations/PUBLICATION-TRIAGE-REPORT.md (docs/operations/PUBLICATION-TRIAGE-REPORT.md is stale)\nFAIL: Generated doc is stale: docs/operations/STEADY-STATE-STATUS.md (/mnt/c/Athanor/reports/truth-inventory/steady-state-status.json is stale\n/mnt/c/Athanor/docs/operations/STEADY-STATE-STATUS.md is stale)",
-      "duration_seconds": 29.891,
+      "stderr": "FAIL: Generated doc is stale: docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md (/mnt/c/Athanor/docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md is stale)\nFAIL: Generated doc is stale: docs/operations/AUDIT-REMEDIATION-BACKLOG.md (/mnt/c/Athanor/docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md is stale)\nFAIL: Generated doc is stale: docs/operations/DEVSTACK-MEMBRANE-AUDIT.md (/mnt/c/Athanor/docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md is stale)\nFAIL: Generated doc is stale: docs/operations/PUBLICATION-TRIAGE-REPORT.md (docs/operations/PUBLICATION-TRIAGE-REPORT.md is stale)",
+      "duration_seconds": 71.354,
       "timed_out": false
     },
     {
@@ -24,7 +24,7 @@
       "returncode": 0,
       "stdout": "",
       "stderr": "",
-      "duration_seconds": 0.28,
+      "duration_seconds": 0.266,
       "timed_out": false
     },
     {
@@ -36,7 +36,7 @@
       "returncode": 0,
       "stdout": "",
       "stderr": "",
-      "duration_seconds": 0.072,
+      "duration_seconds": 0.081,
       "timed_out": false
     }
   ],

@@ -3,64 +3,50 @@
 Generated from the cached truth snapshot plus the read-only VAULT Redis audit by `scripts/generate_truth_inventory_reports.py`.
 Do not edit manually.
 
-- Cached truth snapshot: `2026-04-17T02:11:07.337208+00:00`
-- Cached redis audit: `2026-04-17T02:11:06Z`
+- Cached truth snapshot: `2026-04-17T04:12:52.397591+00:00`
+- Cached redis audit: `2026-04-17T04:12:51Z`
 - Surface id: `vault-redis-persistence`
 - Host: `vault`
 - Runtime owner surface: `standalone_docker_container`
 - Container: `redis`
-- Container image: `redis:7-alpine`
-- Restart policy: `unless-stopped`
-- Data mount source: `/mnt/appdatacache/appdata/redis`
+- Container image: ``
+- Restart policy: ``
+- Data mount source: ``
 - Data mount destination: `/data`
 - Reconciliation runbook: [redis-reconciliation.md](/C:/Athanor/docs/runbooks/redis-reconciliation.md)
 - Companion snapshot: [latest.json](/C:/Athanor/reports/truth-inventory/latest.json)
 
 ## Current Runtime Truth
 
-- Persistence blocker code: `healthy`
-- Persistence blocker detail: Redis persistence audit is healthy.
+- Persistence blocker code: `probe_failed`
+- Persistence blocker detail: <3>WSL (73298 - ) ERROR: UtilAcceptVsock:271: accept4 failed 110
 - Latest temp-RDB no-space error: ``
 - Latest background-save error: ``
 - Latest cross-protocol warning: ``
 - Temp-RDB no-space error count in audit tail: `0`
 - Background-save error count in audit tail: `0`
 - Cross-protocol warning count in audit tail: `0`
-- Redis data directory size: `37.77 MiB`
-- Filesystem device: `/dev/nvme0n1p1`
-- Filesystem size: `931.51 GiB`
-- Filesystem used: `494.72 GiB`
-- Filesystem available: `434.84 GiB`
-- Filesystem used percent: `54%`
-- Filesystem mountpoint: `/mnt/appdatacache`
-- Btrfs device allocated: `560.04GiB`
-- Btrfs device unallocated: `371.48GiB`
-- Btrfs free estimate: `434.84GiB	(min: 249.10GiB)`
-- Next live action: No Redis repair action required.
+- Redis data directory size: `unknown`
+- Filesystem device: `unknown`
+- Filesystem size: `unknown`
+- Filesystem used: `unknown`
+- Filesystem available: `unknown`
+- Filesystem used percent: `unknown`
+- Filesystem mountpoint: `unknown`
+- Btrfs device allocated: `unknown`
+- Btrfs device unallocated: `unknown`
+- Btrfs free estimate: `unknown`
+- Next live action: Re-run the VAULT Redis audit and verify docker inspect plus filesystem probes on VAULT.
 
 ## Largest Consumers On The Backing Filesystem
 
 ### /mnt/appdatacache
 
-- `/mnt/appdatacache/appdata`: `384.55 GiB`
-- `/mnt/appdatacache/data`: `36.12 GiB`
-- `/mnt/appdatacache/backups`: `28.89 GiB`
-- `/mnt/appdatacache/system`: `18.80 GiB`
-- `/mnt/appdatacache/dev`: `3.80 GiB`
-- `/mnt/appdatacache/databases`: `1.35 GiB`
-- `/mnt/appdatacache/n8n`: `359.50 MiB`
-- `/mnt/appdatacache/miniflux-postgres`: `173.72 MiB`
+- No appdatacache consumer census is available in the current audit.
 
 ### /mnt/appdatacache/appdata
 
-- `/mnt/appdatacache/appdata/stash`: `346.27 GiB`
-- `/mnt/appdatacache/appdata/plex`: `26.01 GiB`
-- `/mnt/appdatacache/appdata/prometheus`: `4.64 GiB`
-- `/mnt/appdatacache/appdata/tdarr`: `4.13 GiB`
-- `/mnt/appdatacache/appdata/Field Inspect`: `1.45 GiB`
-- `/mnt/appdatacache/appdata/sonarr`: `1010.71 MiB`
-- `/mnt/appdatacache/appdata/neo4j`: `521.80 MiB`
-- `/mnt/appdatacache/appdata/field-inspect`: `83.93 MiB`
+- No appdata consumer census is available in the current audit.
 
 ### /mnt/appdatacache/backups (top files)
 
@@ -68,14 +54,7 @@ Do not edit manually.
 
 ### /mnt/appdatacache/appdata/stash/generated
 
-- `/mnt/appdatacache/appdata/stash/generated/screenshots`: `137.68 GiB`
-- `/mnt/appdatacache/appdata/stash/generated/thumbnails`: `82.96 GiB`
-- `/mnt/appdatacache/appdata/stash/generated/vtt`: `64.95 GiB`
-- `/mnt/appdatacache/appdata/stash/generated/markers`: `39.49 GiB`
-- `/mnt/appdatacache/appdata/stash/generated/blobs`: `12.00 GiB`
-- `/mnt/appdatacache/appdata/stash/generated/transcodes`: `0 B`
-- `/mnt/appdatacache/appdata/stash/generated/download_stage`: `0 B`
-- `/mnt/appdatacache/appdata/stash/generated/interactive_heatmaps`: `0 B`
+- No stash/generated consumer census is available in the current audit.
 
 ### /mnt/appdatacache/models/comfyui
 
