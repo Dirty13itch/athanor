@@ -21,11 +21,12 @@ Do not edit manually.
 - Mutation class: `auto_read_only` | value class: `failing_eval_or_validator`
 - Proof surface: `/usr/bin/python3 scripts/validate_platform_contract.py`
 - Max concurrency: `None`
-- Repo-safe debt: cash_now=`1` | bounded_follow_on=`0` | program_slice=`1` | runtime_packets=`0`
+- Repo-safe debt: cash_now=`0` | bounded_follow_on=`0` | program_slice=`1` | runtime_packets=`0`
 
 ## What Changed Recently
 
 - `Validation and Publication` | outcome=`claimed` | Ralph loop selected dispatch-and-work-economy-closure under governor_scheduling with evidence fresh and claim workstream:validation-and-publication via already_dispatched.
+- `Operator Tooling and Helper Surfaces` | outcome=`claimed` | Ralph loop selected dispatch-and-work-economy-closure under governor_scheduling with evidence fresh and claim deferred_family:operator-tooling-and-helper-surfaces via already_dispatched.
 - `Reference and Archive Prune` | outcome=`claimed` | Ralph loop selected dispatch-and-work-economy-closure under governor_scheduling with evidence fresh and claim deferred_family:reference-and-archive-prune via already_dispatched.
 
 ## Operator Action
@@ -42,7 +43,6 @@ Do not edit manually.
 
 ## Active Reopen Reasons
 
-- cash_now repo-safe debt remains (`1`)
 - program-slice debt remains (`1`)
 - finish scoreboard closure_state is `closure_in_progress`
 

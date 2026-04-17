@@ -64,7 +64,7 @@ Do not edit manually.
 
 - `Validation and Publication` | `validation_and_checkpoint` | Current governed dispatch claim.
 - `Validation and Publication` | `ralph_loop` | Ralph loop selected dispatch-and-work-economy-closure under governor_scheduling with evidence fresh and claim workstream:validation-and-publication via already_dispatched.
-- `Reference and Archive Prune` | `ralph_loop` | Ralph loop selected dispatch-and-work-economy-closure under governor_scheduling with evidence fresh and claim deferred_family:reference-and-archive-prune via already_dispatched.
+- `Operator Tooling and Helper Surfaces` | `ralph_loop` | Ralph loop selected dispatch-and-work-economy-closure under governor_scheduling with evidence fresh and claim deferred_family:operator-tooling-and-helper-surfaces via already_dispatched.
 
 ## Activation Program
 
