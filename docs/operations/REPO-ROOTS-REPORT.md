@@ -34,8 +34,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane root.`
-- Local dirty file count: `7`
-- Local dirty sample: ` M scripts/collect_truth_inventory.py`, ` M scripts/generate_truth_inventory_reports.py`, ` M scripts/run_ralph_loop_pass.py`, ` M scripts/tests/test_publication_tranche_triage.py`, ` M scripts/tests/test_ralph_loop_contracts.py`, ` M scripts/tests/test_truth_inventory_report_contracts.py`, ` M scripts/triage_publication_tranche.py`
+- Local dirty file count: `0`
+- Local dirty sample: none
 
 ## dev-runtime-repo
 
