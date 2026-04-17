@@ -6,7 +6,7 @@
 - Adopted live system posture: closure=`closure_in_progress` | runtime_packets=`0` | attention=`Review recommended` | live_dispatch_surface=`/mnt/c/Athanor/reports/truth-inventory/steady-state-live.md`
 - Build/proving posture: turnover=`ready_for_low_touch_execution` | forge_top_lane=`letta-memory-plane` | atlas_top_lane=`letta-memory-plane` | atlas_routing_lane=`codex_cloudsafe`
 - Validator status: Athanor=`pass` | Devstack=`pass`
-- Git posture: Athanor dirty=`11` | Devstack dirty=`1`
+- Git posture: Athanor dirty=`2` | Devstack dirty=`1`
 - Findings: critical=`0` | high=`0` | medium=`0` | low=`0`
 
 ## Audit Coverage

@@ -121,3 +121,29 @@ def test_build_audit_covers_required_layers_and_subsystems() -> None:
     subsystem = next(item for item in audit['scorecard'] if item['id'] == 'devstack-forge-atlas')
     assert subsystem['finding_count'] >= 1
     assert subsystem['remediation_priority'] in {'medium', 'high'}
+
+
+def test_git_status_ignores_self_generated_audit_paths() -> None:
+    module = _load_module(
+        f'generate_full_system_audit_{uuid.uuid4().hex}',
+        SCRIPTS_DIR / 'generate_full_system_audit.py',
+    )
+
+    module._run_command = lambda cwd, command, timeout=20: {
+        'command': command,
+        'cwd': str(cwd),
+        'returncode': 0,
+        'stdout': 'M docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md\n M docs/operations/STEADY-STATE-STATUS.md\n?? reports/truth-inventory/tmp.json\n',
+        'stderr': '',
+    }
+
+    status = module._git_status(
+        Path('/mnt/c/Athanor'),
+        ignored_paths={
+            'docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md',
+        },
+    )
+
+    assert status['lines'] == [' M docs/operations/STEADY-STATE-STATUS.md', '?? reports/truth-inventory/tmp.json']
+    assert status['counts'] == {'modified': 1, 'untracked': 1}
+    assert status['total'] == 2

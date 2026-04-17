@@ -234,16 +234,21 @@ def _git_status(repo: Path, ignored_paths: set[str] | None = None) -> dict[str, 
     result = _run_command(repo, ['git', 'status', '--short'], timeout=20)
     ignored = {item.replace('\\', '/').strip() for item in (ignored_paths or set()) if str(item).strip()}
     lines = []
-    for line in result.get('stdout', '').splitlines():
-        if not line.strip():
+    parsed_lines: list[tuple[str, str]] = []
+    for raw_line in result.get('stdout', '').splitlines():
+        if not raw_line.strip():
             continue
-        candidate = line[3:].strip().split(' -> ', 1)[-1].strip().replace('\\', '/')
+        parts = raw_line.strip().split(maxsplit=1)
+        if len(parts) < 2:
+            continue
+        code, candidate = parts[0], parts[1]
+        candidate = candidate.split(' -> ', 1)[-1].strip().replace('\\', '/')
         if candidate in ignored:
             continue
-        lines.append(line)
+        lines.append(raw_line)
+        parsed_lines.append((code, candidate))
     status_counter: Counter[str] = Counter()
-    for line in lines:
-        code = line[:2]
+    for code, _candidate in parsed_lines:
         if '??' in code:
             status_counter['untracked'] += 1
         elif 'M' in code:
