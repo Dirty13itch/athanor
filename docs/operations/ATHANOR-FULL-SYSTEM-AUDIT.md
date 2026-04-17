@@ -7,7 +7,7 @@
 - Build/proving posture: turnover=`ready_for_low_touch_execution` | forge_top_lane=`protocol-first-builder-kernel` | atlas_top_lane=`protocol-first-builder-kernel` | atlas_routing_lane=`codex_cloudsafe`
 - Validator status: Athanor=`pass` | Devstack=`pass`
 - Git posture evidence: `reports/truth-inventory/full-system-audit-index.json` and `reports/truth-inventory/full-system-audit-findings.json`
-- Findings: critical=`0` | high=`0` | medium=`2` | low=`0`
+- Findings: critical=`0` | high=`0` | medium=`0` | low=`0`
 
 ## Audit Coverage
 
@@ -40,9 +40,9 @@
 
 | Subsystem | Layer | Overall | Authority | Runtime | Visibility | Verification | Split-brain risk | Priority |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `Athanor control plane and truth surfaces` | `adopted_live_system` | `4.2` | `3.0` | `5.0` | `3.0` | `5.0` | `low` | `medium` |
+| `Athanor control plane and truth surfaces` | `adopted_live_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
 | `Runtime and deployment reality across nodes` | `adopted_live_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
-| `Dashboard and operator product surfaces` | `adopted_live_system` | `4.2` | `3.0` | `5.0` | `3.0` | `5.0` | `low` | `medium` |
+| `Dashboard and operator product surfaces` | `adopted_live_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
 | `Agents and orchestration` | `adopted_live_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
 | `GPU orchestration, capacity, and burn truth` | `adopted_live_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
 | `WS PTY bridge` | `adopted_live_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
@@ -54,7 +54,7 @@
 | `Devstack packets and promotion surfaces` | `build_proving_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
 | `Adoption membrane between devstack and Athanor` | `membrane_and_adoption_boundary` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
 | `Strategic reservoir and capability universe coverage` | `strategic_reservoir` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
-| `Operator communication and front-door UX` | `adopted_live_system` | `4.2` | `3.0` | `5.0` | `3.0` | `5.0` | `low` | `medium` |
+| `Operator communication and front-door UX` | `adopted_live_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
 
 ## Tool and Manifest Inventory
 
@@ -90,15 +90,13 @@
 
 - Authority layer: `adopted_live_system` (Adopted live system)
 - Summary: Closure is complete, but active-claim and queue metrics still diverge across machine and human surfaces.
-- Scores: authority=`3.0` | runtime=`5.0` | visibility=`3.0` | verification=`5.0` | split-brain risk=`low` | remediation priority=`medium`
+- Scores: authority=`5.0` | runtime=`5.0` | visibility=`5.0` | verification=`5.0` | split-brain risk=`low` | remediation priority=`low`
 - Evidence:
   - `/mnt/c/Athanor/docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`
   - `/mnt/c/Athanor/reports/ralph-loop/latest.json`
   - `/mnt/c/Athanor/reports/truth-inventory/finish-scoreboard.json`
   - `/mnt/c/Athanor/reports/truth-inventory/steady-state-status.json`
-- Findings:
-  - [MEDIUM] Athanor operator surfaces disagree on the active claim. Impact: The front door and the machine truth do not point at the same current work, which degrades operator trust and makes handoff decisions ambiguous.
-  - [MEDIUM] Queue posture metrics diverge across Athanor operator surfaces. Impact: The system can report different dispatchable and suppressed counts depending on which surface the operator reads, which weakens the front-door contract.
+- Findings: none materialized from the current truth surfaces.
 
 ## Runtime and deployment reality across nodes
 
@@ -115,13 +113,11 @@
 
 - Authority layer: `adopted_live_system` (Adopted live system)
 - Summary: The front door is materially better, but it still depends on lower control-plane surfaces converging cleanly.
-- Scores: authority=`3.0` | runtime=`5.0` | visibility=`3.0` | verification=`5.0` | split-brain risk=`low` | remediation priority=`medium`
+- Scores: authority=`5.0` | runtime=`5.0` | visibility=`5.0` | verification=`5.0` | split-brain risk=`low` | remediation priority=`low`
 - Evidence:
   - `/mnt/c/Athanor/reports/truth-inventory/steady-state-status.json`
   - `/mnt/c/Athanor/docs/operations/ATHANOR-LAYERED-MASTER-PLAN.md`
-- Findings:
-  - [MEDIUM] Athanor operator surfaces disagree on the active claim. Impact: The front door and the machine truth do not point at the same current work, which degrades operator trust and makes handoff decisions ambiguous.
-  - [MEDIUM] Queue posture metrics diverge across Athanor operator surfaces. Impact: The system can report different dispatchable and suppressed counts depending on which surface the operator reads, which weakens the front-door contract.
+- Findings: none materialized from the current truth surfaces.
 
 ## Agents and orchestration
 
@@ -239,16 +235,12 @@
 
 - Authority layer: `adopted_live_system` (Adopted live system)
 - Summary: Operator visibility is improved and actionable, but surface divergence still needs one more normalization pass.
-- Scores: authority=`3.0` | runtime=`5.0` | visibility=`3.0` | verification=`5.0` | split-brain risk=`low` | remediation priority=`medium`
+- Scores: authority=`5.0` | runtime=`5.0` | visibility=`5.0` | verification=`5.0` | split-brain risk=`low` | remediation priority=`low`
 - Evidence:
   - `/mnt/c/Athanor/reports/truth-inventory/steady-state-status.json`
   - `/mnt/c/Athanor/reports/ralph-loop/latest.json`
   - `/mnt/c/Athanor/reports/truth-inventory/finish-scoreboard.json`
-- Findings:
-  - [MEDIUM] Athanor operator surfaces disagree on the active claim. Impact: The front door and the machine truth do not point at the same current work, which degrades operator trust and makes handoff decisions ambiguous.
-  - [MEDIUM] Queue posture metrics diverge across Athanor operator surfaces. Impact: The system can report different dispatchable and suppressed counts depending on which surface the operator reads, which weakens the front-door contract.
+- Findings: none materialized from the current truth surfaces.
 
 ## Prioritized Remediation Backlog
 
-- `medium` `trust` — Athanor operator surfaces disagree on the active claim. Fix: Make finish-scoreboard and restart snapshot derive the active claim from the same Ralph claim surface used by steady-state status, or explicitly mark lagging/closure-only state as non-authoritative for live work.
-- `medium` `trust` — Queue posture metrics diverge across Athanor operator surfaces. Fix: Normalize queue summary derivation so finish-scoreboard, Ralph latest, restart snapshot, and steady-state status all compute dispatchable and suppressed counts from the same queue snapshot.
