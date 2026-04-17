@@ -7,7 +7,7 @@ Do not edit manually.
 
 - Registry version: `2026-04-16.1`
 - Surfaces tracked: `6`
-- VAULT LiteLLM env audit: `2026-04-17T04:12:01Z`
+- VAULT LiteLLM env audit: `2026-04-17T04:59:08Z`
 
 ### Remediation states
 
@@ -73,7 +73,7 @@ Do not edit manually.
 - Evidence sources: `VAULT LiteLLM template and appdata layout review 2026-03-25`, `VAULT live docker inspect env-presence audit 2026-03-29`, `VAULT provider-specific LiteLLM probe 2026-03-29`, `VAULT LiteLLM implementation-authority role parity review 2026-03-29`, `VAULT live docker inspect env-presence audit 2026-04-08`, `VAULT live docker inspect env-presence audit 2026-04-16`
 - Recommended actions: `Keep LiteLLM provider keys in the managed VAULT container env surface or an equivalent host-local secret source.`, `Keep the live VAULT container env aligned with every provider key referenced by ansible/roles/vault-litellm/templates/litellm_config.yaml.j2.`, `Treat the tracked repo as env-contract authority only; the remaining missing keys are not recoverable from tracked source or the reviewed DESK-local runtime env surfaces.`, `Use the generated VAULT auth-repair packet to decide whether a lane needs missing-key restoration, present-key rotation, or auth-mode review before recreating or redeploying the container.`, `Keep repo truth focused on env contracts, delivery boundaries, and repair sequencing rather than freezing point-in-time live env presence into this registry.`, `Do not move provider keys into tracked source or ad hoc shell history during future routing changes.`
 - Notes: `Backed by the current LiteLLM template and runtime appdata layout.`, `Implementation-authority LiteLLM env-contract parity is already fixed and validator-enforced; the remaining work is runtime-only and should be driven by the current env-audit plus provider-probe artifacts.`, `This registry tracks contract names, delivery surface, and remediation posture; the generated reports own point-in-time present or missing env observations.`, `The running VAULT LiteLLM surface currently appears as a standalone Docker container with a config bind mount, not a discovered compose-managed env source.`, `Tracked `ansible/host_vars/vault.yml` does not hold the `vault_*` secret aliases for the remaining missing LiteLLM keys; the intended owner pattern is an untracked Ansible secret-vars surface adjacent to the VAULT host config or an equivalent host-local secret source.`, `This registry tracks contract names only, not secret material.`, `The live VAULT config now proves `LITELLM_MASTER_KEY` is part of the same container-env delivery contract as the provider keys and should stay modeled here.`
-- Latest live env audit: `2026-04-17T04:12:01Z`
+- Latest live env audit: `2026-04-17T04:59:08Z`
 - Audit status: `failed`
 - Runtime owner surface: `standalone_docker_container`
 - Container image: `unknown`

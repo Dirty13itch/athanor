@@ -47,6 +47,14 @@ def test_build_commands_can_skip_restart_brief():
     assert commands[-1][1:] == ["scripts/validate_platform_contract.py"]
 
 
+def test_command_timeout_seconds_uses_script_overrides():
+    module = _load_module()
+
+    assert module.command_timeout_seconds([module.PYTHON, 'scripts/collect_truth_inventory.py']) == 180
+    assert module.command_timeout_seconds([module.PYTHON, 'scripts/validate_platform_contract.py']) == 90
+    assert module.command_timeout_seconds([module.PYTHON, 'scripts/generate_documentation_index.py']) == module.DEFAULT_COMMAND_TIMEOUT_SECONDS
+
+
 def test_run_commands_records_timeout_and_stops(monkeypatch):
     module = _load_module()
     commands = [

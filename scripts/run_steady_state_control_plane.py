@@ -12,6 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 PYTHON = sys.executable
 DEFAULT_COMMAND_TIMEOUT_SECONDS = 120
 COMMAND_TIMEOUT_OVERRIDES: dict[tuple[str, ...], int] = {
+    ('scripts/collect_truth_inventory.py',): 180,
     ('scripts/validate_platform_contract.py',): 90,
 }
 

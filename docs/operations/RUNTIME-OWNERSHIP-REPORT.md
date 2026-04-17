@@ -6,7 +6,7 @@ Do not edit manually.
 ## Summary
 
 - Registry version: `2026-04-16.2`
-- Cached truth snapshot: `2026-04-17T04:12:52.397591+00:00`
+- Cached truth snapshot: `2026-04-17T04:59:59.018641+00:00`
 - Promotion gate: `runtime_ownership_maturity`
 - Goal: Make runtime ownership explicit enough that host-level maintenance no longer depends on undocumented operator memory.
 - Implementation authority: `desk-main` -> `C:/Athanor`

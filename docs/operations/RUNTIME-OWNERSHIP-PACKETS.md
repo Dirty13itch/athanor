@@ -4,7 +4,7 @@ Generated from `config/automation-backbone/runtime-ownership-packets.json`, `con
 Do not edit manually.
 
 - Registry version: `2026-04-16.2`
-- Cached truth snapshot: `2026-04-17T04:12:52.397591+00:00`
+- Cached truth snapshot: `2026-04-17T04:59:59.018641+00:00`
 - Packets tracked: `17`
 
 | Packet | Status | Lane | Approval type | Goal |
