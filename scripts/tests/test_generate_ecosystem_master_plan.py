@@ -203,6 +203,7 @@ def test_build_payload_covers_full_ecosystem_scope() -> None:
         'human_approval_and_decision_gates',
     }
     assert payload['activation_program'][0]['title'] == 'Letta Memory Plane'
+    assert payload['operator_model']['front_door_sequence'][0]['surface'].endswith('reports/truth-inventory/steady-state-live.md')
     assert any(edge['type'] == 'hard blocker' for edge in payload['dependency_edges'])
     assert any(edge['type'] == 'operator input' for edge in payload['dependency_edges'])
     assert any('LETTA_API_KEY' in item for item in payload['current_truth']['blocked_by_operator_input'])
@@ -242,8 +243,8 @@ def test_rendered_docs_include_required_sections() -> None:
             'front_door_sequence': [
                 {
                     'order': 1,
-                    'surface': '/mnt/c/Athanor/docs/operations/STEADY-STATE-STATUS.md',
-                    'purpose': 'Current status.',
+                    'surface': '/mnt/c/Athanor/reports/truth-inventory/steady-state-live.md',
+                    'purpose': 'Live status.',
                     'use_when': 'Daily.',
                 }
             ],
@@ -411,6 +412,7 @@ def test_rendered_docs_include_required_sections() -> None:
 
     assert '# Athanor Ecosystem Master Plan' in master
     assert '## Current Ecosystem Truth' in master
+    assert 'steady-state-live.md' in master
     assert 'Letta Memory Plane' in master
     assert '# Athanor Ecosystem System Bible' in bible
     assert '## Cluster Substrate Inventory' in bible

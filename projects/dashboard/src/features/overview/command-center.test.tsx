@@ -64,13 +64,21 @@ describe("CommandCenter", () => {
 
     render(<CommandCenter initialSnapshot={snapshot} />, { wrapper: buildWrapper() });
 
-    expect(screen.getByRole("heading", { name: /Triage the system, pick the next move, then jump\./i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Current work, next move, and live pressure\./i })).toBeInTheDocument();
+    expect(screen.getByText("Current plan")).toBeInTheDocument();
+    expect(screen.getByText("wp-1741531200")).toBeInTheDocument();
+    expect(screen.getAllByText(/Push EoBQ content and keep Athanor drift in check\./i).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText(/Implement the next EoBQ scene renderer state machine and branching transitions\./i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Open workforce planner/i })).toHaveAttribute("href", "/workforce");
     expect(screen.getByText("Priority Queue")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Open backlog/i })).toHaveAttribute("href", "/backlog");
     expect(screen.getByText("Critical Signals")).toBeInTheDocument();
     expect(screen.getByText("Cluster Posture")).toBeInTheDocument();
-    expect(screen.getByText("Route ownership")).toBeInTheDocument();
+    expect(screen.getByText("Specialist routes")).toBeInTheDocument();
     expect(screen.getByText(/Depth lives on the specialist routes/i)).toBeInTheDocument();
+    expect(screen.getByText("First Read")).toBeInTheDocument();
+    expect(screen.getByText(/Live posture first, then proof surfaces for deeper drilling\./i)).toBeInTheDocument();
+    expect(screen.getByText("Proof drill-down")).toBeInTheDocument();
     expect(await screen.findByText(/Autonomous handoff/i)).toBeInTheDocument();
     expect(await screen.findByText(/Dispatch and Work-Economy Closure/i)).toBeInTheDocument();
     expect(screen.getByText(/auto-retry lineage after a server restart/i)).toBeInTheDocument();
@@ -83,11 +91,27 @@ describe("CommandCenter", () => {
       "href",
       "/routing",
     );
-    const routeOwnershipPanel = screen.getByText(/Depth lives on the specialist routes/i).closest("div")?.parentElement;
+    const routeOwnershipPanel = screen.getByText(/Depth lives on the specialist routes/i).closest(".surface-panel");
     expect(routeOwnershipPanel).toBeTruthy();
     if (!routeOwnershipPanel) return;
-    expect(within(routeOwnershipPanel).getByRole("link", { name: /Operator/ })).toHaveAttribute("href", "/operator");
-    expect(within(routeOwnershipPanel).getByRole("link", { name: /Routing/ })).toHaveAttribute("href", "/routing");
-    expect(within(routeOwnershipPanel).getByRole("link", { name: /Subscriptions/ })).toHaveAttribute("href", "/subscriptions");
+    expect(
+      within(routeOwnershipPanel)
+        .getAllByRole("link", { name: /Operator/ })
+        .some((link) => link.getAttribute("href") === "/operator"),
+    ).toBe(true);
+    expect(
+      within(routeOwnershipPanel)
+        .getAllByRole("link", { name: /Routing/ })
+        .some((link) => link.getAttribute("href") === "/routing"),
+    ).toBe(true);
+    expect(
+      within(routeOwnershipPanel)
+        .getAllByRole("link", { name: /Subscriptions/ })
+        .some((link) => link.getAttribute("href") === "/subscriptions"),
+    ).toBe(true);
+    const proofDrilldownPanel = screen.getByText("Proof drill-down").closest("div")?.parentElement?.parentElement;
+    expect(proofDrilldownPanel).toBeTruthy();
+    if (!proofDrilldownPanel) return;
+    expect(within(proofDrilldownPanel).getByRole("link", { name: /Route index/i })).toHaveAttribute("href", "/more");
   });
 });

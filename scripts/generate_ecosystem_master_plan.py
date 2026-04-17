@@ -19,6 +19,7 @@ SYSTEM_BIBLE_PATH = REPO_ROOT / 'docs' / 'architecture' / 'ATHANOR-ECOSYSTEM-SYS
 DEPENDENCY_MAP_PATH = REPO_ROOT / 'docs' / 'operations' / 'ATHANOR-ECOSYSTEM-DEPENDENCY-MAP.md'
 OPERATOR_MODEL_PATH = REPO_ROOT / 'docs' / 'operations' / 'ATHANOR-OPERATOR-MODEL.md'
 JSON_PATH = REPO_ROOT / 'reports' / 'truth-inventory' / 'ecosystem-master-plan.json'
+STEADY_STATE_LIVE_MD_PATH = REPO_ROOT / 'reports' / 'truth-inventory' / 'steady-state-live.md'
 
 SOURCE_LAYERS = {
     'athanor_status': REPO_ROOT / 'STATUS.md',
@@ -288,9 +289,8 @@ def build_payload() -> dict[str, Any]:
     current_truth = {
         'live': [
             f"Athanor adopted system is `{closure_state}` with operator mode `{operator_mode}`.",
-            f"Current governed work is `{current_work_title}` and the next staged handoff is `{next_up_title}`.",
-            f"Runtime packet inbox currently holds `{runtime_packets}` packets.",
-            f"The canonical command center is `{front_door['canonical_url']}`.",
+            f"Live claim rotation, queue posture, and packet inbox state are carried by `{STEADY_STATE_LIVE_MD_PATH}` and `reports/ralph-loop/latest.json`.",
+            f"The canonical command center remains `{front_door['canonical_url']}`.",
         ],
         'proved': [
             f"Devstack turnover status is `{_pick_string(turnover.get('autonomous_turnover_status'), atlas_summary.get('turnover_status')) or 'unknown'}`.",
@@ -323,11 +323,12 @@ def build_payload() -> dict[str, Any]:
             'state_class': 'adopted',
             'source_of_truth': [
                 'reports/truth-inventory/steady-state-status.json',
+                'reports/truth-inventory/steady-state-live.md',
                 'reports/truth-inventory/finish-scoreboard.json',
                 'reports/ralph-loop/latest.json',
                 'docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md',
             ],
-            'current_state': f"Core posture is `{closure_state}` with `{operator_mode}`; current governed claim is `{current_work_title}` and the runtime inbox is `{runtime_packets}`.",
+            'current_state': f"Core posture is `{closure_state}` with `{operator_mode}`; live claim, queue posture, and packet inbox state are intentionally carried by the ignored live operator feed and machine JSON surfaces.",
             'blockers': [] if runtime_packets == 0 else [f'{runtime_packets} runtime packet(s) remain open.'],
             'next_maturity_move': 'Keep the steady-state control-plane pass green and reopen only on typed debt, packet, or validator evidence.',
             'why_in_scope': 'This is the adopted implementation and operator authority that all other ecosystem layers ultimately support or feed.',
@@ -344,7 +345,7 @@ def build_payload() -> dict[str, Any]:
                 'C:/athanor-devstack/reports/master-atlas/latest.json',
                 'C:/athanor-devstack/MASTER-PLAN.md',
             ],
-            'current_state': f"Turnover is `{_pick_string(turnover.get('autonomous_turnover_status'), atlas_summary.get('turnover_status')) or 'unknown'}`, top lane is `{_pick_string(devstack_forge_board.get('top_priority_lane')) or 'unknown'}`, and packet drafting lanes total `{len(concept_lanes)}`.",
+            'current_state': f"Turnover is `{_pick_string(turnover.get('autonomous_turnover_status'), atlas_summary.get('turnover_status')) or 'unknown'}`; current top lane and packet drafting flow are carried live by the forge board and atlas surfaces.",
             'blockers': [item['label'] for item in deferred_inputs],
             'next_maturity_move': 'Advance the next bounded promotion lane through proof, packet, and Athanor landing surfaces without leaking build truth into runtime truth.',
             'why_in_scope': 'Devstack owns concept, prototype, and proved capability work that directly determines what can graduate into Athanor next.',
@@ -451,7 +452,7 @@ def build_payload() -> dict[str, Any]:
                 'C:/athanor-devstack/docs/operations/DEVSTACK-FORGE-BOARD.md',
                 'docs/operations/STEADY-STATE-STATUS.md',
             ],
-            'current_state': f"Core Athanor does not currently need intervention (`{intervention_label}`), but explicit approval and operator-input gates remain on future activation lanes.",
+            'current_state': 'Approvals stay explicit and lane-specific; live attention posture and pending gates surface through the live operator feed, steady-state JSON, and forge deferred inputs.',
             'blockers': [item['label'] for item in deferred_inputs],
             'next_maturity_move': 'Keep approvals explicit and lane-specific: only elevate them when a bounded runtime mutation, credential gate, or pilot activation is intentionally being executed.',
             'why_in_scope': 'Some work should remain paused until Shaun explicitly chooses to spend trust, credentials, or runtime mutation budget.',
@@ -590,42 +591,48 @@ def build_payload() -> dict[str, Any]:
     front_door_sequence = [
         {
             'order': 1,
-            'surface': '/mnt/c/Athanor/docs/operations/STEADY-STATE-STATUS.md',
-            'purpose': 'Current adopted-system status, current work, next up, and whether Shaun needs to care.',
+            'surface': str(STEADY_STATE_LIVE_MD_PATH),
+            'purpose': 'Volatile adopted-system feed for current work, queue posture, and recent activity without repo-tracked churn.',
             'use_when': 'First read for daily operation.',
         },
         {
             'order': 2,
+            'surface': '/mnt/c/Athanor/docs/operations/STEADY-STATE-STATUS.md',
+            'purpose': 'Durable operator contract defining intervention levels, reopen triggers, and proof paths.',
+            'use_when': 'You want the stable operating contract rather than the live ticker.',
+        },
+        {
+            'order': 3,
             'surface': '/mnt/c/Athanor/docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md',
             'purpose': 'Cross-system execution spine covering Athanor, devstack, substrate, operator-local, providers, and approval gates.',
             'use_when': 'You need the full ecosystem picture without dropping into raw JSON.',
         },
         {
-            'order': 3,
+            'order': 4,
             'surface': '/mnt/c/athanor-devstack/docs/operations/DEVSTACK-FORGE-BOARD.md',
             'purpose': 'Current build/proving queue and explicit deferred operator inputs.',
             'use_when': 'You want to know what the next promotion or activation lane is.',
         },
         {
-            'order': 4,
+            'order': 5,
             'surface': '/mnt/c/athanor-devstack/docs/operations/MASTER-ATLAS-REPORT.md',
             'purpose': 'Detailed proving-readiness, turnover posture, and pilot evidence.',
             'use_when': 'You need readiness detail before a pilot or promotion move.',
         },
         {
-            'order': 5,
+            'order': 6,
             'surface': '/mnt/c/Codex System Config/docs/CORE-ROLLOUT-STATUS.md',
             'purpose': 'Operator-local Codex control-plane health across the mandatory rollout set.',
             'use_when': 'Local workstation or Codex control-plane posture may be the blocker.',
         },
         {
-            'order': 6,
+            'order': 7,
             'surface': '/mnt/c/Athanor/reports/truth-inventory/finish-scoreboard.json',
             'purpose': 'Machine proof for closure state and repo-safe debt counts.',
             'use_when': 'You need proof rather than summary.',
         },
         {
-            'order': 7,
+            'order': 8,
             'surface': '/mnt/c/Athanor/reports/ralph-loop/latest.json',
             'purpose': 'Machine proof for the current claim, queue state, and Ralph loop posture.',
             'use_when': 'You are debugging the control loop itself.',
@@ -677,7 +684,7 @@ def build_payload() -> dict[str, Any]:
             '/mnt/c/athanor-devstack/reports/master-atlas/latest.json',
         ],
         'review_ritual': [
-            'Read steady-state status first.',
+            'Read the live operator feed first.',
             'Read the ecosystem master plan when work spans more than Athanor core.',
             'Check the forge board before treating a devstack lane as next.',
             'Use atlas and machine JSON only when you need proof or to resolve contradiction.',
@@ -795,37 +802,16 @@ def render_master_plan(payload: dict[str, Any]) -> str:
             f"| `{domain['title']}` | `{domain['owner']}` | `{domain['state_class']}` | {domain['current_state']} | {blockers} | {domain['next_maturity_move']} |"
         )
 
-    queue_summary = _safe_dict(payload.get('queue_summary'))
     lines.extend([
         '',
         '## Active Execution Lanes',
         '',
-        f"- Running now: Athanor is on `{queue_summary.get('athanor_current_work', 'unknown')}`.",
-        f"- Next in Athanor: `{queue_summary.get('athanor_next_up', 'unknown')}`.",
-        f"- Next in devstack: `{queue_summary.get('devstack_top_lane', 'unknown')}`.",
-        f"- Safe-surface queue count: `{queue_summary.get('safe_surface_queue_count', 'unknown')}` with last outcome `{queue_summary.get('safe_surface_last_outcome', 'unknown')}`.",
-        '',
-        '### Recent Activity',
+        f"- Live Athanor execution rotates through `{STEADY_STATE_LIVE_MD_PATH}` and `/mnt/c/Athanor/reports/ralph-loop/latest.json`.",
+        '- The strategic next-adoption order is the activation program below, not the transient current claim ticker.',
+        '- The current devstack proving lane remains visible on `C:/athanor-devstack/docs/operations/DEVSTACK-FORGE-BOARD.md` and `C:/athanor-devstack/docs/operations/MASTER-ATLAS-REPORT.md`.',
+        '- Safe-surface work remains a separate non-Athanor queue governed by the operator-local control plane.',
         '',
     ])
-    if recent_activity:
-        seen: set[tuple[str, str, str]] = set()
-        for item in recent_activity:
-            signature = (
-                str(item.get('title', 'unknown')),
-                str(item.get('lane_family', 'unknown')),
-                str(item.get('summary', 'No summary available.')),
-            )
-            if signature in seen:
-                continue
-            seen.add(signature)
-            lines.append(
-                f"- `{signature[0]}` | `{signature[1]}` | {signature[2]}"
-            )
-            if len(seen) >= 6:
-                break
-    else:
-        lines.append('- No recent cross-system activity was materialized.')
 
     lines.extend([
         '',
@@ -847,7 +833,8 @@ def render_master_plan(payload: dict[str, Any]) -> str:
         '## Operator Model',
         '',
         f"- Front door: `{operator_model.get('front_door_label', 'unknown')}` at `{operator_model.get('front_door_url', 'unknown')}`.",
-        '- First read: `docs/operations/STEADY-STATE-STATUS.md`.',
+        '- First read: `reports/truth-inventory/steady-state-live.md`.',
+        '- Stable operator contract: `docs/operations/STEADY-STATE-STATUS.md`.',
         '- Cross-system read: `docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md`.',
         '- Build/proving read: `C:/athanor-devstack/docs/operations/DEVSTACK-FORGE-BOARD.md` and `C:/athanor-devstack/docs/operations/MASTER-ATLAS-REPORT.md`.',
         '- Deep proof: drop to the JSON artifacts only when summary surfaces contradict or you need exact evidence.',

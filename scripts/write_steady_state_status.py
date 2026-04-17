@@ -12,6 +12,7 @@ from session_restart_brief import build_restart_snapshot
 REPO_ROOT = Path(__file__).resolve().parent.parent
 RALPH_LATEST_PATH = REPO_ROOT / "reports" / "ralph-loop" / "latest.json"
 STEADY_STATE_STATUS_JSON_PATH = REPO_ROOT / "reports" / "truth-inventory" / "steady-state-status.json"
+STEADY_STATE_LIVE_MD_PATH = REPO_ROOT / "reports" / "truth-inventory" / "steady-state-live.md"
 STEADY_STATE_STATUS_DOC_PATH = REPO_ROOT / "docs" / "operations" / "STEADY-STATE-STATUS.md"
 
 
@@ -184,6 +185,7 @@ def build_payload() -> dict[str, Any]:
     artifacts.update(
         {
             "steady_state_status_json": str(STEADY_STATE_STATUS_JSON_PATH),
+            "steady_state_live_md": str(STEADY_STATE_LIVE_MD_PATH),
             "steady_state_status_doc": str(STEADY_STATE_STATUS_DOC_PATH),
         }
     )
@@ -224,10 +226,7 @@ def build_payload() -> dict[str, Any]:
 
 
 def render_markdown(payload: dict[str, Any]) -> str:
-    current_work = dict(payload.get("current_work") or {})
-    next_up = dict(payload.get("next_up") or {})
     artifacts = dict(payload.get("artifacts") or {})
-    recent_activity = payload.get("recent_activity") if isinstance(payload.get("recent_activity"), list) else []
     lines = [
         "# Steady-State Status",
         "",
@@ -239,59 +238,23 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Attention level: `{payload.get('intervention_label', 'unknown')}`",
         f"- Needs you: `{payload.get('needs_you', False)}`",
         f"- Why: {payload.get('intervention_summary', 'unknown')}",
-        f"- Current work: `{_pick_string(current_work.get('task_title'), current_work.get('task_id')) or 'unknown'}`",
-        f"- Current provider: `{_pick_string(current_work.get('provider_label'), current_work.get('provider_id')) or 'unknown'}`",
-        f"- Current lane: `{_pick_string(current_work.get('lane_family')) or 'unknown'}`",
-        f"- Dispatch status: `{_pick_string(current_work.get('dispatch_status')) or 'unknown'}`",
-        f"- Next up: `{_pick_string(next_up.get('task_title'), next_up.get('task_id')) or 'unknown'}`",
-        f"- Queue posture: total=`{payload.get('queue_total', 'unknown')}` | dispatchable=`{payload.get('queue_dispatchable', 'unknown')}` | blocked=`{payload.get('queue_blocked', 'unknown')}` | suppressed=`{payload.get('suppressed_task_count', 'unknown')}`",
+        f"- Live operator feed: `{artifacts.get('steady_state_live_md', '')}`",
+        f"- Machine proof: `{artifacts.get('steady_state_status_json', '')}`",
         "",
-        "## Current Work",
+        "## Operating Contract",
         "",
-        f"- Strategic workstream: `{_pick_string(payload.get('selected_workstream_title'), payload.get('selected_workstream_id')) or 'unknown'}`",
-        f"- Mutation class: `{_pick_string(current_work.get('mutation_class')) or 'unknown'}` | value class: `{_pick_string(current_work.get('value_class')) or 'unknown'}`",
-        f"- Proof surface: `{_pick_string(current_work.get('proof_surface')) or 'unknown'}`",
-        f"- Max concurrency: `{current_work.get('max_concurrency', 'unknown')}`",
-        f"- Repo-safe debt: cash_now=`{payload.get('cash_now_remaining_count', 'unknown')}` | bounded_follow_on=`{payload.get('bounded_follow_on_remaining_count', 'unknown')}` | program_slice=`{payload.get('program_slice_remaining_count', 'unknown')}` | runtime_packets=`{payload.get('runtime_packet_count', 'unknown')}`",
-        "",
-        "## What Changed Recently",
-        "",
-    ]
-    if recent_activity:
-        seen: set[tuple[str, str, str]] = set()
-        for item in recent_activity:
-            signature = (
-                str(item.get('task_title', 'unknown')),
-                str(item.get('dispatch_outcome', 'unknown')),
-                str(item.get('summary', 'No summary available.')),
-            )
-            if signature in seen:
-                continue
-            seen.add(signature)
-            lines.append(
-                f"- `{signature[0]}` | outcome=`{signature[1]}` | {signature[2]}"
-            )
-            if len(seen) >= 6:
-                break
-    else:
-        lines.append("- No recent activity was materialized from the live Ralph record.")
-
-    lines.extend([
+        "- This tracked document is durable by design.",
+        "- Live claim rotation, provider routing, queue posture, and recent activity move through the ignored live operator feed and machine JSON, not this repo-tracked markdown surface.",
+        f"- Strategic workstream family: `{_pick_string(payload.get('selected_workstream_title'), payload.get('selected_workstream_id')) or 'unknown'}`",
+        f"- Repo-safe debt gates: cash_now=`{payload.get('cash_now_remaining_count', 'unknown')}` | bounded_follow_on=`{payload.get('bounded_follow_on_remaining_count', 'unknown')}` | program_slice=`{payload.get('program_slice_remaining_count', 'unknown')}` | runtime_packets=`{payload.get('runtime_packet_count', 'unknown')}`",
         "",
         "## Operator Action",
         "",
         f"- {payload.get('next_operator_action', 'unknown')}",
-    ])
-    if _pick_string(next_up.get("provider_label"), next_up.get("lane_family"), next_up.get("task_title")):
-        lines.append(
-            f"- Prepared next handoff: `{_pick_string(next_up.get('task_title'), next_up.get('task_id')) or 'unknown'}` via `{_pick_string(next_up.get('provider_label'), next_up.get('lane_family')) or 'unknown'}`"
-        )
-
-    lines.extend([
         "",
         "## Reopen Triggers",
         "",
-    ])
+    ]
     lines.extend(f"- {item}" for item in payload.get("reopen_triggers", []))
 
     lines.extend([
@@ -312,10 +275,61 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Finish scoreboard: `{artifacts.get('finish_scoreboard', '')}`",
         f"- Runtime packet inbox: `{artifacts.get('runtime_packet_inbox', '')}`",
         f"- Session restart brief source: `python scripts/session_restart_brief.py --refresh`",
+        f"- Live operator feed: `{artifacts.get('steady_state_live_md', '')}`",
         f"- Steady-state JSON: `{artifacts.get('steady_state_status_json', '')}`",
         "- Cross-system read: `docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md`, `docs/operations/ATHANOR-OPERATOR-MODEL.md`, `docs/operations/ATHANOR-ECOSYSTEM-DEPENDENCY-MAP.md`",
         "",
     ])
+    return "\n".join(lines)
+
+
+def render_live_markdown(payload: dict[str, Any]) -> str:
+    current_work = dict(payload.get("current_work") or {})
+    next_up = dict(payload.get("next_up") or {})
+    recent_activity = payload.get("recent_activity") if isinstance(payload.get("recent_activity"), list) else []
+    lines = [
+        "# Steady-State Live Operator Feed",
+        "",
+        "Volatile live surface. Generated from current Athanor runtime truth.",
+        "",
+        "## At A Glance",
+        "",
+        f"- System state: `{payload.get('closure_state', 'unknown')}`",
+        f"- Attention level: `{payload.get('intervention_label', 'unknown')}`",
+        f"- Current work: `{_pick_string(current_work.get('task_title'), current_work.get('task_id')) or 'unknown'}`",
+        f"- Current provider: `{_pick_string(current_work.get('provider_label'), current_work.get('provider_id')) or 'unknown'}`",
+        f"- Current lane: `{_pick_string(current_work.get('lane_family')) or 'unknown'}`",
+        f"- Dispatch status: `{_pick_string(current_work.get('dispatch_status')) or 'unknown'}`",
+        f"- Next up: `{_pick_string(next_up.get('task_title'), next_up.get('task_id')) or 'unknown'}`",
+        f"- Queue posture: total=`{payload.get('queue_total', 'unknown')}` | dispatchable=`{payload.get('queue_dispatchable', 'unknown')}` | blocked=`{payload.get('queue_blocked', 'unknown')}` | suppressed=`{payload.get('suppressed_task_count', 'unknown')}`",
+        "",
+        "## Current Work",
+        "",
+        f"- Strategic workstream: `{_pick_string(payload.get('selected_workstream_title'), payload.get('selected_workstream_id')) or 'unknown'}`",
+        f"- Mutation class: `{_pick_string(current_work.get('mutation_class')) or 'unknown'}` | value class: `{_pick_string(current_work.get('value_class')) or 'unknown'}`",
+        f"- Proof surface: `{_pick_string(current_work.get('proof_surface')) or 'unknown'}`",
+        f"- Max concurrency: `{current_work.get('max_concurrency', 'unknown')}`",
+        "",
+        "## Recent Activity",
+        "",
+    ]
+    if recent_activity:
+        seen: set[tuple[str, str, str]] = set()
+        for item in recent_activity:
+            signature = (
+                str(item.get("task_title", "unknown")),
+                str(item.get("dispatch_outcome", "unknown")),
+                str(item.get("summary", "No summary available.")),
+            )
+            if signature in seen:
+                continue
+            seen.add(signature)
+            lines.append(f"- `{signature[0]}` | outcome=`{signature[1]}` | {signature[2]}")
+            if len(seen) >= 6:
+                break
+    else:
+        lines.append("- No recent activity was materialized from the live Ralph record.")
+    lines.append("")
     return "\n".join(lines)
 
 
@@ -351,10 +365,12 @@ def main() -> int:
         payload["generated_at"] = str(existing_json_payload.get("generated_at") or payload["generated_at"])
     rendered_json = _json_render(payload)
     rendered_markdown = render_markdown(payload)
+    rendered_live_markdown = render_live_markdown(payload)
 
     if args.check:
         stale = False
         existing_markdown = STEADY_STATE_STATUS_DOC_PATH.read_text(encoding="utf-8") if STEADY_STATE_STATUS_DOC_PATH.exists() else ""
+        existing_live_markdown = STEADY_STATE_LIVE_MD_PATH.read_text(encoding="utf-8") if STEADY_STATE_LIVE_MD_PATH.exists() else ""
         existing_json_payload = _load_existing_json_payload()
         if _normalized_payload(existing_json_payload or {}) != _normalized_payload(payload):
             print(f"{STEADY_STATE_STATUS_JSON_PATH} is stale")
@@ -362,18 +378,25 @@ def main() -> int:
         if existing_markdown != rendered_markdown:
             print(f"{STEADY_STATE_STATUS_DOC_PATH} is stale")
             stale = True
+        if existing_live_markdown != rendered_live_markdown:
+            print(f"{STEADY_STATE_LIVE_MD_PATH} is stale")
+            stale = True
         return 1 if stale else 0
 
     STEADY_STATE_STATUS_JSON_PATH.parent.mkdir(parents=True, exist_ok=True)
     STEADY_STATE_STATUS_DOC_PATH.parent.mkdir(parents=True, exist_ok=True)
+    STEADY_STATE_LIVE_MD_PATH.parent.mkdir(parents=True, exist_ok=True)
     if (STEADY_STATE_STATUS_JSON_PATH.read_text(encoding="utf-8") if STEADY_STATE_STATUS_JSON_PATH.exists() else "") != rendered_json:
         STEADY_STATE_STATUS_JSON_PATH.write_text(rendered_json, encoding="utf-8")
     if (STEADY_STATE_STATUS_DOC_PATH.read_text(encoding="utf-8") if STEADY_STATE_STATUS_DOC_PATH.exists() else "") != rendered_markdown:
         STEADY_STATE_STATUS_DOC_PATH.write_text(rendered_markdown, encoding="utf-8")
+    if (STEADY_STATE_LIVE_MD_PATH.read_text(encoding="utf-8") if STEADY_STATE_LIVE_MD_PATH.exists() else "") != rendered_live_markdown:
+        STEADY_STATE_LIVE_MD_PATH.write_text(rendered_live_markdown, encoding="utf-8")
     if args.json:
         print(json.dumps(payload, indent=2))
     else:
         print(str(STEADY_STATE_STATUS_DOC_PATH))
+        print(str(STEADY_STATE_LIVE_MD_PATH))
         print(str(STEADY_STATE_STATUS_JSON_PATH))
     return 0
 

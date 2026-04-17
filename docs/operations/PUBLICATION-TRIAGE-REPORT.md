@@ -1,8 +1,8 @@
 # Publication Triage Summary
 
 - Active sequence: `2026-04-15-publication-triage-governance`
-- Dirty entries: `5`
-- Slice-matched entries: `2`
+- Dirty entries: `3`
+- Slice-matched entries: `0`
 - Deferred-family entries: `3`
 - Ambiguous entries: `0`
 - Unclassified entries: `0`
@@ -13,7 +13,7 @@
 | Slice | Status | Dirty matches | Missing publication refs | Missing generated artifacts |
 | --- | --- | --- | --- | --- |
 | `backbone-contracts-and-truth-writers` | `published` | `0` | `0` | `0` |
-| `runtime-ownership-provider-truth-and-reconciliation` | `published` | `2` | `0` | `0` |
+| `runtime-ownership-provider-truth-and-reconciliation` | `published` | `0` | `0` | `0` |
 | `pilot-eval-substrate-and-operator-test-machinery` | `published` | `0` | `0` | `0` |
 | `graphrag-promotion-wave` | `published` | `0` | `0` | `0` |
 | `gpu-scheduler-extension-wave` | `published` | `0` | `0` | `0` |
@@ -29,15 +29,11 @@
 
 ## Runtime Ownership, Provider Truth, and Reconciliation (`runtime-ownership-provider-truth-and-reconciliation`)
 
-- Dirty matches: `2`
+- Dirty matches: `0`
 - Publication refs: `24`
 - Working-tree hints: `25`
 - Missing publication refs: `0`
 - Missing generated artifacts: `0`
-
-Sample dirty paths:
-- `M` docs/operations/REPO-ROOTS-REPORT.md
-- `M` docs/operations/RUNTIME-OWNERSHIP-REPORT.md
 
 ## Pilot Eval Substrate and Operator-Test Machinery (`pilot-eval-substrate-and-operator-test-machinery`)
 

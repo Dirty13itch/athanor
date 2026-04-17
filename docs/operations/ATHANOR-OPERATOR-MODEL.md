@@ -7,13 +7,14 @@ Do not edit manually.
 
 | Order | Surface | Purpose | Use When |
 | --- | --- | --- | --- |
-| `1` | `/mnt/c/Athanor/docs/operations/STEADY-STATE-STATUS.md` | Current adopted-system status, current work, next up, and whether Shaun needs to care. | First read for daily operation. |
-| `2` | `/mnt/c/Athanor/docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md` | Cross-system execution spine covering Athanor, devstack, substrate, operator-local, providers, and approval gates. | You need the full ecosystem picture without dropping into raw JSON. |
-| `3` | `/mnt/c/athanor-devstack/docs/operations/DEVSTACK-FORGE-BOARD.md` | Current build/proving queue and explicit deferred operator inputs. | You want to know what the next promotion or activation lane is. |
-| `4` | `/mnt/c/athanor-devstack/docs/operations/MASTER-ATLAS-REPORT.md` | Detailed proving-readiness, turnover posture, and pilot evidence. | You need readiness detail before a pilot or promotion move. |
-| `5` | `/mnt/c/Codex System Config/docs/CORE-ROLLOUT-STATUS.md` | Operator-local Codex control-plane health across the mandatory rollout set. | Local workstation or Codex control-plane posture may be the blocker. |
-| `6` | `/mnt/c/Athanor/reports/truth-inventory/finish-scoreboard.json` | Machine proof for closure state and repo-safe debt counts. | You need proof rather than summary. |
-| `7` | `/mnt/c/Athanor/reports/ralph-loop/latest.json` | Machine proof for the current claim, queue state, and Ralph loop posture. | You are debugging the control loop itself. |
+| `1` | `/mnt/c/Athanor/reports/truth-inventory/steady-state-live.md` | Volatile adopted-system feed for current work, queue posture, and recent activity without repo-tracked churn. | First read for daily operation. |
+| `2` | `/mnt/c/Athanor/docs/operations/STEADY-STATE-STATUS.md` | Durable operator contract defining intervention levels, reopen triggers, and proof paths. | You want the stable operating contract rather than the live ticker. |
+| `3` | `/mnt/c/Athanor/docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md` | Cross-system execution spine covering Athanor, devstack, substrate, operator-local, providers, and approval gates. | You need the full ecosystem picture without dropping into raw JSON. |
+| `4` | `/mnt/c/athanor-devstack/docs/operations/DEVSTACK-FORGE-BOARD.md` | Current build/proving queue and explicit deferred operator inputs. | You want to know what the next promotion or activation lane is. |
+| `5` | `/mnt/c/athanor-devstack/docs/operations/MASTER-ATLAS-REPORT.md` | Detailed proving-readiness, turnover posture, and pilot evidence. | You need readiness detail before a pilot or promotion move. |
+| `6` | `/mnt/c/Codex System Config/docs/CORE-ROLLOUT-STATUS.md` | Operator-local Codex control-plane health across the mandatory rollout set. | Local workstation or Codex control-plane posture may be the blocker. |
+| `7` | `/mnt/c/Athanor/reports/truth-inventory/finish-scoreboard.json` | Machine proof for closure state and repo-safe debt counts. | You need proof rather than summary. |
+| `8` | `/mnt/c/Athanor/reports/ralph-loop/latest.json` | Machine proof for the current claim, queue state, and Ralph loop posture. | You are debugging the control loop itself. |
 
 ## Attention Levels
 
@@ -47,7 +48,7 @@ Do not edit manually.
 
 ## Review Ritual
 
-- Read steady-state status first.
+- Read the live operator feed first.
 - Read the ecosystem master plan when work spans more than Athanor core.
 - Check the forge board before treating a devstack lane as next.
 - Use atlas and machine JSON only when you need proof or to resolve contradiction.

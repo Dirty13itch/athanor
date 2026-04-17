@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { requestJson } from "@/features/workforce/helpers";
 import { getOverview } from "@/lib/api";
 import type { OverviewSnapshot } from "@/lib/contracts";
-import { formatPercent } from "@/lib/format";
+import { formatPercent, formatRelativeTime } from "@/lib/format";
 import { LIVE_REFRESH_INTERVALS, liveQueryOptions } from "@/lib/live-updates";
 import type { MasterAtlasRelationshipMap } from "@/lib/master-atlas";
 import { queryKeys } from "@/lib/query-client";
@@ -36,6 +36,16 @@ type RouteOwnershipItem = {
   label: string;
   description: string;
   metric?: string;
+};
+
+type WorkplanTaskPreview = NonNullable<
+  OverviewSnapshot["workforce"]["workplan"]["current"]
+>["tasks"][number];
+
+type ProofDrilldownItem = {
+  href: string;
+  label: string;
+  description: string;
 };
 
 function toneText(tone: SignalTone): string {
@@ -190,6 +200,55 @@ function RouteOwnershipRow({ route }: { route: RouteOwnershipItem }) {
   );
 }
 
+function LiveReadoutRow({
+  label,
+  value,
+  tone = "healthy",
+}: {
+  label: string;
+  value: string;
+  tone?: SignalTone;
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-2xl border border-border/70 bg-background/40 px-3 py-2.5">
+      <StatusDot tone={tone} pulse={tone !== "healthy"} className="mt-1" />
+      <div className="min-w-0">
+        <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">{label}</p>
+        <p className={cn("mt-1 text-sm font-medium", toneText(tone))}>{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function ProofDrilldownRow({ item }: { item: ProofDrilldownItem }) {
+  return (
+    <Link
+      href={item.href}
+      className="group flex items-start justify-between gap-3 rounded-2xl border border-border/70 bg-background/40 px-3 py-2.5 transition-colors hover:bg-[color:var(--state-hover)]"
+    >
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-foreground">{item.label}</p>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.description}</p>
+      </div>
+      <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+    </Link>
+  );
+}
+
+function WorkplanTaskRow({ task }: { task: WorkplanTaskPreview }) {
+  return (
+    <div className="surface-instrument rounded-2xl border px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge variant="secondary">{task.priority}</Badge>
+        {task.projectId ? <Badge variant="outline">{task.projectId}</Badge> : null}
+        {task.requiresApproval ? <Badge variant="destructive">approval</Badge> : null}
+      </div>
+      <p className="mt-2 text-sm font-medium text-foreground">{task.prompt}</p>
+      {task.rationale ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{task.rationale}</p> : null}
+    </div>
+  );
+}
+
 export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSnapshot }) {
   const overviewQuery = useQuery({
     queryKey: queryKeys.overview,
@@ -251,7 +310,46 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
   const warningServices = snapshot.summary.warningServices;
   const pendingApprovals = snapshot.workforce.summary.pendingApprovals;
   const pendingTasks = snapshot.workforce.summary.pendingTasks;
+  const runningTasks = snapshot.workforce.summary.runningTasks;
+  const activeGoals = snapshot.workforce.summary.activeGoals;
   const activeProjects = snapshot.summary.activeProjects;
+  const currentWorkplan = snapshot.workforce.workplan.current;
+  const currentWorkplanApprovalCount = currentWorkplan?.tasks.filter((task) => task.requiresApproval).length ?? 0;
+  const currentWorkplanTasks = currentWorkplan?.tasks.slice(0, 3) ?? [];
+  const liveWorkCount = pendingTasks + runningTasks;
+  const liveTone: SignalTone =
+    governedDispatchRestartInterfering || degradedServices > 0
+      ? "danger"
+      : warningServices > 0 || pendingApprovals > 0 || pendingTasks > 0
+        ? "warning"
+        : "healthy";
+  const proofDrilldowns: ProofDrilldownItem[] = [
+    {
+      href: "/operator",
+      label: "Operator",
+      description: "Approvals, overrides, and the live governance queue.",
+    },
+    {
+      href: "/topology",
+      label: "Topology",
+      description: "Nodes, GPUs, services, and relationship proof.",
+    },
+    {
+      href: "/routing",
+      label: "Routing",
+      description: "Lane policy, provider elasticity, and weak-lane truth.",
+    },
+    {
+      href: "/subscriptions",
+      label: "Subscriptions",
+      description: "Burn economy, leases, and execution history.",
+    },
+    {
+      href: "/more",
+      label: "Route index",
+      description: "The full launch map when you need breadth instead of triage.",
+    },
+  ];
   const routeOwnershipItems: RouteOwnershipItem[] = [
     {
       href: "/operator",
@@ -401,13 +499,59 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
               <div className="space-y-2">
                 <p className="page-eyebrow">Command Center</p>
                 <h1 className="display-sheen max-w-3xl font-sans text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">
-                  Triage the system, pick the next move, then jump.
+                  Current work, next move, and live pressure.
                 </h1>
                 <p className="max-w-3xl text-sm leading-6 text-[color:var(--text-secondary)] sm:text-[15px]">
-                  The front door should answer posture, live pressure, and the highest-leverage next action.
-                  Atlas depth, long histories, and specialist workflows belong on the routes built for them.
+                  The front door should answer what is already in flight, what needs attention next, and where
+                  the live pressure is coming from. Atlas depth, long histories, and specialist workflows belong
+                  on the routes built for them.
                 </p>
               </div>
+            </div>
+
+            <div className="surface-panel border border-primary/20 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline">Current plan</Badge>
+                {currentWorkplan ? (
+                  <Badge>{currentWorkplan.planId}</Badge>
+                ) : (
+                  <Badge variant="destructive">No plan loaded</Badge>
+                )}
+                {currentWorkplan ? <Badge variant="outline">{currentWorkplan.taskCount} tasks</Badge> : null}
+                {snapshot.workforce.workplan.needsRefill ? (
+                  <Badge variant="destructive">Needs refill</Badge>
+                ) : (
+                  <Badge variant="secondary">Ready</Badge>
+                )}
+              </div>
+              <h2 className="mt-3 font-sans text-2xl font-semibold tracking-[-0.04em] text-foreground">
+                {currentWorkplan?.focus ?? "No current plan is loaded yet."}
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-[color:var(--text-secondary)]">
+                {currentWorkplan?.timeContext
+                  ? `${currentWorkplan.timeContext} · refreshed ${formatRelativeTime(currentWorkplan.generatedAt)}.`
+                  : "Use the workforce planner to generate the next plan."}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <span className="rounded-full border border-border/70 px-2.5 py-1">{liveWorkCount} live items</span>
+                <span className="rounded-full border border-border/70 px-2.5 py-1">{pendingApprovals} approvals</span>
+                <span className="rounded-full border border-border/70 px-2.5 py-1">{activeGoals} active goals</span>
+                <span className="rounded-full border border-border/70 px-2.5 py-1">
+                  {currentWorkplanApprovalCount} plan approvals
+                </span>
+              </div>
+              <div className="mt-4 space-y-2">
+                {currentWorkplan ? (
+                  currentWorkplanTasks.map((task) => <WorkplanTaskRow key={task.taskId} task={task} />)
+                ) : (
+                  <p className="rounded-2xl border border-dashed border-border/70 px-4 py-4 text-sm text-muted-foreground">
+                    No workplan is loaded yet. Open the workforce planner to generate the next pass.
+                  </p>
+                )}
+              </div>
+              <Button asChild variant="outline" size="sm" className="mt-4">
+                <Link href="/workforce">Open workforce planner</Link>
+              </Button>
             </div>
 
             <div className="overflow-hidden border-y border-border/70 bg-border/20 sm:grid sm:grid-cols-4">
@@ -424,9 +568,9 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                 tone={pendingApprovals > 0 ? "warning" : "healthy"}
               />
               <MetricCell
-                label="Backlog"
-                value={`${pendingTasks}`}
-                detail="Dispatchable queued work"
+                label="Live work"
+                value={`${liveWorkCount}`}
+                detail={`${pendingTasks} queued, ${runningTasks} running`}
                 tone={pendingTasks > 0 ? "warning" : "healthy"}
               />
               <MetricCell
@@ -482,11 +626,75 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
             </div>
 
             <div className="surface-panel border border-border/70 p-4">
-              <p className="page-eyebrow">Route ownership</p>
+              <p className="page-eyebrow">Specialist routes</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Depth lives on the specialist routes. Keep the front door focused on triage and the next move.
+                Depth lives on the specialist routes. Keep the front door focused on the current plan, next move,
+                and live pressure.
               </p>
-              <div className="mt-3 space-y-3">
+              <div className="mt-4 space-y-4">
+                <div className="surface-instrument rounded-2xl border border-border/70 px-4 py-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="page-eyebrow text-[10px]">First Read</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Live posture first, then proof surfaces for deeper drilling.
+                      </p>
+                    </div>
+                    <Badge variant="outline">{formatRelativeTime(snapshot.generatedAt)}</Badge>
+                  </div>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <div className="space-y-3">
+                      <LiveReadoutRow
+                        label="System state"
+                        value={governedDispatch?.status ?? "steady-state monitoring"}
+                        tone={liveTone}
+                      />
+                      <LiveReadoutRow
+                        label="Attention"
+                        value={
+                          topAction.tone === "danger"
+                            ? "operator attention required"
+                            : pendingApprovals > 0 || pendingTasks > 0
+                              ? "review recommended"
+                              : "no action needed"
+                        }
+                        tone={
+                          topAction.tone === "danger"
+                            ? "danger"
+                            : pendingApprovals > 0 || pendingTasks > 0
+                              ? "warning"
+                              : "healthy"
+                        }
+                      />
+                      <LiveReadoutRow
+                        label="Current work"
+                        value={currentWorkplan?.focus ?? "No current plan loaded"}
+                        tone={currentWorkplan ? "healthy" : "warning"}
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <LiveReadoutRow label="Next up" value={topAction.title} tone="warning" />
+                      <LiveReadoutRow
+                        label="Queue posture"
+                        value={`${pendingTasks} queued / ${runningTasks} running / ${pendingApprovals} approvals`}
+                        tone={pendingTasks > 0 || pendingApprovals > 0 ? "warning" : "healthy"}
+                      />
+                      <LiveReadoutRow
+                        label="Updated"
+                        value={formatRelativeTime(snapshot.generatedAt)}
+                        tone="healthy"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4 border-t border-border/70 pt-4">
+                    <p className="page-eyebrow text-[10px]">Proof drill-down</p>
+                    <div className="mt-3 grid gap-2">
+                      {proofDrilldowns.map((item) => (
+                        <ProofDrilldownRow key={item.href} item={item} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
                 <div className="surface-instrument rounded-2xl border px-4 py-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="page-eyebrow text-[10px]">Autonomous handoff</p>

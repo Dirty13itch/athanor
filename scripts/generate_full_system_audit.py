@@ -13,6 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEVSTACK_ROOT = Path('/mnt/c/athanor-devstack')
 OUTPUT_DIR = REPO_ROOT / 'docs' / 'operations'
 REPORTS_DIR = REPO_ROOT / 'reports' / 'truth-inventory'
+STEADY_STATE_LIVE_MD = REPORTS_DIR / 'steady-state-live.md'
 
 MASTER_AUDIT_MD = OUTPUT_DIR / 'ATHANOR-FULL-SYSTEM-AUDIT.md'
 MEMBRANE_AUDIT_MD = OUTPUT_DIR / 'DEVSTACK-MEMBRANE-AUDIT.md'
@@ -694,7 +695,7 @@ def render_master_report(audit: dict[str, Any]) -> str:
         '',
         '## Executive Summary',
         '',
-        f"- Adopted live system posture: closure=`{(surfaces['finish_scoreboard'] or {}).get('closure_state', 'unknown')}` | active_claim=`{restart.get('active_claim_task_title') or (surfaces['ralph_latest'] or {}).get('active_claim_task_title', 'unknown')}` | runtime_packets=`{(surfaces['runtime_packet_inbox'] or {}).get('packet_count', 'unknown')}` | attention=`{(surfaces['steady_state_status'] or {}).get('intervention_label', 'unknown')}`",
+        f"- Adopted live system posture: closure=`{(surfaces['finish_scoreboard'] or {}).get('closure_state', 'unknown')}` | runtime_packets=`{(surfaces['runtime_packet_inbox'] or {}).get('packet_count', 'unknown')}` | attention=`{(surfaces['steady_state_status'] or {}).get('intervention_label', 'unknown')}` | live_dispatch_surface=`{STEADY_STATE_LIVE_MD}`",
         f"- Build/proving posture: turnover=`{((surfaces['devstack_atlas'] or {}).get('summary') or {}).get('turnover_status', 'unknown')}` | forge_top_lane=`{(surfaces['devstack_forge_board'] or {}).get('top_priority_lane', 'unknown')}` | atlas_top_lane=`{((surfaces['devstack_atlas'] or {}).get('summary') or {}).get('top_priority_lane', 'unknown')}` | atlas_routing_lane=`{((surfaces['devstack_atlas'] or {}).get('summary') or {}).get('top_routing_lane', 'unknown')}`",
         f"- Validator status: Athanor=`{_check_status_label(checks['athanor_platform_contract'])}` | Devstack=`{_check_status_label(checks['devstack_contract'])}`",
         f"- Git posture: Athanor dirty=`{audit['git']['athanor']['total']}` | Devstack dirty=`{audit['git']['devstack']['total']}`",
@@ -720,7 +721,7 @@ def render_master_report(audit: dict[str, Any]) -> str:
         '',
         f"- Athanor platform contract: `{_check_status_label(checks['athanor_platform_contract'])}`",
         f"- Devstack contract: `{_check_status_label(checks['devstack_contract'])}`",
-        f"- Restart snapshot active claim: `{restart.get('active_claim_task_id', 'unknown')}`",
+        f"- Live dispatch proof: `{STEADY_STATE_LIVE_MD}` and `reports/ralph-loop/latest.json`",
         '',
         '## Subsystem Score Matrix',
         '',

@@ -24,10 +24,11 @@ This appendix is exhaustive by subsystem. It exists to make every ecosystem doma
 - Why it is part of the ecosystem: This is the adopted implementation and operator authority that all other ecosystem layers ultimately support or feed.
 - Source of truth:
 - `reports/truth-inventory/steady-state-status.json`
+- `reports/truth-inventory/steady-state-live.md`
 - `reports/truth-inventory/finish-scoreboard.json`
 - `reports/ralph-loop/latest.json`
 - `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`
-- Current state: Core posture is `closure_in_progress` with `active_closure`; current governed claim is `Reference and Archive Prune` and the runtime inbox is `0`.
+- Current state: Core posture is `closure_in_progress` with `active_closure`; live claim, queue posture, and packet inbox state are intentionally carried by the ignored live operator feed and machine JSON surfaces.
 - Blockers: none
 - Failure mode: If this layer drifts, the system loses authoritative state, operator visibility, and safe execution ordering.
 - Next maturity move: Keep the steady-state control-plane pass green and reopen only on typed debt, packet, or validator evidence.
@@ -42,7 +43,7 @@ This appendix is exhaustive by subsystem. It exists to make every ecosystem doma
 - `C:/athanor-devstack/docs/operations/DEVSTACK-FORGE-BOARD.md`
 - `C:/athanor-devstack/reports/master-atlas/latest.json`
 - `C:/athanor-devstack/MASTER-PLAN.md`
-- Current state: Turnover is `ready_for_low_touch_execution`, top lane is `letta-memory-plane`, and packet drafting lanes total `3`.
+- Current state: Turnover is `ready_for_low_touch_execution`; current top lane and packet drafting flow are carried live by the forge board and atlas surfaces.
 - Blockers: Provider secret repair, LETTA_API_KEY, OpenHands substrate readiness
 - Failure mode: If build truth is stale or overruns its boundary, shadow authority leaks into Athanor and pilot work becomes ambiguous.
 - Next maturity move: Advance the next bounded promotion lane through proof, packet, and Athanor landing surfaces without leaking build truth into runtime truth.
@@ -137,7 +138,7 @@ This appendix is exhaustive by subsystem. It exists to make every ecosystem doma
 - `reports/truth-inventory/runtime-packet-inbox.json`
 - `C:/athanor-devstack/docs/operations/DEVSTACK-FORGE-BOARD.md`
 - `docs/operations/STEADY-STATE-STATUS.md`
-- Current state: Core Athanor does not currently need intervention (`Review recommended`), but explicit approval and operator-input gates remain on future activation lanes.
+- Current state: Approvals stay explicit and lane-specific; live attention posture and pending gates surface through the live operator feed, steady-state JSON, and forge deferred inputs.
 - Blockers: Provider secret repair, LETTA_API_KEY, OpenHands substrate readiness
 - Failure mode: If approval gates are vague, the system either stalls invisibly or mutates live runtime without clear consent.
 - Next maturity move: Keep approvals explicit and lane-specific: only elevate them when a bounded runtime mutation, credential gate, or pilot activation is intentionally being executed.
