@@ -2388,6 +2388,7 @@ export async function getOverviewSnapshot(window: TimeWindowId = "3h"): Promise<
     services: servicesSnapshot.services,
     agents,
     judge: judgePlane,
+    builder: builderFrontDoor,
     updatedAt: generatedAt,
   });
 

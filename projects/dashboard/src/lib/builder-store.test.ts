@@ -35,7 +35,7 @@ describe("builder store", () => {
     }
   });
 
-  it("creates a shadow-ready codex session and projects it into builder summary and synthetic feeds", async () => {
+  it("creates a live-ready codex session and projects it into builder summary and synthetic feeds", async () => {
     const session = await createBuilderSession({
       goal: "Implement the first builder front-door Codex route.",
       task_class: "multi_file_implementation",
@@ -51,11 +51,15 @@ describe("builder store", () => {
     });
 
     expect(session.route_decision.primary_adapter).toBe("codex");
+    expect(session.route_decision.activation_state).toBe("live_ready");
     expect(session.status).toBe("waiting_approval");
+    expect(session.shadow_mode).toBe(false);
+    expect(session.fallback_state).toBe("approval_pending");
 
     const summary = await readBuilderSummary();
     expect(summary.current_session?.id).toBe(session.id);
     expect(summary.pending_approval_count).toBe(1);
+    expect(summary.current_session?.resumable_handle).toBeNull();
 
     const events = await readBuilderSessionEvents(session.id);
     expect(events?.count).toBeGreaterThanOrEqual(4);

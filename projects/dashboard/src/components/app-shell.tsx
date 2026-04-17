@@ -49,6 +49,7 @@ const ROUTE_FAMILIES = getRouteFamiliesWithRoutes();
 const PRIMARY_NAV_HREFS = new Set([
   "/",
   "/operator",
+  "/builder",
   "/services",
   "/topology",
   "/routing",
@@ -183,6 +184,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     ) ?? pilotReadiness?.records[0] ?? null;
   const warningCount = overview?.summary.warningServices ?? 0;
   const degradedCount = overview?.summary.degradedServices ?? 0;
+  const builderFrontDoor = overview?.builderFrontDoor ?? null;
+  const builderCurrent = builderFrontDoor?.current_session ?? null;
+  const builderTone = builderFrontDoor?.degraded || builderCurrent?.status === "failed" || builderCurrent?.verification_status === "failed"
+    ? "danger"
+    : (builderCurrent?.pending_approval_count ?? 0) > 0 || builderCurrent?.status === "waiting_approval"
+      ? "warning"
+      : "healthy";
   const routeLabel = getRouteLabel(pathname);
   const shellIndicatorTone = degradedCount > 0 ? "danger" : warningCount > 0 ? "warning" : "healthy";
   const lastRefresh = overview ? formatRelativeTime(overview.generatedAt) : "Loading";
@@ -299,6 +307,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 detail={overview ? `${steadyStateDigest.currentWorkTitle} · ${digestChangeSummary}` : "Loading front door"}
               />
               <HeaderMetric
+                label="Builder"
+                value={builderCurrent ? builderCurrent.status.replaceAll("_", " ") : builderFrontDoor ? "ready" : "--"}
+                tone={builderTone}
+                detail={
+                  builderFrontDoor
+                    ? builderCurrent
+                      ? `${builderCurrent.primary_adapter} · ${builderCurrent.verification_status.replaceAll("_", " ")}`
+                      : "No active builder session."
+                    : "Loading builder front door"
+                }
+              />
+              <HeaderMetric
                 label="Activation"
                 value={pilotReadiness ? `${blockedPilotCount} blocked` : "--"}
                 tone={blockedPilotCount > 0 ? "warning" : "healthy"}
@@ -369,6 +389,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </p>
               <p>
                 <span className="text-foreground">Queue:</span> {steadyStateDigest.queuePosture}
+              </p>
+              <p>
+                <span className="text-foreground">Builder:</span>{" "}
+                {builderCurrent
+                  ? `${builderCurrent.status.replaceAll("_", " ")} · ${builderCurrent.primary_adapter}`
+                  : builderFrontDoor
+                    ? "ready for intake"
+                    : "Loading"}
               </p>
               <p>
                 <span className="text-foreground">Source:</span> {steadyStateDigest.sourceLabel}

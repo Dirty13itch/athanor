@@ -251,6 +251,31 @@ describe("OperatorConsole", () => {
             stale_lease_recovered_historical: 2,
             failed_historical_repaired: 3,
           },
+          builderFrontDoor: {
+            available: true,
+            degraded: false,
+            detail: null,
+            updated_at: "2026-04-17T00:00:00.000Z",
+            session_count: 1,
+            active_count: 1,
+            pending_approval_count: 1,
+            recent_artifact_count: 0,
+            current_session: {
+              id: "builder-1",
+              title: "Implement the first builder route",
+              status: "waiting_approval",
+              primary_adapter: "codex",
+              current_route: "Codex direct implementation",
+              verification_status: "planned",
+              pending_approval_count: 1,
+              artifact_count: 0,
+              resumable_handle: null,
+              shadow_mode: false,
+              fallback_state: "approval_pending",
+              updated_at: "2026-04-17T00:00:00.000Z",
+            },
+            sessions: [],
+          },
           steadyState: {
             closureState: "repo_safe_complete",
             operatorMode: "steady_state_monitoring",
@@ -370,6 +395,8 @@ describe("OperatorConsole", () => {
     expect(screen.getAllByText(/No action needed/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/workspace report/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Cheap Bulk Cloud/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Builder front door/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: /Open Builder/i })).toBeInTheDocument();
     expect(await screen.findByText(/Pilot readiness/i)).toBeInTheDocument();
     expect((await screen.findAllByText(/Letta Memory Plane/i)).length).toBeGreaterThan(0);
     expect((await screen.findAllByText(/OpenHands Bounded Worker Lane/i)).length).toBeGreaterThan(0);

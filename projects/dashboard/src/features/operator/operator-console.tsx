@@ -25,7 +25,7 @@ import { RichText } from "@/components/rich-text";
 import { PilotReadinessBlock } from "@/components/pilot-readiness-block";
 import { StatCard } from "@/components/stat-card";
 import { requestJson, postWithoutBody, postJson } from "@/features/workforce/helpers";
-import type { SteadyStateSnapshot } from "@/lib/contracts";
+import type { BuilderFrontDoorSummary, SteadyStateSnapshot } from "@/lib/contracts";
 import { formatRelativeTime } from "@/lib/format";
 import type { MasterAtlasRelationshipMap } from "@/lib/master-atlas";
 import { buildSteadyStateDecisionSummary } from "@/lib/steady-state-summary";
@@ -101,6 +101,7 @@ interface OperatorSummaryPayload {
   source?: string;
   tasks?: TaskResidueSummary;
   steadyState?: SteadyStateSnapshot | null;
+  builderFrontDoor?: BuilderFrontDoorSummary | null;
   steadyStateStatus?: {
     available?: boolean;
     degraded?: boolean;
@@ -210,6 +211,8 @@ export function OperatorConsole() {
   const operatorSummary = summaryQuery.data ?? {};
   const taskResidue = operatorSummary.tasks ?? {};
   const steadyState = operatorSummary.steadyState ?? null;
+  const builderFrontDoor = operatorSummary.builderFrontDoor ?? null;
+  const builderCurrent = builderFrontDoor?.current_session ?? null;
   const steadyStateStatus = operatorSummary.steadyStateStatus ?? null;
   const masterAtlas =
     masterAtlasQuery.data && typeof masterAtlasQuery.data.generated_at === "string"
@@ -262,6 +265,12 @@ export function OperatorConsole() {
   const operatorCurrentWorkDetail = steadyStateSummary.currentWorkDetail;
   const operatorNextUp = steadyStateSummary.nextUpTitle;
   const operatorNextUpDetail = steadyStateSummary.nextUpDetail;
+  const builderAttentionTone =
+    builderFrontDoor?.degraded || builderCurrent?.status === "failed" || builderCurrent?.verification_status === "failed"
+      ? "warning"
+      : (builderCurrent?.pending_approval_count ?? 0) > 0 || builderCurrent?.status === "waiting_approval"
+        ? "warning"
+        : "success";
   const governedDispatchHealthy =
     Boolean(governedDispatch) &&
     !governedDispatch?.error &&
@@ -456,7 +465,7 @@ export function OperatorConsole() {
           </div>
         ) : null}
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <StatCard
             label="Actionable Failures"
             value={summaryAvailable ? `${actionableFailures}` : "offline"}
@@ -500,6 +509,19 @@ export function OperatorConsole() {
             }
             icon={<MessageSquare className="h-5 w-5" />}
             tone={summaryAvailable && steadyState?.currentWork?.taskTitle ? "success" : "warning"}
+          />
+          <StatCard
+            label="Builder Kernel"
+            value={builderCurrent ? builderCurrent.status.replaceAll("_", " ") : builderFrontDoor ? "ready" : "offline"}
+            detail={
+              builderFrontDoor
+                ? builderCurrent
+                  ? `${builderCurrent.primary_adapter} · ${builderCurrent.verification_status.replaceAll("_", " ")}`
+                  : "No active builder session published."
+                : "Builder front door is not attached to the operator summary route."
+            }
+            icon={<ShieldCheck className="h-5 w-5" />}
+            tone={builderAttentionTone}
           />
         </div>
       </PageHeader>
@@ -634,6 +656,42 @@ export function OperatorConsole() {
             <p className="page-eyebrow">Governance posture</p>
             <h2 className="mt-1 font-heading text-2xl font-medium tracking-[-0.03em]">Current guardrails</h2>
             <div className="mt-4 space-y-3">
+              <div className="surface-instrument rounded-2xl border px-4 py-4">
+                <p className="page-eyebrow text-[10px]">Builder front door</p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Badge
+                    variant={
+                      builderFrontDoor?.degraded || builderCurrent?.status === "failed"
+                        ? "destructive"
+                        : builderCurrent?.pending_approval_count
+                          ? "outline"
+                          : "secondary"
+                    }
+                  >
+                    {builderCurrent ? builderCurrent.status.replaceAll("_", " ") : builderFrontDoor ? "ready" : "offline"}
+                  </Badge>
+                  {builderCurrent ? <Badge variant="outline">{builderCurrent.primary_adapter}</Badge> : null}
+                  {builderCurrent?.resumable_handle ? <Badge variant="outline">resumable</Badge> : null}
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  {builderFrontDoor?.degraded
+                    ? builderFrontDoor.detail ?? "Builder front door is degraded from this dashboard runtime."
+                    : builderCurrent
+                      ? `${builderCurrent.current_route} is live with ${builderCurrent.pending_approval_count} approval hold(s) and ${builderCurrent.artifact_count} artifact(s).`
+                      : "Open the builder desk to start a routed implementation lane."}
+                </p>
+                <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                  <p>Verification: {builderCurrent?.verification_status.replaceAll("_", " ") ?? "not started"}</p>
+                  <p>Fallback: {builderCurrent?.fallback_state?.replaceAll("_", " ") ?? "none"}</p>
+                  <p>Resumable: {builderCurrent?.resumable_handle ?? "not attached"}</p>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={builderCurrent ? `/builder?session=${builderCurrent.id}` : "/builder"}>Open Builder</Link>
+                  </Button>
+                </div>
+              </div>
+
               <div className="surface-instrument rounded-2xl border px-4 py-4">
                 <p className="page-eyebrow text-[10px]">Steady-state front door</p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">

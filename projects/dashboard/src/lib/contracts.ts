@@ -244,6 +244,10 @@ export const navAttentionSourceSchema = z.enum([
   "agent_roster_missing",
   "agent_unavailable",
   "agent_degraded",
+  "builder_feed_degraded",
+  "builder_pending_approval",
+  "builder_failed",
+  "builder_active",
 ]);
 
 export const navAttentionSignalSchema = z.object({
@@ -1765,6 +1769,7 @@ export const builderExecutionModeSchema = z.enum([
 ]);
 
 export const builderRouteActivationStateSchema = z.enum([
+  "live_ready",
   "shadow_ready",
   "planned_future",
   "local_only",
@@ -1932,6 +1937,7 @@ export const builderSessionPreviewSchema = z.object({
   verification_status: builderVerificationStatusSchema,
   pending_approval_count: z.number().int().nonnegative(),
   artifact_count: z.number().int().nonnegative(),
+  resumable_handle: z.string().nullable(),
   shadow_mode: z.boolean(),
   fallback_state: z.string().nullable(),
   updated_at: z.string(),

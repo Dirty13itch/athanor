@@ -1,5 +1,6 @@
 import type {
   AgentInfo,
+  BuilderFrontDoorSummary,
   JudgePlaneSnapshot,
   NavAttentionPersistenceRecord,
   NavAttentionPersistenceState,
@@ -25,6 +26,7 @@ const CORE_OPERATOR_SERVICE_IDS = new Set([
 const V1_ATTENTION_ROUTES = [
   "/",
   "/operator",
+  "/builder",
   "/runs",
   "/inbox",
   "/review",
@@ -192,6 +194,65 @@ function getOperatorDecisionSignal(
   }
 
   return createNoneSignal(routeHref, updatedAt);
+}
+
+function getBuilderSignal(builder: BuilderFrontDoorSummary, updatedAt: string): NavAttentionSignal {
+  if (builder.degraded) {
+    return createSignal(
+      "/builder",
+      "action",
+      "builder_feed_degraded",
+      builder.detail ?? "Builder front door is degraded.",
+      updatedAt,
+      builder.session_count,
+      [String(builder.session_count)],
+    );
+  }
+
+  const current = builder.current_session;
+  if (!current) {
+    return createNoneSignal("/builder", updatedAt);
+  }
+
+  if (current.status === "failed" || current.verification_status === "failed") {
+    return createSignal(
+      "/builder",
+      "urgent",
+      "builder_failed",
+      `${current.title} needs builder review.`,
+      updatedAt,
+      1,
+      [current.id, current.verification_status, current.fallback_state ?? "none"],
+    );
+  }
+
+  if (current.pending_approval_count > 0 || current.status === "waiting_approval") {
+    return createSignal(
+      "/builder",
+      "action",
+      "builder_pending_approval",
+      current.pending_approval_count === 1
+        ? "1 builder session is waiting for approval."
+        : `${current.pending_approval_count} builder approvals are waiting.`,
+      updatedAt,
+      current.pending_approval_count,
+      [current.id, current.status],
+    );
+  }
+
+  if (current.status === "queued" || current.status === "running") {
+    return createSignal(
+      "/builder",
+      "watch",
+      "builder_active",
+      `${current.title} is active on ${current.primary_adapter}.`,
+      updatedAt,
+      1,
+      [current.id, current.status, current.resumable_handle ?? "none"],
+    );
+  }
+
+  return createNoneSignal("/builder", updatedAt);
 }
 
 function getInboxSignal(workforce: WorkforceSnapshot): NavAttentionSignal {
@@ -399,17 +460,20 @@ export function buildNavAttentionSignals({
   services,
   agents,
   judge,
+  builder,
   updatedAt,
 }: {
   workforce: WorkforceSnapshot;
   services: ServiceSnapshot[];
   agents: AgentInfo[];
   judge: Pick<JudgePlaneSnapshot, "generated_at" | "summary"> | null;
+  builder: BuilderFrontDoorSummary;
   updatedAt: string;
 }): NavAttentionSignal[] {
   const signals = [
     getOperatorDecisionSignal("/", workforce),
     getOperatorDecisionSignal("/operator", workforce),
+    getBuilderSignal(builder, updatedAt),
     getRunsSignal(workforce),
     getInboxSignal(workforce),
     getReviewSignal(judge),

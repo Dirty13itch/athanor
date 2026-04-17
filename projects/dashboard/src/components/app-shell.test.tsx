@@ -48,6 +48,7 @@ vi.mock("@/lib/navigation", () => ({
       id: "build",
       label: "Build",
       routes: [
+        { href: "/builder", label: "Builder", shortLabel: "Builder", icon: "builder" },
         { href: "/subscriptions", label: "Subs", shortLabel: "Subs", icon: "subscriptions" },
         { href: "/routing", label: "Routing", shortLabel: "Routing", icon: "routing" },
         { href: "/projects", label: "Projects", shortLabel: "Projects", icon: "projects" },
@@ -195,6 +196,7 @@ describe("AppShell", () => {
     expect(screen.getByText("workspace body")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Services/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Operator/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Builder/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Topology/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Routing/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Catalog/i })).toBeInTheDocument();

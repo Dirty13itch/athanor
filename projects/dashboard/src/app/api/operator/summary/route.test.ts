@@ -18,7 +18,36 @@ vi.mock("@/lib/operator-frontdoor", () => ({
   })),
 }));
 
+vi.mock("@/lib/builder-store", () => ({
+  readBuilderSummary: vi.fn(async () => ({
+    available: true,
+    degraded: false,
+    detail: null,
+    updated_at: "2026-04-17T00:00:00.000Z",
+    session_count: 1,
+    active_count: 1,
+    pending_approval_count: 1,
+    recent_artifact_count: 0,
+    current_session: {
+      id: "builder-1",
+      title: "Implement the first builder route",
+      status: "waiting_approval",
+      primary_adapter: "codex",
+      current_route: "Codex direct implementation",
+      verification_status: "planned",
+      pending_approval_count: 1,
+      artifact_count: 0,
+      resumable_handle: null,
+      shadow_mode: false,
+      fallback_state: "approval_pending",
+      updated_at: "2026-04-17T00:00:00.000Z",
+    },
+    sessions: [],
+  })),
+}));
+
 import { GET } from "./route";
+import { readBuilderSummary } from "@/lib/builder-store";
 import { loadSteadyStateFrontDoor } from "@/lib/operator-frontdoor";
 import { proxyAgentJson } from "@/lib/server-agent";
 
@@ -38,6 +67,7 @@ describe("operator summary api route", () => {
       25_000,
     );
     expect(loadSteadyStateFrontDoor).toHaveBeenCalled();
+    expect(readBuilderSummary).toHaveBeenCalled();
   });
 
   it("fails soft when the operator summary upstream is unavailable", async () => {
@@ -54,6 +84,9 @@ describe("operator summary api route", () => {
       tasks: {
         pending_approval: 0,
         failed_actionable: 0,
+      },
+      builderFrontDoor: {
+        pending_approval_count: 1,
       },
       steadyStateStatus: {
         degraded: true,

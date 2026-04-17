@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { readBuilderSummary } from "@/lib/builder-store";
 import { loadSteadyStateFrontDoor } from "@/lib/operator-frontdoor";
 import { proxyAgentJson } from "@/lib/server-agent";
 
@@ -10,9 +11,10 @@ const TASKS_FALLBACK = {
 };
 
 export async function GET() {
-  const [response, steadyStateFrontDoor] = await Promise.all([
+  const [response, steadyStateFrontDoor, builderFrontDoor] = await Promise.all([
     proxyAgentJson("/v1/operator/summary", undefined, "Failed to fetch operator work summary", 25_000),
     loadSteadyStateFrontDoor(),
+    readBuilderSummary(),
   ]);
   const steadyState = steadyStateFrontDoor.snapshot;
   const steadyStateStatus = steadyStateFrontDoor.status;
@@ -28,6 +30,7 @@ export async function GET() {
         tasks: TASKS_FALLBACK,
         steadyState,
         steadyStateStatus,
+        builderFrontDoor,
       },
       { status: 200 },
     );
@@ -39,6 +42,7 @@ export async function GET() {
       source: typeof payload.source === "string" ? payload.source : "agent-server",
       steadyState,
       steadyStateStatus,
+      builderFrontDoor,
     },
     { status: response.status },
   );

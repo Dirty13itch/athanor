@@ -8,7 +8,7 @@
 - Forge board top priority lane: `protocol-first-builder-kernel`
 - Adopted capabilities tracked in atlas: `6`
 - Concept capabilities tracked in atlas: `3`
-- Devstack dirty count: `1`
+- Devstack dirty count: `16`
 - Devstack contract validator: `pass`
 
 ## Membrane Findings

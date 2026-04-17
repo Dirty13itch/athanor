@@ -97,7 +97,7 @@ function SessionCard({ session, selected, onSelect }: { session: any; selected: 
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant={badgeVariant(session.status)}>{formatLabel(session.status)}</Badge>
         <Badge variant="outline">{session.primary_adapter}</Badge>
-        {session.shadow_mode ? <Badge variant="outline">shadow</Badge> : null}
+        <Badge variant="outline">{session.shadow_mode ? "shadow" : "live"}</Badge>
       </div>
       <p className="mt-3 text-sm font-medium text-foreground">{session.title}</p>
       <p className="mt-1 text-xs text-muted-foreground">{session.current_route}</p>
@@ -135,7 +135,7 @@ function SessionSurface({
             <div className="flex flex-wrap gap-2">
               <Badge variant={badgeVariant(session.status)}>{formatLabel(session.status)}</Badge>
               <Badge variant="outline">{session.route_decision.execution_mode}</Badge>
-              {session.shadow_mode ? <Badge variant="outline">shadow mode</Badge> : null}
+              <Badge variant="outline">{formatLabel(session.route_decision.activation_state)}</Badge>
             </div>
           </div>
         </CardHeader>
@@ -250,7 +250,11 @@ function SessionSurface({
         <Card className="surface-panel border">
           <CardHeader>
             <CardTitle className="text-lg">Approval queue</CardTitle>
-            <CardDescription>Shadow-mode builder sessions stay approval-gated until the worker bridge is linked.</CardDescription>
+            <CardDescription>
+              {session.route_decision.activation_state === "live_ready"
+                ? "Live builder sessions stay approval-gated until the operator authorizes worktree mutation."
+                : "Approval holds remain explicit until this route is cleared to execute."}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {session.approvals.length ? (
@@ -326,6 +330,12 @@ function SessionSurface({
                     )}
                   </div>
                 </div>
+                <div className="rounded-2xl border border-border/70 bg-background/20 p-4">
+                  <p className="page-eyebrow text-[10px]">Resumable handle</p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {session.latest_result_packet.resumable_handle ?? "No resumable Codex handle attached yet."}
+                  </p>
+                </div>
               </>
             ) : (
               <EmptyState title="No result packet yet" description="The builder kernel will attach a structured result packet once the route emits output." className="py-8" />
@@ -374,7 +384,7 @@ export function BuilderConsole() {
   const [needsBackground, setNeedsBackground] = useState(false);
   const [needsGithub, setNeedsGithub] = useState(false);
   const [acceptanceCriteriaText, setAcceptanceCriteriaText] = useState(
-    "Create and persist a builder session\nExpose the chosen route in the builder console\nShow verification and approval state",
+    "Create and persist a builder session\nQueue live Codex execution after approval\nShow verification, result packet, and resumable state",
   );
   const [surfaceError, setSurfaceError] = useState<string | null>(null);
 

@@ -510,6 +510,8 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
   const builderTone: SignalTone =
     builderFrontDoor.degraded
       ? "danger"
+      : builderCurrent?.status === "failed" || builderCurrent?.verification_status === "failed"
+        ? "danger"
       : (builderCurrent?.pending_approval_count ?? 0) > 0 ||
           builderCurrent?.status === "waiting_approval" ||
           builderCurrent?.fallback_state
@@ -687,7 +689,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                       : "ready for intake"}
                 </Badge>
                 {builderCurrent ? <Badge variant="outline">{builderCurrent.primary_adapter}</Badge> : null}
-                {builderCurrent?.shadow_mode ? <Badge variant="outline">shadow mode</Badge> : null}
+                {builderCurrent?.resumable_handle ? <Badge variant="outline">resumable</Badge> : null}
               </div>
               <h2 className="mt-2 font-sans text-2xl font-semibold tracking-[-0.04em] text-foreground">
                 {builderCurrent?.title ?? "Open the canonical builder surface."}
@@ -696,7 +698,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                 {builderFrontDoor.degraded
                   ? builderFrontDoor.detail ?? "Builder summary is currently degraded."
                   : builderCurrent
-                    ? `${builderCurrent.current_route} is active on ${builderCurrent.primary_adapter}, with ${builderCurrent.pending_approval_count} approval holds and ${builderCurrent.artifact_count} recorded artifacts.`
+                    ? `${builderCurrent.current_route} is active on ${builderCurrent.primary_adapter}, with ${builderCurrent.pending_approval_count} approval holds, ${builderCurrent.artifact_count} recorded artifacts, and ${builderCurrent.resumable_handle ? "a live resumable handle" : "no attached resumable handle yet"}.`
                     : "Builder intake, route selection, approvals, artifacts, and recovery now live on a dedicated surface instead of the compatibility workspace shells."}
               </p>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -714,6 +716,11 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
               {builderCurrent?.fallback_state ? (
                 <p className="mt-4 text-xs leading-5 text-muted-foreground">
                   Current fallback state: {builderCurrent.fallback_state.replaceAll("_", " ")}.
+                </p>
+              ) : null}
+              {builderCurrent?.resumable_handle ? (
+                <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                  Resumable handle: {builderCurrent.resumable_handle}
                 </p>
               ) : null}
               <Button asChild variant="outline" size="sm" className="mt-4 w-full justify-between">

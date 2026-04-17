@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { JudgePlaneSnapshot } from "@/lib/contracts";
 import {
   getFixtureAgentsSnapshot,
+  getFixtureOverviewSnapshot,
   getFixtureServicesSnapshot,
   getFixtureWorkforceSnapshot,
 } from "@/lib/dashboard-fixtures";
@@ -30,6 +31,7 @@ describe("buildNavAttentionSignals", () => {
       services: getFixtureServicesSnapshot().services,
       agents: getFixtureAgentsSnapshot().agents,
       judge: fixtureJudge,
+      builder: getFixtureOverviewSnapshot().builderFrontDoor,
       updatedAt: "2026-03-09T15:00:00.000Z",
     });
 
@@ -45,6 +47,7 @@ describe("buildNavAttentionSignals", () => {
       services: getFixtureServicesSnapshot().services,
       agents: getFixtureAgentsSnapshot().agents,
       judge: fixtureJudge,
+      builder: getFixtureOverviewSnapshot().builderFrontDoor,
       updatedAt: "2026-03-09T15:00:00.000Z",
     });
 
@@ -62,6 +65,7 @@ describe("buildNavAttentionSignals", () => {
       services: getFixtureServicesSnapshot().services,
       agents: getFixtureAgentsSnapshot().agents,
       judge: fixtureJudge,
+      builder: getFixtureOverviewSnapshot().builderFrontDoor,
       updatedAt: "2026-03-09T15:00:00.000Z",
     });
 
@@ -88,7 +92,7 @@ describe("buildNavAttentionSignals", () => {
                 }
               : undefined,
           }
-        : service
+        : service,
     );
 
     const signals = buildNavAttentionSignals({
@@ -96,6 +100,7 @@ describe("buildNavAttentionSignals", () => {
       services,
       agents: getFixtureAgentsSnapshot().agents,
       judge: fixtureJudge,
+      builder: getFixtureOverviewSnapshot().builderFrontDoor,
       updatedAt: "2026-03-09T15:00:00.000Z",
     });
 
@@ -103,6 +108,22 @@ describe("buildNavAttentionSignals", () => {
     expect(signal?.tier).toBe("urgent");
     expect(signal?.source).toBe("degraded_core_services");
     expect(signal?.count).toBeGreaterThanOrEqual(1);
+  });
+
+  it("surfaces builder approvals on /builder", () => {
+    const signals = buildNavAttentionSignals({
+      workforce: getFixtureWorkforceSnapshot(),
+      services: getFixtureServicesSnapshot().services,
+      agents: getFixtureAgentsSnapshot().agents,
+      judge: fixtureJudge,
+      builder: getFixtureOverviewSnapshot().builderFrontDoor,
+      updatedAt: "2026-03-09T15:00:00.000Z",
+    });
+
+    const signal = signals.find((entry) => entry.routeHref === "/builder");
+    expect(signal?.tier).toBe("action");
+    expect(signal?.source).toBe("builder_pending_approval");
+    expect(signal?.count).toBe(1);
   });
 });
 

@@ -28,6 +28,12 @@ type BuilderControlResult = {
   terminal_href: string | null;
 };
 
+export type BuilderSessionMutation = (
+  session: BuilderExecutionSession,
+  events: BuilderProgressEvent[],
+  timestamp: string,
+) => void;
+
 type BuilderSyntheticRun = {
   id: string;
   task_id: string;
@@ -224,7 +230,7 @@ function buildRouteDecision(taskEnvelope: BuilderTaskEnvelope): BuilderRouteDeci
         "lane-selection-matrix:multi_file_implementation:private_but_cloud_allowed",
         "builder-front-door:first-slice",
       ],
-      activation_state: "shadow_ready",
+      activation_state: "live_ready",
     };
   }
 
@@ -322,7 +328,12 @@ function buildPendingApproval(reason: string) {
   };
 }
 
-function buildEvent(event_type: string, label: string, detail: string, tone: BuilderProgressEvent["tone"]): BuilderProgressEvent {
+export function createBuilderEvent(
+  event_type: string,
+  label: string,
+  detail: string,
+  tone: BuilderProgressEvent["tone"],
+): BuilderProgressEvent {
   return {
     id: `builder-event-${randomUUID()}`,
     event_type,
@@ -344,6 +355,7 @@ function toPreview(session: BuilderExecutionSession): BuilderSessionPreview {
     verification_status: session.verification_state.status,
     pending_approval_count,
     artifact_count: session.latest_result_packet?.artifacts.length ?? 0,
+    resumable_handle: session.latest_result_packet?.resumable_handle ?? null,
     shadow_mode: session.shadow_mode,
     fallback_state: session.fallback_state,
     updated_at: session.updated_at,
@@ -414,6 +426,26 @@ export async function readBuilderSessionEvents(sessionId: string): Promise<Build
   });
 }
 
+export async function mutateBuilderSession(
+  sessionId: string,
+  mutate: BuilderSessionMutation,
+): Promise<BuilderExecutionSession> {
+  return mutateStore((store) => {
+    const session = store.sessions[sessionId];
+    if (!session) {
+      throw new Error(`Unknown builder session: ${sessionId}`);
+    }
+
+    const events = [...(store.events[sessionId] ?? [])];
+    const timestamp = nowIso();
+    mutate(session, events, timestamp);
+    session.updated_at = timestamp;
+    store.sessions[sessionId] = builderExecutionSessionSchema.parse(session);
+    store.events[sessionId] = events.map((event) => builderProgressEventSchema.parse(event));
+    return store.sessions[sessionId];
+  });
+}
+
 export async function createBuilderSession(taskEnvelope: BuilderTaskEnvelope): Promise<BuilderExecutionSession> {
   const parsed = builderTaskEnvelopeSchema.parse(taskEnvelope);
   return mutateStore((store) => {
@@ -421,25 +453,33 @@ export async function createBuilderSession(taskEnvelope: BuilderTaskEnvelope): P
     const created_at = nowIso();
     const route_decision = buildRouteDecision(parsed);
     const verification_contract = buildVerificationContract(parsed);
-    const requires_approval = route_decision.activation_state === "shadow_ready";
+    const requires_approval =
+      route_decision.activation_state === "live_ready" || route_decision.activation_state === "shadow_ready";
     const approvals = requires_approval
       ? [
           buildPendingApproval(
-            "Shadow-mode builder execution still needs explicit operator start until the worker bridge is linked.",
+            route_decision.activation_state === "live_ready"
+              ? "Live builder execution needs explicit operator approval before worktree mutation begins."
+              : "Shadow-mode builder execution still needs explicit operator start until the worker bridge is linked.",
           ),
         ]
       : [];
 
     const status =
-      route_decision.activation_state === "shadow_ready"
+      route_decision.activation_state === "live_ready" || route_decision.activation_state === "shadow_ready"
         ? "waiting_approval"
         : "blocked";
 
     const latest_result_packet = {
-      outcome: route_decision.activation_state === "shadow_ready" ? "planned" : "blocked",
+      outcome:
+        route_decision.activation_state === "live_ready" || route_decision.activation_state === "shadow_ready"
+          ? "planned"
+          : "blocked",
       summary:
-        route_decision.activation_state === "shadow_ready"
-          ? "Route selected and staged for the shadow Codex path. Approve the session to queue the builder run."
+        route_decision.activation_state === "live_ready"
+          ? "Route selected and ready for live Codex execution. Approve the session to queue the builder run."
+          : route_decision.activation_state === "shadow_ready"
+            ? "Route selected and staged for the shadow Codex path. Approve the session to queue the builder run."
           : "Route selected, but this adapter is not wired into the builder front door yet.",
       artifacts: [],
       files_changed: [],
@@ -450,12 +490,14 @@ export async function createBuilderSession(taskEnvelope: BuilderTaskEnvelope): P
         detail: "Verification is staged and waiting on execution evidence.",
       })),
       remaining_risks:
-        route_decision.activation_state === "shadow_ready"
-          ? ["Worker bridge still pending", "Terminal fallback remains the current escape hatch"]
+        route_decision.activation_state === "live_ready"
+          ? ["Operator approval still pending", "Verification has not run yet"]
+          : route_decision.activation_state === "shadow_ready"
+            ? ["Worker bridge still pending", "Terminal fallback remains the current escape hatch"]
           : ["Selected adapter is not linked into the builder front door yet"],
-      resumable_handle: id,
+      resumable_handle: null,
       recovery_gate:
-        route_decision.activation_state === "shadow_ready"
+        route_decision.activation_state === "live_ready" || route_decision.activation_state === "shadow_ready"
           ? "operator_approval_required"
           : "adapter_not_yet_linked",
     };
@@ -472,8 +514,10 @@ export async function createBuilderSession(taskEnvelope: BuilderTaskEnvelope): P
       verification_state: {
         status: "planned",
         summary:
-          route_decision.activation_state === "shadow_ready"
-            ? "Verification contract is staged for the first Codex route."
+          route_decision.activation_state === "live_ready"
+            ? "Verification contract is staged for the live Codex builder route."
+            : route_decision.activation_state === "shadow_ready"
+              ? "Verification contract is staged for the first Codex route."
             : "Verification contract is staged, but the adapter is not active in the builder front door yet.",
         completed_checks: [],
         failed_checks: [],
@@ -483,9 +527,13 @@ export async function createBuilderSession(taskEnvelope: BuilderTaskEnvelope): P
       approvals,
       current_worker: route_decision.primary_adapter,
       current_route: route_decision.route_label,
-      shadow_mode: true,
+      shadow_mode: route_decision.activation_state === "shadow_ready",
       fallback_state:
-        route_decision.activation_state === "shadow_ready" ? "worker_bridge_pending" : "adapter_not_yet_linked",
+        route_decision.activation_state === "live_ready"
+          ? "approval_pending"
+          : route_decision.activation_state === "shadow_ready"
+            ? "worker_bridge_pending"
+            : "adapter_not_yet_linked",
       linked_surfaces: {
         runs_href: `/runs?builderSession=${id}`,
         review_href: `/review?builderSession=${id}`,
@@ -495,14 +543,14 @@ export async function createBuilderSession(taskEnvelope: BuilderTaskEnvelope): P
 
     store.sessions[id] = session;
     store.events[id] = [
-      buildEvent("session_created", "Session created", "Builder intake recorded a new task envelope.", "info"),
-      buildEvent(
+      createBuilderEvent("session_created", "Session created", "Builder intake recorded a new task envelope.", "info"),
+      createBuilderEvent(
         "route_selected",
         "Route selected",
         `${route_decision.route_label} selected with ${route_decision.primary_adapter} on ${route_decision.execution_mode}.`,
         "success",
       ),
-      buildEvent(
+      createBuilderEvent(
         "verification_planned",
         "Verification staged",
         `Required checks: ${verification_contract.required_checks.join(", ")}.`,
@@ -510,15 +558,17 @@ export async function createBuilderSession(taskEnvelope: BuilderTaskEnvelope): P
       ),
       ...(requires_approval
         ? [
-            buildEvent(
+            createBuilderEvent(
               "approval_requested",
               "Approval requested",
-              "Operator approval is required before the shadow builder route can queue execution.",
+              route_decision.activation_state === "live_ready"
+                ? "Operator approval is required before the live builder route can begin worktree mutation."
+                : "Operator approval is required before the shadow builder route can queue execution.",
               "warning",
             ),
           ]
         : [
-            buildEvent(
+            createBuilderEvent(
               "route_deferred",
               "Route not yet linked",
               "This adapter remains defined but not yet wired into the builder front door.",
@@ -560,21 +610,29 @@ export async function applyBuilderSessionControl(
     switch (action) {
       case "approve":
         session.status = "queued";
-        session.fallback_state = "worker_bridge_pending";
+        session.fallback_state =
+          session.route_decision.activation_state === "live_ready" ? "execution_queued" : "worker_bridge_pending";
         session.verification_state.status = "planned";
         session.verification_state.summary =
-          "Approval recorded. The session is queued for the shadow Codex route while the worker bridge remains pending.";
+          session.route_decision.activation_state === "live_ready"
+            ? "Approval recorded. The session is queued for live Codex execution."
+            : "Approval recorded. The session is queued for the shadow Codex route while the worker bridge remains pending.";
         session.verification_state.last_updated_at = timestamp;
         if (session.latest_result_packet) {
           session.latest_result_packet.summary =
-            "Approval recorded. The session is queued for the shadow Codex route while the worker bridge remains pending.";
-          session.latest_result_packet.recovery_gate = "worker_bridge_pending";
+            session.route_decision.activation_state === "live_ready"
+              ? "Approval recorded. The session is queued for live Codex execution."
+              : "Approval recorded. The session is queued for the shadow Codex route while the worker bridge remains pending.";
+          session.latest_result_packet.recovery_gate =
+            session.route_decision.activation_state === "live_ready" ? "execution_starting" : "worker_bridge_pending";
         }
         events.push(
-          buildEvent(
+          createBuilderEvent(
             "approval_resolved",
             "Approval granted",
-            "Operator approved the builder session. It is now queued for the shadow worker path.",
+            session.route_decision.activation_state === "live_ready"
+              ? "Operator approved the builder session. It is now queued for the live Codex worker path."
+              : "Operator approved the builder session. It is now queued for the shadow worker path.",
             "success",
           ),
         );
@@ -593,7 +651,7 @@ export async function applyBuilderSessionControl(
           session.latest_result_packet.recovery_gate = "resume_requires_new_approval";
         }
         events.push(
-          buildEvent(
+          createBuilderEvent(
             "approval_resolved",
             "Approval rejected",
             "Operator rejected the builder session before execution could begin.",
@@ -603,36 +661,60 @@ export async function applyBuilderSessionControl(
         break;
       case "resume": {
         const hasPendingApproval = session.approvals.some((approval) => approval.status === "pending");
-        if (!hasPendingApproval && session.route_decision.activation_state === "shadow_ready") {
+        if (
+          !hasPendingApproval &&
+          (session.route_decision.activation_state === "live_ready" ||
+            session.route_decision.activation_state === "shadow_ready")
+        ) {
           session.approvals.push(
             buildPendingApproval(
-              "Resuming this shadow builder session requires a fresh operator approval before execution can begin.",
+              session.route_decision.activation_state === "live_ready"
+                ? "Resuming this builder session requires a fresh operator approval before Codex execution can continue."
+                : "Resuming this shadow builder session requires a fresh operator approval before execution can begin.",
             ),
           );
         }
         session.status =
-          session.route_decision.activation_state === "shadow_ready" ? "waiting_approval" : "blocked";
-        session.fallback_state =
+          session.route_decision.activation_state === "live_ready" ||
           session.route_decision.activation_state === "shadow_ready"
-            ? "worker_bridge_pending"
-            : "adapter_not_yet_linked";
+            ? "waiting_approval"
+            : "blocked";
+        session.fallback_state =
+          session.route_decision.activation_state === "live_ready"
+            ? "approval_pending"
+            : session.route_decision.activation_state === "shadow_ready"
+              ? "worker_bridge_pending"
+              : "adapter_not_yet_linked";
         session.verification_state.status = "planned";
         session.verification_state.summary =
-          session.route_decision.activation_state === "shadow_ready"
-            ? "Session resumed and is waiting for a fresh operator approval."
+          session.route_decision.activation_state === "live_ready"
+            ? "Session resumed and is waiting for a fresh operator approval before Codex execution continues."
+            : session.route_decision.activation_state === "shadow_ready"
+              ? "Session resumed and is waiting for a fresh operator approval."
             : "Session resumed, but the selected adapter is still not linked into the builder front door.";
         session.verification_state.last_updated_at = timestamp;
         if (session.latest_result_packet) {
           session.latest_result_packet.outcome =
-            session.route_decision.activation_state === "shadow_ready" ? "planned" : "blocked";
+            session.route_decision.activation_state === "live_ready" ||
+            session.route_decision.activation_state === "shadow_ready"
+              ? "planned"
+              : "blocked";
           session.latest_result_packet.summary = session.verification_state.summary;
+          session.latest_result_packet.recovery_gate =
+            session.route_decision.activation_state === "live_ready" ||
+            session.route_decision.activation_state === "shadow_ready"
+              ? "operator_approval_required"
+              : "adapter_not_yet_linked";
         }
         events.push(
-          buildEvent(
+          createBuilderEvent(
             "session_resumed",
             "Session resumed",
             session.verification_state.summary,
-            session.route_decision.activation_state === "shadow_ready" ? "warning" : "info",
+            session.route_decision.activation_state === "live_ready" ||
+            session.route_decision.activation_state === "shadow_ready"
+              ? "warning"
+              : "info",
           ),
         );
         break;
@@ -658,13 +740,13 @@ export async function applyBuilderSessionControl(
           session.latest_result_packet.recovery_gate = "resume_required";
         }
         events.push(
-          buildEvent("session_cancelled", "Session cancelled", "Operator cancelled the builder session.", "danger"),
+          createBuilderEvent("session_cancelled", "Session cancelled", "Operator cancelled the builder session.", "danger"),
         );
         break;
       case "open_terminal":
         terminal_href = session.linked_surfaces.terminal_href;
         events.push(
-          buildEvent(
+          createBuilderEvent(
             "terminal_opened",
             "Terminal escape hatch opened",
             "Builder session handed off to the terminal fallback path.",

@@ -482,7 +482,8 @@
         "C:/athanor-devstack/docs/DEVSTACK-BUILDER-ARCHITECTURE-BRIEF.md",
         "C:/athanor-devstack/configs/devstack-builder-adapter-routing-matrix.json",
         "C:/athanor-devstack/docs/operations/DEVSTACK-BUILDER-SCENARIOS.md",
-        "C:/athanor-devstack/docs/promotion-packets/protocol-first-builder-kernel.md"
+        "C:/athanor-devstack/docs/promotion-packets/protocol-first-builder-kernel.md",
+        "C:/Athanor/reports/truth-inventory/protocol-first-builder-kernel-live-smoke.json"
       ],
       "acceptance_criteria": [
         "Athanor exposes one builder front door instead of a visible bundle of equal tools.",
@@ -505,12 +506,14 @@
       "runtime_packet_ids": [
         "pending"
       ],
-      "pilot_blocker_class": "bounded_kernel_execution_slice_unproven",
+      "pilot_blocker_class": null,
       "rollback_or_disable_path": "Demote the builder kernel back to devstack-only proof artifacts and preserve the existing Athanor shell and routing surfaces without adopting a new control layer.",
       "archive_instructions": "Archive superseded builder-stack planning notes that still describe devstack as a permanent separate user-facing stack. Keep the proof brief, routing matrix, and scenario suite as lineage.",
       "notes": [
         "This capability describes target Athanor behavior while remaining devstack-owned until adoption proof is complete.",
-        "The first proof step is a bounded route slice rather than a broad control-plane rewrite."
+        "The first proof step is a bounded route slice rather than a broad control-plane rewrite.",
+        "The 2026-04-17 bounded live smoke proved builder:codex:direct_cli end to end with approval gating, a resumable handle, structured result transport, and passing verification.",
+        "Builder-generated `.codex` residue is scrubbed from user-facing changed-file accounting before the final ResultPacket is published."
       ],
       "source_lane_id": "protocol-first-builder-kernel",
       "source_packet_id": "pending-protocol-first-builder-kernel",
