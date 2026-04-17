@@ -318,6 +318,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
   const currentWorkplanApprovalCount = currentWorkplan?.tasks.filter((task) => task.requiresApproval).length ?? 0;
   const currentWorkplanTasks = currentWorkplan?.tasks.slice(0, 3) ?? [];
   const steadyState = snapshot.steadyState;
+  const steadyStateReadStatus = snapshot.steadyStateReadStatus;
   const liveWorkCount = pendingTasks + runningTasks;
   const liveTone: SignalTone =
     governedDispatchRestartInterfering || degradedServices > 0
@@ -502,6 +503,19 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
         />
         <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr] xl:gap-8">
           <div className="space-y-6">
+            {steadyStateReadStatus.degraded ? (
+              <div className="surface-panel border border-[color:var(--signal-warning)]/40 p-4">
+                <p className="page-eyebrow text-[color:var(--signal-warning)]">Steady-state front door degraded</p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  {steadyStateReadStatus.detail ?? "The steady-state front door is unavailable from this dashboard runtime."}
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Source: {steadyStateReadStatus.sourceKind ?? "unknown"}
+                  {steadyStateReadStatus.sourcePath ? ` · ${steadyStateReadStatus.sourcePath}` : ""}
+                </p>
+              </div>
+            ) : null}
+
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline">Mission Control</Badge>

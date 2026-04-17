@@ -5,7 +5,21 @@ vi.mock("@/lib/server-agent", () => ({
   proxyAgentJson: vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 })),
 }));
 
+vi.mock("@/lib/operator-frontdoor", () => ({
+  loadSteadyStateFrontDoor: vi.fn(async () => ({
+    snapshot: null,
+    status: {
+      available: false,
+      degraded: true,
+      detail: "Steady-state front door unavailable.",
+      sourceKind: null,
+      sourcePath: null,
+    },
+  })),
+}));
+
 import { GET } from "./route";
+import { loadSteadyStateFrontDoor } from "@/lib/operator-frontdoor";
 import { proxyAgentJson } from "@/lib/server-agent";
 
 describe("operator summary api route", () => {
@@ -23,6 +37,7 @@ describe("operator summary api route", () => {
       "Failed to fetch operator work summary",
       25_000,
     );
+    expect(loadSteadyStateFrontDoor).toHaveBeenCalled();
   });
 
   it("fails soft when the operator summary upstream is unavailable", async () => {
@@ -39,6 +54,9 @@ describe("operator summary api route", () => {
       tasks: {
         pending_approval: 0,
         failed_actionable: 0,
+      },
+      steadyStateStatus: {
+        degraded: true,
       },
     });
   });

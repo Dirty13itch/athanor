@@ -325,4 +325,54 @@ describe("OperatorConsole", () => {
     expect(screen.getAllByRole("link", { name: /Open Topology/i }).length).toBeGreaterThan(0);
     expect(screen.queryByText(/Dispatch map unavailable/i)).not.toBeInTheDocument();
   });
+
+  it("shows a dedicated steady-state front door degraded notice when operator feeds are otherwise available", async () => {
+    requestJson.mockImplementation(async (url: string) => {
+      if (url === "/api/operator/approvals?status=pending") {
+        return { approvals: [] };
+      }
+
+      if (url === "/api/operator/governance") {
+        return {
+          current_mode: { mode: "steady_state_monitoring" },
+          launch_blockers: [],
+          launch_ready: true,
+          attention_posture: { recommended_mode: "steady_state_monitoring", breaches: [] },
+        };
+      }
+
+      if (url === "/api/operator/summary") {
+        return {
+          tasks: {
+            pending_approval: 0,
+            failed_actionable: 0,
+            stale_lease: 0,
+            stale_lease_actionable: 0,
+            stale_lease_recovered_historical: 0,
+            failed_historical_repaired: 0,
+          },
+          steadyState: null,
+          steadyStateStatus: {
+            available: false,
+            degraded: true,
+            detail: "Invalid steady-state front door at /tmp/steady-state-status.json",
+            sourceKind: "workspace_report",
+            sourcePath: "/tmp/steady-state-status.json",
+          },
+        };
+      }
+
+      if (url === "/api/master-atlas") {
+        return { generated_at: "2026-04-13T08:01:42.197539+00:00" };
+      }
+
+      return {};
+    });
+
+    render(<OperatorConsole />, { wrapper: buildWrapper() });
+
+    expect(await screen.findByText(/Steady-state front door degraded/i)).toBeInTheDocument();
+    expect(screen.getByText(/Invalid steady-state front door at \/tmp\/steady-state-status.json/i)).toBeInTheDocument();
+    expect(screen.getByText(/Source: workspace_report/i)).toBeInTheDocument();
+  });
 });

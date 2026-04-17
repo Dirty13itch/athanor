@@ -40,7 +40,7 @@ import {
 } from "@/lib/dashboard-fixtures";
 import { average, formatTemperatureF } from "@/lib/format";
 import { buildNavAttentionSignals } from "@/lib/nav-attention";
-import { readSteadyStateFrontDoor } from "@/lib/operator-frontdoor";
+import { loadSteadyStateFrontDoor } from "@/lib/operator-frontdoor";
 import { agentServerHeaders, config, getNodeNameFromInstance, joinUrl, type MonitoredService } from "@/lib/config";
 import { getRangeStepSeconds, getTimeWindow, type TimeWindowId } from "@/lib/ranges";
 
@@ -2339,7 +2339,7 @@ export async function getOverviewSnapshot(window: TimeWindowId = "3h"): Promise<
     projectsSnapshot,
     workforce,
     judgePlane,
-    steadyState,
+    steadyStateFrontDoor,
   ] = await Promise.all([
     getServicesSnapshot(),
     getServicesHistory(window),
@@ -2350,8 +2350,10 @@ export async function getOverviewSnapshot(window: TimeWindowId = "3h"): Promise<
     getProjectsSnapshot(),
     getWorkforceSnapshot(),
     fetchAgentJson("/v1/review/judges?limit=12", judgePlaneSnapshotSchema, fallbackJudgePlaneSnapshot),
-    readSteadyStateFrontDoor(),
+    loadSteadyStateFrontDoor(),
   ]);
+  const steadyState = steadyStateFrontDoor.snapshot;
+  const steadyStateReadStatus = steadyStateFrontDoor.status;
 
   const generatedAt = nowIso();
 
@@ -2415,5 +2417,6 @@ export async function getOverviewSnapshot(window: TimeWindowId = "3h"): Promise<
     navAttention,
     workforce,
     steadyState,
+    steadyStateReadStatus,
   };
 }

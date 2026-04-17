@@ -1678,6 +1678,13 @@ const fixtureOverview: OverviewSnapshot = {
     sourceKind: 'workspace_report',
     sourcePath: '/mnt/c/Athanor/reports/truth-inventory/steady-state-status.json',
   },
+  steadyStateReadStatus: {
+    available: true,
+    degraded: false,
+    detail: null,
+    sourceKind: 'workspace_report',
+    sourcePath: '/mnt/c/Athanor/reports/truth-inventory/steady-state-status.json',
+  },
 };
 
 const fixtureServicesSnapshot: ServicesSnapshot = {

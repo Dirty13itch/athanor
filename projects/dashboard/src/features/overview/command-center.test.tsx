@@ -120,4 +120,26 @@ describe("CommandCenter", () => {
     if (!proofDrilldownPanel) return;
     expect(within(proofDrilldownPanel).getByRole("link", { name: /Route index/i })).toHaveAttribute("href", "/more");
   });
+
+  it("surfaces a degraded steady-state front door explicitly", async () => {
+    const snapshot = {
+      ...getFixtureOverviewSnapshot(),
+      steadyState: null,
+      steadyStateReadStatus: {
+        available: false,
+        degraded: true,
+        detail: "Invalid steady-state front door at /tmp/steady-state-status.json",
+        sourceKind: "workspace_report" as const,
+        sourcePath: "/tmp/steady-state-status.json",
+      },
+    };
+    getOverview.mockResolvedValue(snapshot);
+    vi.mocked(requestJson).mockResolvedValue({});
+
+    render(<CommandCenter initialSnapshot={snapshot} />, { wrapper: buildWrapper() });
+
+    expect(await screen.findByText(/Steady-state front door degraded/i)).toBeInTheDocument();
+    expect(screen.getByText(/Invalid steady-state front door at \/tmp\/steady-state-status.json/i)).toBeInTheDocument();
+    expect(screen.getByText(/Source: workspace_report/i)).toBeInTheDocument();
+  });
 });

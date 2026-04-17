@@ -100,6 +100,13 @@ interface OperatorSummaryPayload {
   source?: string;
   tasks?: TaskResidueSummary;
   steadyState?: SteadyStateSnapshot | null;
+  steadyStateStatus?: {
+    available?: boolean;
+    degraded?: boolean;
+    detail?: string | null;
+    sourceKind?: "workspace_report" | "repo_root_fallback" | null;
+    sourcePath?: string | null;
+  } | null;
 }
 
 function createId(prefix: string) {
@@ -202,6 +209,7 @@ export function OperatorConsole() {
   const operatorSummary = summaryQuery.data ?? {};
   const taskResidue = operatorSummary.tasks ?? {};
   const steadyState = operatorSummary.steadyState ?? null;
+  const steadyStateStatus = operatorSummary.steadyStateStatus ?? null;
   const masterAtlas =
     masterAtlasQuery.data && typeof masterAtlasQuery.data.generated_at === "string"
       ? masterAtlasQuery.data
@@ -430,6 +438,19 @@ export function OperatorConsole() {
             <p className="page-eyebrow text-[color:var(--signal-warning)]">Operator data degraded</p>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-muted-foreground">
               The dashboard runtime cannot currently reach the upstream operator feed from this node. The command lane is still available, but approvals, governance posture, and residue metrics may be incomplete until the agent-server path is restored.
+            </p>
+          </div>
+        ) : null}
+
+        {steadyStateStatus?.degraded ? (
+          <div className="surface-panel mt-5 rounded-[24px] border border-[color:var(--signal-warning)]/40 px-5 py-4 sm:px-6">
+            <p className="page-eyebrow text-[color:var(--signal-warning)]">Steady-state front door degraded</p>
+            <p className="mt-2 max-w-4xl text-sm leading-6 text-muted-foreground">
+              {steadyStateStatus.detail ?? "The steady-state front door is unavailable from this dashboard runtime."}
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Source: {steadyStateStatus.sourceKind ?? "unknown"}
+              {steadyStateStatus.sourcePath ? ` · ${steadyStateStatus.sourcePath}` : ""}
             </p>
           </div>
         ) : null}

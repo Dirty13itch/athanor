@@ -2,7 +2,7 @@ import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { readSteadyStateFrontDoor } from "./operator-frontdoor";
+import { loadSteadyStateFrontDoor, readSteadyStateFrontDoor } from "./operator-frontdoor";
 
 const originalCwd = process.cwd();
 
@@ -51,17 +51,29 @@ function writeSteadyStateJson(targetPath: string, overrides: Record<string, unkn
 }
 
 describe("readSteadyStateFrontDoor", () => {
+  it("returns explicit degraded status when no steady-state report is present", async () => {
+    const { dashboardRoot } = makeWorkspace();
+    process.chdir(dashboardRoot);
+
+    const result = await loadSteadyStateFrontDoor();
+
+    expect(result.snapshot).toBeNull();
+    expect(result.status.degraded).toBe(true);
+    expect(result.status.detail).toMatch(/not found/i);
+  });
+
   it("annotates workspace report provenance when the local report exists", async () => {
     const { dashboardRoot } = makeWorkspace();
     writeSteadyStateJson(path.join(dashboardRoot, "reports", "truth-inventory", "steady-state-status.json"));
     process.chdir(dashboardRoot);
 
-    const result = await readSteadyStateFrontDoor();
+    const result = await loadSteadyStateFrontDoor();
 
-    expect(result?.sourceKind).toBe("workspace_report");
-    expect(result?.sourcePath).toBe(
+    expect(result.snapshot?.sourceKind).toBe("workspace_report");
+    expect(result.snapshot?.sourcePath).toBe(
       path.join(dashboardRoot, "reports", "truth-inventory", "steady-state-status.json"),
     );
+    expect(result.status.degraded).toBe(false);
   });
 
   it("annotates repo-root fallback provenance when only the repo-level report exists", async () => {
@@ -69,12 +81,13 @@ describe("readSteadyStateFrontDoor", () => {
     writeSteadyStateJson(path.join(root, "reports", "truth-inventory", "steady-state-status.json"));
     process.chdir(dashboardRoot);
 
-    const result = await readSteadyStateFrontDoor();
+    const result = await loadSteadyStateFrontDoor();
 
-    expect(result?.sourceKind).toBe("repo_root_fallback");
-    expect(result?.sourcePath).toBe(
+    expect(result.snapshot?.sourceKind).toBe("repo_root_fallback");
+    expect(result.snapshot?.sourcePath).toBe(
       path.join(root, "reports", "truth-inventory", "steady-state-status.json"),
     );
+    expect(result.status.degraded).toBe(false);
   });
 
   it("stops on invalid readable input instead of silently falling through to another candidate", async () => {
@@ -87,6 +100,12 @@ describe("readSteadyStateFrontDoor", () => {
     );
     writeSteadyStateJson(path.join(root, "reports", "truth-inventory", "steady-state-status.json"));
     process.chdir(dashboardRoot);
+
+    const loaded = await loadSteadyStateFrontDoor();
+
+    expect(loaded.snapshot).toBeNull();
+    expect(loaded.status.degraded).toBe(true);
+    expect(loaded.status.detail).toMatch(/Invalid steady-state front door/);
 
     await expect(readSteadyStateFrontDoor()).rejects.toThrow(/Invalid steady-state front door/);
   });

@@ -1664,6 +1664,14 @@ export const steadyStateSnapshotSchema = z.object({
   sourcePath: z.string().nullable().optional(),
 });
 
+export const steadyStateReadStatusSchema = z.object({
+  available: z.boolean(),
+  degraded: z.boolean(),
+  detail: z.string().nullable().optional(),
+  sourceKind: z.enum(["workspace_report", "repo_root_fallback"]).nullable().optional(),
+  sourcePath: z.string().nullable().optional(),
+});
+
 export const overviewSnapshotSchema = z.object({
   generatedAt: z.string(),
   summary: z.object({
@@ -1693,6 +1701,11 @@ export const overviewSnapshotSchema = z.object({
   navAttention: z.array(navAttentionSignalSchema).default([]),
   workforce: workforceSnapshotSchema,
   steadyState: steadyStateSnapshotSchema.nullable().default(null),
+  steadyStateReadStatus: steadyStateReadStatusSchema.default({
+    available: false,
+    degraded: true,
+    detail: null,
+  }),
 });
 
 export const servicesSnapshotSchema = z.object({
@@ -2339,6 +2352,7 @@ export type ChartPoint = z.infer<typeof chartPointSchema>;
 export type GpuSnapshot = z.infer<typeof gpuSnapshotSchema>;
 export type GpuNodeSummary = z.infer<typeof gpuNodeSummarySchema>;
 export type SteadyStateSnapshot = z.infer<typeof steadyStateSnapshotSchema>;
+export type SteadyStateReadStatus = z.infer<typeof steadyStateReadStatusSchema>;
 export type OverviewSnapshot = z.infer<typeof overviewSnapshotSchema>;
 export type ServicesSnapshot = z.infer<typeof servicesSnapshotSchema>;
 export type ServicesHistorySnapshot = z.infer<typeof servicesHistorySnapshotSchema>;
