@@ -1,11 +1,11 @@
 # Publication Triage Summary
 
 - Active sequence: `2026-04-15-publication-triage-governance`
-- Dirty entries: `34`
-- Slice-matched entries: `29`
-- Deferred-family entries: `5`
+- Dirty entries: `20`
+- Slice-matched entries: `13`
+- Deferred-family entries: `6`
 - Ambiguous entries: `0`
-- Unclassified entries: `0`
+- Unclassified entries: `1`
 - Local-noise entries: `0`
 
 ## Slice Coverage
@@ -14,10 +14,10 @@
 | --- | --- | --- | --- | --- |
 | `backbone-contracts-and-truth-writers` | `published` | `0` | `0` | `0` |
 | `runtime-ownership-provider-truth-and-reconciliation` | `published` | `5` | `0` | `0` |
-| `pilot-eval-substrate-and-operator-test-machinery` | `published` | `0` | `0` | `0` |
+| `pilot-eval-substrate-and-operator-test-machinery` | `published` | `1` | `0` | `0` |
 | `graphrag-promotion-wave` | `published` | `1` | `0` | `0` |
 | `gpu-scheduler-extension-wave` | `published` | `0` | `0` | `0` |
-| `forge-atlas-dashboard-and-startup-truth` | `published` | `23` | `0` | `0` |
+| `forge-atlas-dashboard-and-startup-truth` | `published` | `6` | `0` | `0` |
 
 ## Backbone Contracts and Truth Writers (`backbone-contracts-and-truth-writers`)
 
@@ -44,11 +44,14 @@ Sample dirty paths:
 
 ## Pilot Eval Substrate and Operator-Test Machinery (`pilot-eval-substrate-and-operator-test-machinery`)
 
-- Dirty matches: `0`
+- Dirty matches: `1`
 - Publication refs: `16`
 - Working-tree hints: `15`
 - Missing publication refs: `0`
 - Missing generated artifacts: `0`
+
+Sample dirty paths:
+- `M` config/automation-backbone/eval-run-ledger.json
 
 ## GraphRAG Promotion Wave (`graphrag-promotion-wave`)
 
@@ -71,7 +74,7 @@ Sample dirty paths:
 
 ## Forge, Atlas, Dashboard, and Startup Truth (`forge-atlas-dashboard-and-startup-truth`)
 
-- Dirty matches: `23`
+- Dirty matches: `6`
 - Publication refs: `9`
 - Working-tree hints: `9`
 - Missing publication refs: `0`
@@ -79,17 +82,11 @@ Sample dirty paths:
 
 Sample dirty paths:
 - `M` docs/operations/OPERATOR-SURFACE-REPORT.md
-- `M` projects/dashboard/package.json
-- `M` projects/dashboard/src/app/api/builder/sessions/[sessionId]/control/route.test.ts
-- `M` projects/dashboard/src/app/api/builder/sessions/[sessionId]/control/route.ts
-- `M` projects/dashboard/src/app/api/operator/summary/route.test.ts
-- `M` projects/dashboard/src/app/api/operator/summary/route.ts
-- `M` projects/dashboard/src/components/app-shell.test.tsx
-- `M` projects/dashboard/src/components/app-shell.tsx
-- `M` projects/dashboard/src/features/builder/builder-console.tsx
-- `M` projects/dashboard/src/features/operator/operator-console.test.tsx
-- `M` projects/dashboard/src/features/operator/operator-console.tsx
-- `M` projects/dashboard/src/features/overview/command-center.tsx
+- `M` projects/dashboard/src/generated/master-atlas.json
+- `M` projects/dashboard/src/generated/operator-surfaces.json
+- `M` projects/dashboard/src/lib/builder-worker-bridge.ts
+- `??` projects/dashboard/src/lib/builder-kernel-formal-eval.test.ts
+- `??` projects/dashboard/src/lib/builder-kernel-live-route.test.ts
 
 ## Deferred Family Coverage
 
@@ -100,7 +97,7 @@ Sample dirty paths:
 | `audit-and-eval-artifacts` | `audit_artifact` | `1` |
 | `deployment-authority-follow-on` | `deferred_out_of_sequence` | `0` |
 | `runtime-service-follow-on` | `runtime_follow_on` | `0` |
-| `control-plane-follow-on` | `deferred_out_of_sequence` | `4` |
+| `control-plane-follow-on` | `deferred_out_of_sequence` | `5` |
 | `tenant-product-lanes` | `tenant_surface` | `0` |
 
 ## Deferred: Reference and Archive Prune (`reference-and-archive-prune`)
@@ -164,7 +161,7 @@ Sample dirty paths:
 ## Deferred: Control-Plane Follow-on (`control-plane-follow-on`)
 
 - Disposition: `deferred_out_of_sequence`
-- Dirty matches: `4`
+- Dirty matches: `5`
 - Path hints: `4`
 - Scope: Implementation-authority control-plane, agent-runtime, and operations packet work that is real but intentionally outside the six ready checkpoint slices.
 - Execution class: `program_slice`
@@ -177,6 +174,7 @@ Sample dirty paths:
 - `M` docs/operations/GOVERNOR-FACADE-CUTOVER-PACKET.md
 - `M` docs/operations/RUNTIME-MIGRATION-REPORT.md
 - `M` docs/operations/VAULT-REDIS-REPAIR-PACKET.md
+- `??` scripts/run_protocol_first_builder_kernel_formal_eval.py
 
 ## Deferred: Tenant Product Lanes (`tenant-product-lanes`)
 
@@ -188,3 +186,7 @@ Sample dirty paths:
 - Next action: Push tenant roots through product-specific classification, packet lanes, and local-root governance instead of Athanor checkpoint publication.
 - Success condition: Tenant product changes route through their governed tenant lanes without leaking into Athanor checkpoint slices.
 - Owner workstreams: `tenant-architecture-and-classification`, `validation-and-publication`
+
+## Unclassified Entries
+
+- `M` reports/truth-inventory/protocol-first-builder-kernel-live-smoke.json

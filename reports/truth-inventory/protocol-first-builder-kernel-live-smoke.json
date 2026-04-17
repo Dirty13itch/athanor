@@ -1,27 +1,20 @@
 {
-  "evidence_id": "protocol-first-builder-kernel-live-smoke-2026-04-17",
-  "capability_id": "protocol-first-builder-kernel",
-  "captured_at": "2026-04-17T18:04:00-05:00",
-  "source_of_truth": "reports/truth-inventory/protocol-first-builder-kernel-live-smoke.json",
-  "proof_kind": "bounded_live_route_smoke",
-  "baseUrl": "http://127.0.0.1:3100",
-  "session_id": "builder-75039f78-a12f-4716-9562-1869b66335bb",
-  "initial_status": "running",
+  "session_id": "builder-995e6c74-3bd5-4a78-9f96-a2c8734e8627",
   "final_status": "completed",
   "verification_status": "passed",
-  "resumable_handle": "019d9c9b-e99d-7813-b3df-e978455a0901",
-  "workspace_path": "/tmp/athanor-builder-smoke-VgG9QO/worktrees/builder-75039f78-a12f-4716-9562-1869b66335bb",
-  "target_file": "/tmp/athanor-builder-smoke-VgG9QO/worktrees/builder-75039f78-a12f-4716-9562-1869b66335bb/LIVE_SMOKE_2026-04-17T18-02-29-784Z.md",
-  "target_body": "Builder live smoke succeeded.",
+  "resumable_handle": "019d9ce0-375c-7103-885f-8efd5744a041",
+  "target_relative_path": "projects/dashboard/PROTOCOL_FIRST_BUILDER_KERNEL_FORMAL_EVAL.md",
+  "target_file": "/tmp/athanor-builder-live-formal-eval-FUvg71/worktrees/builder-995e6c74-3bd5-4a78-9f96-a2c8734e8627/projects/dashboard/PROTOCOL_FIRST_BUILDER_KERNEL_FORMAL_EVAL.md",
+  "target_body": "Builder formal eval succeeded.",
   "files_changed": [
-    "LIVE_SMOKE_2026-04-17T18-02-29-784Z.md"
+    "projects/dashboard/PROTOCOL_FIRST_BUILDER_KERNEL_FORMAL_EVAL.md"
   ],
   "validation": [
     {
       "id": "targeted_tests_or_build",
       "label": "targeted tests or build",
       "status": "passed",
-      "detail": "No targeted validation command selected for this change set. Diff-only verification path accepted."
+      "detail": "Type-check dashboard changes. Passed in 16.9s."
     },
     {
       "id": "diff_review",
@@ -36,17 +29,11 @@
       "detail": "Final response covered every acceptance criterion."
     }
   ],
-  "remaining_risks": [],
-  "event_count": 9,
-  "event_types": [
-    "session_created",
-    "route_selected",
-    "verification_planned",
-    "approval_requested",
-    "approval_resolved",
-    "execution_started",
-    "thread_attached",
-    "verification_completed",
-    "execution_completed"
-  ]
+  "targeted_validation": {
+    "id": "targeted_tests_or_build",
+    "label": "targeted tests or build",
+    "status": "passed",
+    "detail": "Type-check dashboard changes. Passed in 16.9s."
+  },
+  "remaining_risks": []
 }

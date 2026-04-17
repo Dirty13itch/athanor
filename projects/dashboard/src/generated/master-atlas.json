@@ -1,6 +1,6 @@
 {
   "version": "2026-04-15.1",
-  "generated_at": "2026-04-17T18:14:50.926843+00:00",
+  "generated_at": "2026-04-17T19:19:03.352514+00:00",
   "status": "active",
   "source_of_truth": {
     "lane_registry": "configs/devstack-capability-lane-registry.json",
@@ -15,7 +15,7 @@
     "ready_for_review_count": 1,
     "publication_ready_count": 0,
     "turnover_status": "ready_for_low_touch_execution",
-    "repo_dirty_file_count": 5,
+    "repo_dirty_file_count": 2,
     "publication_checkpoint_required": false
   },
   "downstream_consumers": [
@@ -27,7 +27,7 @@
     }
   ],
   "readiness_ledger": {
-    "generated_at": "2026-04-17T18:14:50.925625+00:00",
+    "generated_at": "2026-04-17T19:19:03.351372+00:00",
     "records": [
       {
         "capability_id": "agent-gateway-layer",
@@ -395,7 +395,7 @@
       {
         "capability_id": "protocol-first-builder-kernel",
         "label": "Protocol-First Builder Kernel",
-        "stage": "prototype",
+        "stage": "proved",
         "authority_class": "build_system",
         "lane_status": "ready_for_review",
         "readiness_state": "packet_ready",
@@ -420,12 +420,11 @@
         "membrane_status": "aligned_to_athanor",
         "blocker_state": "blocked",
         "implementable_now": false,
-        "blocking_gate": "formal_eval_run",
+        "blocking_gate": "release_tier_progression",
         "missing_proof": [
-          "formal_eval_run",
           "release_tier_progression"
         ],
-        "next_action": "Use the bounded live-smoke proof to review the packet, preserve builder:codex:direct_cli as the only proved route, and prepare formal eval plus runtime-packet linkage for broader adoption.",
+        "next_action": "Review the proved bounded route, bind a real runtime packet id, and only then decide whether shadow-tier promotion is admissible without widening beyond builder:codex:direct_cli.",
         "source_safe_remaining": [],
         "approval_gated_remaining": [],
         "runtime_target": "Athanor builder front door, routing kernel, worker selection, and verification orchestration",
@@ -442,7 +441,8 @@
           "This capability describes target Athanor behavior while remaining devstack-owned until adoption proof is complete.",
           "The first proof step is a bounded route slice rather than a broad control-plane rewrite.",
           "The 2026-04-17 bounded live smoke proved builder:codex:direct_cli end to end with approval gating, a resumable handle, structured result transport, and passing verification.",
-          "Builder-generated `.codex` residue is scrubbed from user-facing changed-file accounting before the final ResultPacket is published."
+          "Builder-generated `.codex` residue is scrubbed from user-facing changed-file accounting before the final ResultPacket is published.",
+          "The 2026-04-17 formal builder eval proved the direct builder route with TSC-backed verification, fail-closed negative routing, coherent operator projections, and explicit non-takeover bootstrap posture."
         ]
       },
       {
@@ -710,8 +710,7 @@
       "admissibility_state": "blocked",
       "may_execute_automatically_now": false,
       "blocked_by": [
-        "release_tier_not_advanced",
-        "eval_not_promotion_valid"
+        "release_tier_not_advanced"
       ],
       "runtime_target": "Athanor builder front door, routing kernel, worker selection, and verification orchestration"
     },
@@ -1024,6 +1023,63 @@
           "policy_pass_required": true
         },
         "wrapper_mode": "service_runtime"
+      },
+      {
+        "baseline_id": "bootstrap_external_builder_stack",
+        "challenger_id": "devstack_protocol_first_builder_kernel_v1",
+        "champion_id": "bootstrap_external_builder_stack",
+        "corpus_id": "builder_kernel_boundary_trials_v1",
+        "evidence_artifacts": [
+          "C:/athanor-devstack/docs/DEVSTACK-BUILDER-ARCHITECTURE-BRIEF.md",
+          "C:/athanor-devstack/configs/devstack-builder-adapter-routing-matrix.json",
+          "C:/athanor-devstack/docs/operations/DEVSTACK-BUILDER-SCENARIOS.md",
+          "C:/athanor-devstack/docs/promotion-packets/protocol-first-builder-kernel.md",
+          "C:/Athanor/reports/truth-inventory/protocol-first-builder-kernel-live-smoke.json",
+          "C:/Athanor/projects/dashboard/src/lib/builder-kernel-formal-eval.test.ts",
+          "C:/Athanor/reports/truth-inventory/protocol-first-builder-kernel-formal-eval.json",
+          "C:/Athanor/projects/dashboard/src/lib/builder-kernel-live-route.test.ts",
+          "C:/Athanor/scripts/run_protocol_first_builder_kernel_formal_eval.py"
+        ],
+        "formal_eval_artifact_path": "C:/Athanor/reports/truth-inventory/protocol-first-builder-kernel-formal-eval.json",
+        "freshness_window_days": 30,
+        "green_result_advances_release_tier_to": "shadow",
+        "initiative_id": "protocol-first-builder-kernel",
+        "initiative_kind": "capability_promotion",
+        "judge_config": {
+          "evaluation_dimensions": [
+            "functional_quality",
+            "execution_boundary_discipline",
+            "operator_surface_coherence",
+            "policy_pass"
+          ],
+          "judge_role": "judge_verifier",
+          "policy_class": "private_but_cloud_allowed"
+        },
+        "last_run_at": "2026-04-17T19:16:07.754081+00:00",
+        "linked_promotion_packet": "C:/athanor-devstack/docs/promotion-packets/protocol-first-builder-kernel.md",
+        "notes": [
+          "This run proves only the bounded Codex direct-CLI builder slice; it does not silently promote a general internal builder takeover.",
+          "A green result advances the builder kernel into shadow-tier packet review while external bootstrap builders remain live until the takeover promotion check is explicit and operator-reviewed.",
+          "2026-04-17T18:48:29.819600+00:00: Builder kernel formal eval remains blocked until the live route, fail-closed routing checks, and bootstrap boundaries all pass together.",
+          "2026-04-17T19:02:18.295741+00:00: Builder kernel formal eval is green: the direct live route passed TSC-backed verification, fail-closed routing checks held, operator projections stayed coherent, and bootstrap takeover remains explicit.",
+          "2026-04-17T19:09:07.424704+00:00: Builder kernel formal eval is green: the direct live route passed TSC-backed verification, fail-closed routing checks held, operator projections stayed coherent, and bootstrap takeover remains explicit.",
+          "2026-04-17T19:16:07.754081+00:00: Builder kernel formal eval is green: the direct live route passed TSC-backed verification, fail-closed routing checks held, operator projections stayed coherent, and bootstrap takeover remains explicit."
+        ],
+        "promotion_validity": "valid",
+        "run_id": "protocol-first-builder-kernel-eval-2026q2",
+        "source_safe_remaining": [
+          "Keep Codex and Claude external bootstrap builders live until the takeover-promotion-check family is explicitly green and operator-reviewed.",
+          "Keep runtime packet linkage pending until a bounded builder runtime packet exists for wider adoption."
+        ],
+        "status": "completed",
+        "task_class": "builder_kernel_boundary_eval",
+        "thresholds": {
+          "functional_quality_min": "one_real_dashboard_route_with_verification",
+          "judge_delta_requirement": "no_regression_on_negative_routing_and_operator_projection",
+          "operational_quality_min": "clean_worktree_and_resumable_handle",
+          "policy_pass_required": true
+        },
+        "wrapper_mode": "builder_frontdoor_live_route"
       },
       {
         "baseline_id": "sovereign_coder",
@@ -1534,7 +1590,7 @@
     ],
     "source_of_truth": "config/automation-backbone/eval-run-ledger.json",
     "status": "active",
-    "updated_at": "2026-04-16T15:10:55Z",
+    "updated_at": "2026-04-17T19:16:07.754081+00:00",
     "version": "2026-04-16.1"
   },
   "artifact_provenance_ledger": {
@@ -2679,7 +2735,7 @@
       }
     },
     "contract_ref": "config/automation-backbone/capacity-telemetry-contract.json",
-    "generated_at": "2026-04-17T16:38:37.844030+00:00",
+    "generated_at": "2026-04-17T18:15:34.101387+00:00",
     "gpu_samples": [
       {
         "gpu_id": "desk-rtx3060",
@@ -3200,7 +3256,7 @@
       {
         "background_fill_gpu_slots": 0,
         "cpu_model": "Intel Core i7-13700K",
-        "freshness_seconds": 1893217,
+        "freshness_seconds": 1899034,
         "host": "DESK",
         "interactive_reserve_gpu_slots": 1,
         "interactive_reserve_preserved": true,
@@ -3217,7 +3273,7 @@
       {
         "background_fill_gpu_slots": 0,
         "cpu_model": "AMD Ryzen 9 9900X",
-        "freshness_seconds": 21,
+        "freshness_seconds": 5837,
         "host": "DEV",
         "interactive_reserve_gpu_slots": 1,
         "interactive_reserve_preserved": true,
@@ -3234,7 +3290,7 @@
       {
         "background_fill_gpu_slots": 4,
         "cpu_model": "AMD EPYC 7663",
-        "freshness_seconds": 21,
+        "freshness_seconds": 5837,
         "host": "FOUNDRY",
         "interactive_reserve_gpu_slots": 1,
         "interactive_reserve_preserved": true,
@@ -3251,7 +3307,7 @@
       {
         "background_fill_gpu_slots": 1,
         "cpu_model": "AMD Threadripper 7960X",
-        "freshness_seconds": 21,
+        "freshness_seconds": 5837,
         "host": "WORKSHOP",
         "interactive_reserve_gpu_slots": 1,
         "interactive_reserve_preserved": true,
@@ -3268,7 +3324,7 @@
       {
         "background_fill_gpu_slots": 1,
         "cpu_model": "AMD Ryzen 9 9950X",
-        "freshness_seconds": 1981717,
+        "freshness_seconds": 1987534,
         "host": "VAULT",
         "interactive_reserve_gpu_slots": 0,
         "interactive_reserve_preserved": true,
@@ -3502,7 +3558,7 @@
     ]
   },
   "governance_confidence": {
-    "generated_at": "2026-04-17T18:14:50.925540+00:00",
+    "generated_at": "2026-04-17T19:19:03.351277+00:00",
     "current_autonomy_phase": "full_system_phase_3",
     "freshness_window_days": 30,
     "overall_status": "healthy",
@@ -3559,7 +3615,7 @@
     ]
   },
   "turnover_readiness": {
-    "generated_at": "2026-04-17T18:14:50.926718+00:00",
+    "generated_at": "2026-04-17T19:19:03.352388+00:00",
     "current_mode": "devstack_primary_for_build_proving_and_shadow",
     "target_mode": "local_devstack_primary_for_low_touch_execution",
     "build_system_handoff_state": "active_now",
@@ -3592,7 +3648,7 @@
       "protected_reserve_slot_count": 2,
       "provisional_harvest_candidate_count": 1,
       "ready_for_harvest_now": true,
-      "sample_age_seconds": 569,
+      "sample_age_seconds": 5848,
       "sample_posture": "scheduler_projection_backed",
       "scheduler_queue_depth": 0,
       "scheduler_slot_count": 5
@@ -3605,19 +3661,16 @@
     "repo_dirty_summary": {
       "repo_path": "/mnt/c/athanor-devstack",
       "available": true,
-      "dirty_file_count": 5,
+      "dirty_file_count": 2,
       "status_counts": {
-        "modified": 5
+        "modified": 2
       },
       "top_level_counts": {
-        "docs": 3,
-        "configs": 2
+        "configs": 1,
+        "docs": 1
       },
       "sample_paths": [
-        "configs/devstack-builder-adapter-routing-matrix.json",
         "configs/devstack-capability-lane-registry.json",
-        "docs/DEVSTACK-BUILDER-ARCHITECTURE-BRIEF.md",
-        "docs/operations/DEVSTACK-BUILDER-SCENARIOS.md",
         "docs/promotion-packets/protocol-first-builder-kernel.md"
       ],
       "checkpoint_required": false,
@@ -3625,13 +3678,13 @@
     },
     "autonomous_queue_count": 12,
     "dispatchable_autonomous_queue_count": 12,
-    "top_dispatchable_autonomous_task_id": "burn_class:local_bulk_sovereign",
-    "top_dispatchable_autonomous_task_title": "Local Bulk Sovereign",
+    "top_dispatchable_autonomous_task_id": "burn_class:overnight_harvest",
+    "top_dispatchable_autonomous_task_title": "Overnight Harvest",
     "automation_feedback_summary": {
       "anti_spin_escalation": null,
       "anti_spin_same_task_claims_12h": 1,
       "anti_spin_same_task_claims_24h": 1,
-      "anti_spin_same_task_id": "burn_class:local_bulk_sovereign",
+      "anti_spin_same_task_id": "burn_class:overnight_harvest",
       "anti_spin_state": "clear",
       "changed_last_run": false,
       "consecutive_no_change_runs": 1,
@@ -3647,10 +3700,22 @@
       "last_outcome": "success",
       "last_real_delta_at": null,
       "last_real_delta_task_id": null,
-      "last_recorded_at": "1776444465.854562",
-      "last_success_at": "1776444465.854562",
+      "last_recorded_at": "1776449745.133015",
+      "last_success_at": "1776449745.133015",
       "recent_dispatch_outcome_count": 6,
       "recent_dispatch_outcomes": [
+        {
+          "action_class": "autonomous_planning",
+          "automation_id": "ralph-loop",
+          "completed_at": "1776449745.133015",
+          "dispatch_outcome": "claimed",
+          "lane": "ralph_loop",
+          "subscription": null,
+          "success": null,
+          "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim burn_class:overnight_harvest via already_dispatched.",
+          "task_id": "burn_class:overnight_harvest",
+          "task_title": "Overnight Harvest"
+        },
         {
           "action_class": "autonomous_planning",
           "automation_id": "ralph-loop",
@@ -3710,27 +3775,15 @@
           "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim workstream:capacity-and-harvest-truth via already_dispatched.",
           "task_id": "workstream:capacity-and-harvest-truth",
           "task_title": "Capacity and Harvest Truth"
-        },
-        {
-          "action_class": "autonomous_planning",
-          "automation_id": "ralph-loop",
-          "completed_at": "1776391849.613316",
-          "dispatch_outcome": "claimed",
-          "lane": "ralph_loop",
-          "subscription": null,
-          "success": null,
-          "summary": "Ralph loop selected dispatch-and-work-economy-closure under governor_scheduling with evidence fresh and claim workstream:validation-and-publication via already_dispatched.",
-          "task_id": "workstream:validation-and-publication",
-          "task_title": "Validation and Publication"
         }
       ],
       "recent_no_delta_task_ids": [
+        "burn_class:overnight_harvest",
         "burn_class:local_bulk_sovereign",
         "deferred_family:audit-and-eval-artifacts",
         "deferred_family:operator-tooling-and-helper-surfaces",
         "deferred_family:reference-and-archive-prune",
-        "workstream:capacity-and-harvest-truth",
-        "workstream:validation-and-publication"
+        "workstream:capacity-and-harvest-truth"
       ],
       "recent_run_count": 8,
       "recognized_run_count": 8,
@@ -4150,7 +4203,7 @@
       "recommendation_id": "best-next-implementation-wave",
       "subject": "protocol-first-builder-kernel",
       "summary": "Finish the highest-priority ready-for-review lane first.",
-      "reason": "formal_eval_run",
+      "reason": "release_tier_progression",
       "evidence_refs": [
         "C:/athanor-devstack/configs/devstack-capability-lane-registry.json",
         "C:/athanor-devstack/docs/promotion-packets/protocol-first-builder-kernel.md"
@@ -4187,9 +4240,9 @@
     },
     {
       "recommendation_id": "best-next-cleanup-pass",
-      "subject": "formal_eval_run",
+      "subject": "release_tier_progression",
       "summary": "Clean up the highest-frequency readiness gap before widening automation.",
-      "reason": "The most common missing readiness evidence right now is `formal_eval_run`.",
+      "reason": "The most common missing readiness evidence right now is `release_tier_progression`.",
       "evidence_refs": [
         "C:/athanor-devstack/reports/master-atlas/readiness-ledger.json"
       ]
@@ -4197,7 +4250,7 @@
   ],
   "quota_truth": {
     "default_timezone": "America/Chicago",
-    "generated_at": "2026-04-17T16:38:38.281386+00:00",
+    "generated_at": "2026-04-17T18:15:34.618509+00:00",
     "records": [
       {
         "budget_remaining_usd": null,
@@ -4207,15 +4260,15 @@
         "evidence_source": "subscription-burn state",
         "family_id": "claude_max",
         "harvest_priority": "normal",
-        "last_observed_at": "2026-04-17T16:38:38.281386+00:00",
-        "next_reset_at": "2026-04-17T21:38:38.281384+00:00",
+        "last_observed_at": "2026-04-17T18:15:34.618509+00:00",
+        "next_reset_at": "2026-04-17T23:15:34.618505+00:00",
         "pricing_status": "official_verified",
         "product_id": "claude_max",
         "provider_id": "anthropic_claude_code",
         "remaining_units": 1,
         "reserve_floor": {},
         "running": false,
-        "stale_after": "2026-04-17T22:38:38.281386+00:00",
+        "stale_after": "2026-04-18T00:15:34.618509+00:00",
         "usage_mode": "subscription",
         "window_type": "rolling_window"
       },
@@ -4227,7 +4280,7 @@
         "evidence_source": "subscription-burn state",
         "family_id": "chatgpt_pro",
         "harvest_priority": "normal",
-        "last_observed_at": "2026-04-17T16:38:38.281386+00:00",
+        "last_observed_at": "2026-04-17T18:15:34.618509+00:00",
         "next_reset_at": "2026-04-18T05:00:00+00:00",
         "pricing_status": "official_verified",
         "product_id": "chatgpt_pro",
@@ -4235,7 +4288,7 @@
         "remaining_units": 200,
         "reserve_floor": {},
         "running": false,
-        "stale_after": "2026-04-17T22:38:38.281386+00:00",
+        "stale_after": "2026-04-18T00:15:34.618509+00:00",
         "usage_mode": "subscription",
         "window_type": "daily_reset"
       },
@@ -4247,7 +4300,7 @@
         "evidence_source": "subscription-burn state",
         "family_id": "gemini_advanced",
         "harvest_priority": "normal",
-        "last_observed_at": "2026-04-17T16:38:38.281386+00:00",
+        "last_observed_at": "2026-04-17T18:15:34.618509+00:00",
         "next_reset_at": "2026-04-18T05:00:00+00:00",
         "pricing_status": "official_verified",
         "product_id": "gemini_advanced",
@@ -4255,7 +4308,7 @@
         "remaining_units": 100,
         "reserve_floor": {},
         "running": false,
-        "stale_after": "2026-04-17T22:38:38.281386+00:00",
+        "stale_after": "2026-04-18T00:15:34.618509+00:00",
         "usage_mode": "subscription",
         "window_type": "daily_reset"
       },
@@ -4267,15 +4320,15 @@
         "evidence_source": "subscription-burn state",
         "family_id": "kimi_allegretto",
         "harvest_priority": "normal",
-        "last_observed_at": "2026-04-17T16:38:38.281386+00:00",
-        "next_reset_at": "2026-04-17T21:38:38.281384+00:00",
+        "last_observed_at": "2026-04-17T18:15:34.618509+00:00",
+        "next_reset_at": "2026-04-17T23:15:34.618505+00:00",
         "pricing_status": "official-source-present-cost-unverified",
         "product_id": "kimi_allegretto",
         "provider_id": "moonshot_kimi",
         "remaining_units": 30,
         "reserve_floor": {},
         "running": false,
-        "stale_after": "2026-04-17T22:38:38.281386+00:00",
+        "stale_after": "2026-04-18T00:15:34.618509+00:00",
         "usage_mode": "subscription",
         "window_type": "rolling_window"
       },
@@ -4353,7 +4406,7 @@
           "value": 0.0
         },
         "running": false,
-        "stale_after": "2026-04-17T17:38:38.281386+00:00",
+        "stale_after": "2026-04-17T19:15:34.618509+00:00",
         "usage_mode": "metered_api",
         "window_type": "daily_budget"
       },
@@ -4377,7 +4430,7 @@
           "value": 0.0
         },
         "running": false,
-        "stale_after": "2026-04-17T17:38:38.281386+00:00",
+        "stale_after": "2026-04-17T19:15:34.618509+00:00",
         "usage_mode": "metered_api",
         "window_type": "daily_budget"
       },
@@ -4559,7 +4612,7 @@
         "evidence_source": "reports/truth-inventory/capacity-telemetry.json",
         "family_id": "athanor_local_compute",
         "harvest_priority": "protect_reserve_then_harvest",
-        "last_observed_at": "2026-04-17T16:38:37.844030+00:00",
+        "last_observed_at": "2026-04-17T18:15:34.101387+00:00",
         "next_reset_at": null,
         "pricing_status": "sunk_cost",
         "product_id": "athanor_local_compute",
@@ -4570,7 +4623,7 @@
           "value": "protect_reserve_then_harvest"
         },
         "running": false,
-        "stale_after": "2026-04-17T16:40:38.281386+00:00",
+        "stale_after": "2026-04-17T18:17:34.618509+00:00",
         "usage_mode": "local_compute",
         "window_type": "continuous_capacity"
       }
@@ -4963,80 +5016,61 @@
     "version": "2026-04-11.1"
   },
   "capability_adoption_registry": {
-    "version": "2026-04-15.1",
-    "updated_at": "2026-04-15T14:45:00-05:00",
-    "status": "active",
-    "source_of_truth": "config/automation-backbone/capability-adoption-registry.json",
     "authority_classes": [
       {
-        "id": "adopted_system",
-        "definition": "Canonical Athanor implementation and adopted runtime-facing truth."
+        "definition": "Canonical Athanor implementation and adopted runtime-facing truth.",
+        "id": "adopted_system"
       },
       {
-        "id": "build_system",
-        "definition": "Devstack design, prototype, proving, and capability-forge truth."
+        "definition": "Devstack design, prototype, proving, and capability-forge truth.",
+        "id": "build_system"
       },
       {
-        "id": "operator_local",
-        "definition": "Codex-home and workstation-local operator surfaces."
+        "definition": "Codex-home and workstation-local operator surfaces.",
+        "id": "operator_local"
       },
       {
-        "id": "archive_evidence",
-        "definition": "Searchable Claude-era evidence that does not outrank current truth."
+        "definition": "Searchable Claude-era evidence that does not outrank current truth.",
+        "id": "archive_evidence"
       }
     ],
-    "capability_stages": [
-      {
-        "id": "concept",
-        "definition": "Design intent exists but no proof artifact is ready."
-      },
-      {
-        "id": "prototype",
-        "definition": "Working slice exists but is not yet ready for Athanor adoption."
-      },
-      {
-        "id": "proved",
-        "definition": "Capability has concrete evidence and is eligible for a promotion packet."
-      },
-      {
-        "id": "adopted",
-        "definition": "Capability is represented in Athanor canonical truth and may affect real behavior."
-      },
-      {
-        "id": "retired",
-        "definition": "Capability is intentionally superseded and kept only for lineage."
-      }
-    ],
-    "promotion_contract": "promotion_packet",
     "capabilities": [
       {
-        "id": "agent-gateway-layer",
-        "label": "Agent Gateway Layer",
-        "owner": "shaun",
-        "source_repo": "C:/athanor-devstack",
-        "source_artifacts": [
-          "C:/athanor-devstack/MASTER-PLAN.md",
-          "C:/athanor-devstack/research/07-other-session-plan.md"
-        ],
-        "stage": "adopted",
-        "authority_class": "adopted_system",
-        "runtime_target": "VAULT LiteLLM plus Athanor routing surfaces",
-        "proof_artifacts": [
-          "C:/athanor-devstack/research/07-other-session-plan.md",
-          "C:/Athanor/config/automation-backbone/provider-catalog.json",
-          "C:/Athanor/config/automation-backbone/routing-taxonomy-map.json"
-        ],
         "acceptance_criteria": [
           "Athanor registries define canonical provider, routing, and model-lane truth.",
           "Gateway updates land through Athanor control-plane surfaces instead of lingering only in devstack prose."
         ],
+        "affected_domains": [
+          "operator_control",
+          "product_foundry"
+        ],
+        "affected_namespaces": [],
+        "archive_instructions": "Archive superseded devstack gateway design notes once Athanor surfaces remain canonical and current.",
         "athanor_target_surfaces": [
           "config/automation-backbone/provider-catalog.json",
           "config/automation-backbone/routing-taxonomy-map.json",
           "config/automation-backbone/model-deployment-registry.json",
           "docs/operations/ATHANOR-OPERATING-SYSTEM.md"
         ],
+        "authority_class": "adopted_system",
+        "data_handling_profile_id": "sovereign_private",
+        "id": "agent-gateway-layer",
+        "label": "Agent Gateway Layer",
+        "landing_project": "config/automation-backbone",
+        "notes": [
+          "Devstack remains the proving/configuration lane for future gateway work.",
+          "Athanor registries and docs remain the adopted-system truth.",
+          "The 2026-04-14 onboarding hardening delta is now accepted as canonical operator-surface truth and remains subordinate to the existing runtime packets."
+        ],
+        "owner": "shaun",
         "promotion_packet_id": "backfilled-agent-gateway-layer-2026-04-10",
+        "proof_artifacts": [
+          "C:/athanor-devstack/research/07-other-session-plan.md",
+          "C:/Athanor/config/automation-backbone/provider-catalog.json",
+          "C:/Athanor/config/automation-backbone/routing-taxonomy-map.json"
+        ],
+        "release_tier": "production",
+        "rollback_or_disable_path": "Revert the affected Athanor registry and runtime packet changes, then re-run the governed VAULT or vLLM runtime packets.",
         "runtime_ownership_lanes": [
           "vault-litellm-config",
           "foundry-vllm-compose",
@@ -5047,83 +5081,22 @@
           "foundry-vllm-compose-reconciliation-packet",
           "workshop-vllm-compose-reconciliation-packet"
         ],
-        "rollback_or_disable_path": "Revert the affected Athanor registry and runtime packet changes, then re-run the governed VAULT or vLLM runtime packets.",
-        "archive_instructions": "Archive superseded devstack gateway design notes once Athanor surfaces remain canonical and current.",
-        "notes": [
-          "Devstack remains the proving/configuration lane for future gateway work.",
-          "Athanor registries and docs remain the adopted-system truth.",
-          "The 2026-04-14 onboarding hardening delta is now accepted as canonical operator-surface truth and remains subordinate to the existing runtime packets."
+        "runtime_target": "VAULT LiteLLM plus Athanor routing surfaces",
+        "source_artifacts": [
+          "C:/athanor-devstack/MASTER-PLAN.md",
+          "C:/athanor-devstack/research/07-other-session-plan.md"
         ],
         "source_lane_id": "gateway-agent-onboarding-hardening",
         "source_packet_id": "gateway-agent-onboarding-hardening-delta-packet",
-        "affected_domains": [
-          "operator_control",
-          "product_foundry"
-        ],
-        "affected_namespaces": [],
-        "landing_project": "config/automation-backbone",
-        "release_tier": "production",
-        "data_handling_profile_id": "sovereign_private"
+        "source_repo": "C:/athanor-devstack",
+        "stage": "adopted"
       },
       {
-        "id": "graphrag-hybrid-retrieval",
-        "label": "GraphRAG Hybrid Retrieval",
-        "owner": "shaun",
-        "source_repo": "C:/athanor-devstack",
-        "source_artifacts": [
-          "C:/athanor-devstack/services/graphrag",
-          "C:/athanor-devstack/designs/graphrag-and-grpo-pipeline.md"
-        ],
-        "stage": "adopted",
-        "authority_class": "adopted_system",
-        "runtime_target": "Athanor governed knowledge subsystem: FOUNDRY GraphRAG retrieval service plus Athanor agent retrieval integration over the existing truth.docs and truth.graph namespaces",
-        "proof_artifacts": [
-          "C:/athanor-devstack/services/graphrag",
-          "C:/athanor-devstack/designs/graphrag-and-grpo-pipeline.md",
-          "C:/athanor-devstack/STATUS.md",
-          "C:/Athanor/reports/truth-inventory/graphrag-promotion-eval.json",
-          "C:/Athanor/config/automation-backbone/runtime-ownership-contract.json",
-          "C:/Athanor/config/automation-backbone/runtime-ownership-packets.json"
-        ],
         "acceptance_criteria": [
           "Hybrid retrieval must run against real Athanor and devstack documents with stable proof artifacts.",
           "The adoption target is fixed as a governed knowledge subsystem rather than a free-floating service proof.",
           "Runtime deployment and rollback must land through explicit FOUNDRY GraphRAG and Athanor agents packet linkage before adoption."
         ],
-        "athanor_target_surfaces": [
-          "projects/agents",
-          "config/automation-backbone/memory-namespace-registry.json",
-          "config/automation-backbone/eval-corpus-registry.json",
-          "config/automation-backbone/runtime-ownership-contract.json",
-          "config/automation-backbone/runtime-ownership-packets.json"
-        ],
-        "promotion_packet_id": "graphrag-hybrid-retrieval-promotion-packet",
-        "runtime_ownership_lanes": [
-          "foundry-graphrag-compose",
-          "foundry-agents-compose"
-        ],
-        "runtime_packet_ids": [
-          "foundry-graphrag-compose-deploy-packet",
-          "foundry-agents-compose-deploy-packet"
-        ],
-        "turnover_critical": true,
-        "source_safe_remaining": [],
-        "approval_gated_remaining": [
-          "Operator review and packet acceptance remain the only adoption gate; the governed runtime revision is already live and green, so no further compose-recovery or vector-path unblock work remains before widening beyond shadow evidence."
-        ],
-        "next_release_tier_on_green": "shadow",
-        "rollback_or_disable_path": "Disable the GraphRAG knowledge-subsystem delta by reverting Athanor retrieval integration and leaving the devstack proof service isolated behind the foundry-graphrag runtime lane.",
-        "archive_instructions": "Retain proof artifacts in devstack and archive superseded wrapper or integration-shape experiments now that the governed knowledge-subsystem landing zone is selected.",
-        "notes": [
-          "The landing zone is now explicit: a governed knowledge subsystem rooted in the FOUNDRY GraphRAG service and Athanor agents integration surfaces.",
-          "The 2026-04-12 governed Foundry compose redeploy is now live, and the promotion eval reran green with valid shadow-tier evidence recorded in C:/Athanor/reports/truth-inventory/graphrag-promotion-eval.json.",
-          "The source-side Athanor agents retrieval seam is now landed in C:/Athanor/projects/agents plus the platform-topology service map, so the remaining boundary is governed runtime deployment rather than more design shaping.",
-          "The current retrieval revision is now live through the governed foundry-agents-compose-deploy-packet, and the promotion eval reran green with valid shadow-tier evidence recorded in C:/Athanor/reports/truth-inventory/graphrag-promotion-eval.json.",
-          "The 2026-04-13 wake-before-embed hardening closed the embedding sleep-state blocker, and the current hybrid proof now passes cleanly on route `hybrid` with valid shadow-tier evidence.",
-          "The next adopted delta is packet acceptance and ordinary retrieval quality follow-through; the runtime revision is already live and green, so no more compose-recovery or vector-path unblock work remains."
-        ],
-        "source_lane_id": "graphrag-hybrid-retrieval",
-        "source_packet_id": "graphrag-hybrid-retrieval-promotion-packet",
         "affected_domains": [
           "knowledge",
           "operator_control"
@@ -5132,22 +5105,94 @@
           "truth.docs",
           "truth.graph"
         ],
+        "approval_gated_remaining": [
+          "Operator review and packet acceptance remain the only adoption gate; the governed runtime revision is already live and green, so no further compose-recovery or vector-path unblock work remains before widening beyond shadow evidence."
+        ],
+        "archive_instructions": "Retain proof artifacts in devstack and archive superseded wrapper or integration-shape experiments now that the governed knowledge-subsystem landing zone is selected.",
+        "athanor_target_surfaces": [
+          "projects/agents",
+          "config/automation-backbone/memory-namespace-registry.json",
+          "config/automation-backbone/eval-corpus-registry.json",
+          "config/automation-backbone/runtime-ownership-contract.json",
+          "config/automation-backbone/runtime-ownership-packets.json"
+        ],
+        "authority_class": "adopted_system",
+        "data_handling_profile_id": "sovereign_private",
+        "id": "graphrag-hybrid-retrieval",
+        "label": "GraphRAG Hybrid Retrieval",
         "landing_project": "projects/agents",
+        "next_release_tier_on_green": "shadow",
+        "notes": [
+          "The landing zone is now explicit: a governed knowledge subsystem rooted in the FOUNDRY GraphRAG service and Athanor agents integration surfaces.",
+          "The 2026-04-12 governed Foundry compose redeploy is now live, and the promotion eval reran green with valid shadow-tier evidence recorded in C:/Athanor/reports/truth-inventory/graphrag-promotion-eval.json.",
+          "The source-side Athanor agents retrieval seam is now landed in C:/Athanor/projects/agents plus the platform-topology service map, so the remaining boundary is governed runtime deployment rather than more design shaping.",
+          "The current retrieval revision is now live through the governed foundry-agents-compose-deploy-packet, and the promotion eval reran green with valid shadow-tier evidence recorded in C:/Athanor/reports/truth-inventory/graphrag-promotion-eval.json.",
+          "The 2026-04-13 wake-before-embed hardening closed the embedding sleep-state blocker, and the current hybrid proof now passes cleanly on route `hybrid` with valid shadow-tier evidence.",
+          "The next adopted delta is packet acceptance and ordinary retrieval quality follow-through; the runtime revision is already live and green, so no more compose-recovery or vector-path unblock work remains."
+        ],
+        "owner": "shaun",
+        "promotion_packet_id": "graphrag-hybrid-retrieval-promotion-packet",
+        "proof_artifacts": [
+          "C:/athanor-devstack/services/graphrag",
+          "C:/athanor-devstack/designs/graphrag-and-grpo-pipeline.md",
+          "C:/athanor-devstack/STATUS.md",
+          "C:/Athanor/reports/truth-inventory/graphrag-promotion-eval.json",
+          "C:/Athanor/config/automation-backbone/runtime-ownership-contract.json",
+          "C:/Athanor/config/automation-backbone/runtime-ownership-packets.json"
+        ],
         "release_tier": "shadow",
-        "data_handling_profile_id": "sovereign_private"
+        "rollback_or_disable_path": "Disable the GraphRAG knowledge-subsystem delta by reverting Athanor retrieval integration and leaving the devstack proof service isolated behind the foundry-graphrag runtime lane.",
+        "runtime_ownership_lanes": [
+          "foundry-graphrag-compose",
+          "foundry-agents-compose"
+        ],
+        "runtime_packet_ids": [
+          "foundry-graphrag-compose-deploy-packet",
+          "foundry-agents-compose-deploy-packet"
+        ],
+        "runtime_target": "Athanor governed knowledge subsystem: FOUNDRY GraphRAG retrieval service plus Athanor agent retrieval integration over the existing truth.docs and truth.graph namespaces",
+        "source_artifacts": [
+          "C:/athanor-devstack/services/graphrag",
+          "C:/athanor-devstack/designs/graphrag-and-grpo-pipeline.md"
+        ],
+        "source_lane_id": "graphrag-hybrid-retrieval",
+        "source_packet_id": "graphrag-hybrid-retrieval-promotion-packet",
+        "source_repo": "C:/athanor-devstack",
+        "source_safe_remaining": [],
+        "stage": "adopted",
+        "turnover_critical": true
       },
       {
+        "acceptance_criteria": [
+          "Pause, resume, restart, and remediation boundaries must be explicit and operator-safe.",
+          "Live runtime guard authority must remain packet-backed, bounded to Band A remediation, and protected-service safe.",
+          "Rollback and gate-closing paths must remain explicit before ordinary production widening."
+        ],
+        "affected_domains": [
+          "operator_control",
+          "product_foundry"
+        ],
+        "affected_namespaces": [],
+        "archive_instructions": "Archive superseded MVW iterations after a single Athanor-bound packet path exists.",
+        "athanor_target_surfaces": [
+          "projects/agents/watchdog",
+          "config/automation-backbone/runtime-ownership-contract.json",
+          "config/automation-backbone/runtime-ownership-packets.json",
+          "config/automation-backbone/runtime-subsystem-registry.json",
+          "config/automation-backbone/operator-runbooks.json"
+        ],
+        "authority_class": "adopted_system",
+        "data_handling_profile_id": "sovereign_private",
         "id": "watchdog-runtime-guard",
         "label": "Watchdog Runtime Guard",
-        "owner": "shaun",
-        "source_repo": "C:/athanor-devstack",
-        "source_artifacts": [
-          "C:/athanor-devstack/services/watchdog",
-          "C:/athanor-devstack/designs/watchdog-agent-and-gpu-scheduler.md"
+        "landing_project": "projects/agents",
+        "notes": [
+          "The Athanor-owned watchdog bundle, runtime-ownership lane, and rollout packet now exist.",
+          "The 2026-04-14 live canary rollout is active on FOUNDRY with bounded non-protected remediation enabled.",
+          "The Athanor-side formal eval is green against both the focused route tests and the live canary probe."
         ],
-        "stage": "adopted",
-        "authority_class": "adopted_system",
-        "runtime_target": "Athanor-owned FOUNDRY runtime guard live canary with packet-backed restart controls",
+        "owner": "shaun",
+        "promotion_packet_id": "watchdog-runtime-guard-promotion-packet",
         "proof_artifacts": [
           "C:/athanor-devstack/services/watchdog",
           "C:/athanor-devstack/designs/watchdog-agent-and-gpu-scheduler.md",
@@ -5157,55 +5202,57 @@
           "C:/Athanor/docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
           "C:/Athanor/docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
         ],
-        "acceptance_criteria": [
-          "Pause, resume, restart, and remediation boundaries must be explicit and operator-safe.",
-          "Live runtime guard authority must remain packet-backed, bounded to Band A remediation, and protected-service safe.",
-          "Rollback and gate-closing paths must remain explicit before ordinary production widening."
-        ],
-        "athanor_target_surfaces": [
-          "projects/agents/watchdog",
-          "config/automation-backbone/runtime-ownership-contract.json",
-          "config/automation-backbone/runtime-ownership-packets.json",
-          "config/automation-backbone/runtime-subsystem-registry.json",
-          "config/automation-backbone/operator-runbooks.json"
-        ],
-        "promotion_packet_id": "watchdog-runtime-guard-promotion-packet",
+        "release_tier": "canary",
+        "rollback_or_disable_path": "Pause the watchdog or close WATCHDOG_MUTATIONS_ENABLED, or restore the previous /opt/athanor/watchdog bundle if the live Athanor-owned runtime guard widens mutation scope.",
         "runtime_ownership_lanes": [
           "foundry-watchdog-runtime-guard"
         ],
         "runtime_packet_ids": [
           "foundry-watchdog-runtime-guard-rollout-packet"
         ],
-        "rollback_or_disable_path": "Pause the watchdog or close WATCHDOG_MUTATIONS_ENABLED, or restore the previous /opt/athanor/watchdog bundle if the live Athanor-owned runtime guard widens mutation scope.",
-        "archive_instructions": "Archive superseded MVW iterations after a single Athanor-bound packet path exists.",
-        "notes": [
-          "The Athanor-owned watchdog bundle, runtime-ownership lane, and rollout packet now exist.",
-          "The 2026-04-14 live canary rollout is active on FOUNDRY with bounded non-protected remediation enabled.",
-          "The Athanor-side formal eval is green against both the focused route tests and the live canary probe."
+        "runtime_target": "Athanor-owned FOUNDRY runtime guard live canary with packet-backed restart controls",
+        "source_artifacts": [
+          "C:/athanor-devstack/services/watchdog",
+          "C:/athanor-devstack/designs/watchdog-agent-and-gpu-scheduler.md"
         ],
         "source_lane_id": "watchdog-runtime-guard",
         "source_packet_id": "watchdog-runtime-guard-promotion-packet",
-        "affected_domains": [
-          "operator_control",
-          "product_foundry"
-        ],
-        "affected_namespaces": [],
-        "landing_project": "projects/agents",
-        "release_tier": "canary",
-        "data_handling_profile_id": "sovereign_private"
+        "source_repo": "C:/athanor-devstack",
+        "stage": "adopted"
       },
       {
+        "acceptance_criteria": [
+          "Scheduler work must extend the existing Athanor GPU orchestrator instead of creating a competing control plane.",
+          "Runtime deployment must land through the existing governed packet and lane system."
+        ],
+        "affected_domains": [
+          "product_foundry",
+          "operator_control"
+        ],
+        "affected_namespaces": [],
+        "approval_gated_remaining": [
+          "Review and accept the promotion packet as the bounded scheduler-extension adoption path before widening beyond shadow evidence."
+        ],
+        "archive_instructions": "Archive superseded scheduler design deltas once the chosen extension path is adopted.",
+        "athanor_target_surfaces": [
+          "projects/gpu-orchestrator",
+          "config/automation-backbone/model-deployment-registry.json",
+          "config/automation-backbone/runtime-subsystem-registry.json"
+        ],
+        "authority_class": "adopted_system",
+        "data_handling_profile_id": "sovereign_private",
         "id": "gpu-scheduler-extension",
         "label": "GPU Scheduler Extension",
-        "owner": "shaun",
-        "source_repo": "C:/athanor-devstack",
-        "source_artifacts": [
-          "C:/athanor-devstack/designs/watchdog-agent-and-gpu-scheduler.md",
-          "C:/athanor-devstack/designs/gpu-scheduler-mutation-contract.md"
+        "landing_project": "projects/gpu-orchestrator",
+        "next_release_tier_on_green": "shadow",
+        "notes": [
+          "Extends an already-adopted Athanor surface, so promotion must land as a bounded delta rather than a second scheduler.",
+          "The runtime linkage is the existing foundry-gpu-orchestrator deployment lane plus a dedicated scheduler-state rollout packet for the new bounded delta.",
+          "The 2026-04-12 rerun now pins the live six-zone orchestrator current state, and live probes show /scheduler/state plus the bounded request/preload/release routes with write-capability posture enabled in runtime.",
+          "The bounded scheduler extension now has a valid formal promotion eval, and the canonical scheduler-state rollout packet is backfilled as executed from live evidence, so adoption is now packet-review plus bounded rollout governance rather than more scheduler implementation work."
         ],
-        "stage": "adopted",
-        "authority_class": "adopted_system",
-        "runtime_target": "Athanor GPU orchestration control plane",
+        "owner": "shaun",
+        "promotion_packet_id": "gpu-scheduler-extension-promotion-packet",
         "proof_artifacts": [
           "C:/athanor-devstack/designs/watchdog-agent-and-gpu-scheduler.md",
           "C:/athanor-devstack/designs/gpu-scheduler-mutation-contract.md",
@@ -5213,16 +5260,8 @@
           "C:/Athanor/reports/truth-inventory/gpu-scheduler-baseline-eval.json",
           "C:/Athanor/reports/truth-inventory/gpu-scheduler-promotion-eval.json"
         ],
-        "acceptance_criteria": [
-          "Scheduler work must extend the existing Athanor GPU orchestrator instead of creating a competing control plane.",
-          "Runtime deployment must land through the existing governed packet and lane system."
-        ],
-        "athanor_target_surfaces": [
-          "projects/gpu-orchestrator",
-          "config/automation-backbone/model-deployment-registry.json",
-          "config/automation-backbone/runtime-subsystem-registry.json"
-        ],
-        "promotion_packet_id": "gpu-scheduler-extension-promotion-packet",
+        "release_tier": "shadow",
+        "rollback_or_disable_path": "Keep the scheduler delta out of Athanor runtime until the packet is accepted; revert to the current orchestrator lane if a packeted rollout fails.",
         "runtime_ownership_lanes": [
           "foundry-gpu-orchestrator-compose"
         ],
@@ -5230,131 +5269,99 @@
           "foundry-gpu-orchestrator-compose-deploy-packet",
           "foundry-gpu-orchestrator-scheduler-state-rollout-packet"
         ],
-        "turnover_critical": true,
-        "source_safe_remaining": [],
-        "approval_gated_remaining": [
-          "Review and accept the promotion packet as the bounded scheduler-extension adoption path before widening beyond shadow evidence."
-        ],
-        "next_release_tier_on_green": "shadow",
-        "rollback_or_disable_path": "Keep the scheduler delta out of Athanor runtime until the packet is accepted; revert to the current orchestrator lane if a packeted rollout fails.",
-        "archive_instructions": "Archive superseded scheduler design deltas once the chosen extension path is adopted.",
-        "notes": [
-          "Extends an already-adopted Athanor surface, so promotion must land as a bounded delta rather than a second scheduler.",
-          "The runtime linkage is the existing foundry-gpu-orchestrator deployment lane plus a dedicated scheduler-state rollout packet for the new bounded delta.",
-          "The 2026-04-12 rerun now pins the live six-zone orchestrator current state, and live probes show /scheduler/state plus the bounded request/preload/release routes with write-capability posture enabled in runtime.",
-          "The bounded scheduler extension now has a valid formal promotion eval, and the canonical scheduler-state rollout packet is backfilled as executed from live evidence, so adoption is now packet-review plus bounded rollout governance rather than more scheduler implementation work."
+        "runtime_target": "Athanor GPU orchestration control plane",
+        "source_artifacts": [
+          "C:/athanor-devstack/designs/watchdog-agent-and-gpu-scheduler.md",
+          "C:/athanor-devstack/designs/gpu-scheduler-mutation-contract.md"
         ],
         "source_lane_id": "gpu-scheduler-extension",
         "source_packet_id": "gpu-scheduler-extension-promotion-packet",
-        "affected_domains": [
-          "product_foundry",
-          "operator_control"
-        ],
-        "affected_namespaces": [],
-        "landing_project": "projects/gpu-orchestrator",
-        "release_tier": "shadow",
-        "data_handling_profile_id": "sovereign_private"
+        "source_repo": "C:/athanor-devstack",
+        "source_safe_remaining": [],
+        "stage": "adopted",
+        "turnover_critical": true
       },
       {
-        "id": "creative-identity-pipeline",
-        "label": "Creative Identity Pipeline",
-        "owner": "shaun",
-        "source_repo": "C:/athanor-devstack",
-        "source_artifacts": [
-          "C:/athanor-devstack/docs/CODEX-STATE.md",
-          "C:/athanor-devstack/STATUS.md",
-          "C:/athanor-devstack/reports/creative-identity/creative-identity-i2v-baseline-latest.json",
-          "C:/athanor-devstack/reports/creative-identity/creative-identity-i2v-analysis-latest.json",
-          "C:/Athanor/reports/truth-inventory/creative-identity-promotion-eval.json"
-        ],
-        "stage": "adopted",
-        "authority_class": "adopted_system",
-        "runtime_target": "Shadow-adopted sovereign creative boundary across EOQ and the reusable ComfyUI workflow pack",
-        "proof_artifacts": [
-          "C:/athanor-devstack/docs/CODEX-STATE.md",
-          "C:/athanor-devstack/STATUS.md",
-          "C:/athanor-devstack/reports/creative-identity/creative-identity-i2v-baseline-latest.json",
-          "C:/athanor-devstack/reports/creative-identity/creative-identity-i2v-analysis-latest.json",
-          "C:/Athanor/reports/truth-inventory/creative-identity-promotion-eval.json"
-        ],
         "acceptance_criteria": [
           "Identity-consistent image generation, Drive artifact discipline, and I2V proof must be stable enough to packetize.",
           "The adopted boundary must be clear across EOQ, ComfyUI workflows, and project packets.",
           "EOQ consumes pinned workflow copies while reusable promoted templates live in projects/comfyui-workflows."
         ],
-        "athanor_target_surfaces": [
-          "projects/eoq",
-          "projects/comfyui-workflows",
-          "config/automation-backbone/project-packet-registry.json"
-        ],
-        "promotion_packet_id": "creative-identity-pipeline-promotion-packet",
-        "runtime_rollout_state": "not_linked",
-        "runtime_ownership_lanes": [],
-        "runtime_packet_ids": [],
-        "rollback_or_disable_path": "Keep the creative pipeline at the shadow-adopted boundary, revert packet acceptance, and move reusable templates back to devstack if the Athanor landing contract regresses.",
-        "archive_instructions": "Archive superseded prompt, LoRA, and workflow experiments once a stable Athanor-bound packet exists.",
-        "notes": [
-          "The Athanor landing boundary is now explicit: EOQ owns pinned copies and project-specific workflow variants, while projects/comfyui-workflows owns reusable promoted sovereign templates.",
-          "The 2026-04-15 rerun on session4_eoq_obsidian_balcony.png cleared the technical visibility gate, the formal creative promotion eval passes, and the packet is accepted as a shadow-adopted creative boundary.",
-          "Runtime rollout remains intentionally not linked; this tranche adopts the project boundary and routing contract without widening into live creative runtime authority."
-        ],
-        "source_lane_id": "creative-identity-pipeline",
-        "source_packet_id": "creative-identity-pipeline-promotion-packet",
         "affected_domains": [
           "creative"
         ],
         "affected_namespaces": [
           "creative.assets"
         ],
+        "archive_instructions": "Archive superseded prompt, LoRA, and workflow experiments once a stable Athanor-bound packet exists.",
+        "athanor_target_surfaces": [
+          "projects/eoq",
+          "projects/comfyui-workflows",
+          "config/automation-backbone/project-packet-registry.json"
+        ],
+        "authority_class": "adopted_system",
+        "data_handling_profile_id": "sovereign_adult",
+        "id": "creative-identity-pipeline",
+        "label": "Creative Identity Pipeline",
         "landing_project": "projects/eoq",
+        "notes": [
+          "The Athanor landing boundary is now explicit: EOQ owns pinned copies and project-specific workflow variants, while projects/comfyui-workflows owns reusable promoted sovereign templates.",
+          "The 2026-04-15 rerun on session4_eoq_obsidian_balcony.png cleared the technical visibility gate, the formal creative promotion eval passes, and the packet is accepted as a shadow-adopted creative boundary.",
+          "Runtime rollout remains intentionally not linked; this tranche adopts the project boundary and routing contract without widening into live creative runtime authority."
+        ],
+        "owner": "shaun",
+        "promotion_packet_id": "creative-identity-pipeline-promotion-packet",
+        "proof_artifacts": [
+          "C:/athanor-devstack/docs/CODEX-STATE.md",
+          "C:/athanor-devstack/STATUS.md",
+          "C:/athanor-devstack/reports/creative-identity/creative-identity-i2v-baseline-latest.json",
+          "C:/athanor-devstack/reports/creative-identity/creative-identity-i2v-analysis-latest.json",
+          "C:/Athanor/reports/truth-inventory/creative-identity-promotion-eval.json"
+        ],
         "release_tier": "shadow",
-        "data_handling_profile_id": "sovereign_adult"
+        "rollback_or_disable_path": "Keep the creative pipeline at the shadow-adopted boundary, revert packet acceptance, and move reusable templates back to devstack if the Athanor landing contract regresses.",
+        "runtime_ownership_lanes": [],
+        "runtime_packet_ids": [],
+        "runtime_rollout_state": "not_linked",
+        "runtime_target": "Shadow-adopted sovereign creative boundary across EOQ and the reusable ComfyUI workflow pack",
+        "source_artifacts": [
+          "C:/athanor-devstack/docs/CODEX-STATE.md",
+          "C:/athanor-devstack/STATUS.md",
+          "C:/athanor-devstack/reports/creative-identity/creative-identity-i2v-baseline-latest.json",
+          "C:/athanor-devstack/reports/creative-identity/creative-identity-i2v-analysis-latest.json",
+          "C:/Athanor/reports/truth-inventory/creative-identity-promotion-eval.json"
+        ],
+        "source_lane_id": "creative-identity-pipeline",
+        "source_packet_id": "creative-identity-pipeline-promotion-packet",
+        "source_repo": "C:/athanor-devstack",
+        "stage": "adopted"
       },
       {
-        "id": "goose-operator-shell",
-        "label": "Goose Operator Shell",
-        "owner": "shaun",
-        "source_repo": "C:/athanor-devstack",
-        "source_artifacts": [
-          "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
-          "C:/athanor-devstack/docs/promotion-packets/goose-operator-shell.md",
-          "C:/Athanor/reports/truth-inventory/goose-boundary-evidence.md"
-        ],
-        "stage": "adopted",
-        "authority_class": "adopted_system",
-        "runtime_target": "Athanor operator shell, dashboard routing recommendations, and shell-level execution policy",
-        "proof_artifacts": [
-          "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
-          "C:/athanor-devstack/docs/promotion-packets/goose-operator-shell.md",
-          "C:/Athanor/reports/truth-inventory/goose-boundary-evidence.md",
-          "C:/Athanor/config/automation-backbone/lane-selection-matrix.json",
-          "C:/Athanor/reports/truth-inventory/goose-operator-shell-formal-eval.json",
-          "C:/Athanor/reports/truth-inventory/goose-operator-shell-promptfoo-results.json"
-        ],
         "acceptance_criteria": [
           "Goose is scoped as the primary shell-level operator agent without becoming a second control plane.",
           "Direct CLI, Goose-wrapped, and LiteLLM-routed execution boundaries are explicit.",
           "MCP extension use is bounded by Athanor vendor-policy and sensitivity rules.",
           "Operator-shell recommendations and failure fallbacks are visible in the atlas and dashboard surfaces."
         ],
+        "affected_domains": [
+          "operator_control",
+          "product_foundry"
+        ],
+        "affected_namespaces": [],
+        "approval_gated_remaining": [],
+        "archive_instructions": "Archive temporary shell-comparison notes and superseded shell-selection scratch docs once the governed shell policy is adopted or rejected.",
         "athanor_target_surfaces": [
           "config/automation-backbone/operator-surface-registry.json",
           "config/automation-backbone/lane-selection-matrix.json",
           "config/automation-backbone/failure-routing-matrix.json",
           "docs/operations/ATHANOR-OPERATING-SYSTEM.md"
         ],
-        "promotion_packet_id": "goose-operator-shell-promotion-packet",
-        "runtime_ownership_lanes": [
-          "desk-goose-operator-shell"
-        ],
-        "runtime_packet_ids": [
-          "desk-goose-operator-shell-rollout-packet"
-        ],
-        "source_safe_remaining": [],
-        "approval_gated_remaining": [],
+        "authority_class": "adopted_system",
+        "data_handling_profile_id": "sovereign_private",
+        "id": "goose-operator-shell",
+        "label": "Goose Operator Shell",
+        "landing_project": "config/automation-backbone",
         "next_release_tier_on_green": "shadow",
-        "rollback_or_disable_path": "Remove Goose from the preferred shell path, restore direct terminal plus specialist CLI routing as the default operator path, and keep Goose-specific logic outside Athanor adopted truth.",
-        "archive_instructions": "Archive temporary shell-comparison notes and superseded shell-selection scratch docs once the governed shell policy is adopted or rejected.",
         "notes": [
           "Goose is the adopted bounded shell path, not a replacement control plane.",
           "Promotion should stay bounded to orchestration, shell policy, and operator-surface guidance.",
@@ -5363,92 +5370,91 @@
           "The 2026-04-14 standing operator approval closes the remaining packet-review gate and promotes Goose into adopted shell truth.",
           "The governed DESK helper is now the ordinary bounded shell handoff path; future changes stay packet-backed instead of drifting through workstation-local defaults."
         ],
-        "source_lane_id": "goose-operator-shell",
-        "source_packet_id": "goose-operator-shell-promotion-packet",
-        "affected_domains": [
-          "operator_control",
-          "product_foundry"
-        ],
-        "affected_namespaces": [],
-        "landing_project": "config/automation-backbone",
-        "release_tier": "shadow",
-        "data_handling_profile_id": "sovereign_private"
-      },
-      {
-        "id": "openhands-bounded-worker-lane",
-        "label": "OpenHands Bounded Worker Lane",
         "owner": "shaun",
-        "source_repo": "C:/athanor-devstack",
-        "source_artifacts": [
-          "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
-          "C:/athanor-devstack/docs/promotion-packets/openhands-bounded-worker-lane.md"
-        ],
-        "stage": "concept",
-        "authority_class": "build_system",
-        "runtime_target": "Athanor bounded worker-lane orchestration and governed coding-worker experiments",
+        "promotion_packet_id": "goose-operator-shell-promotion-packet",
         "proof_artifacts": [
           "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
-          "C:/athanor-devstack/docs/promotion-packets/openhands-bounded-worker-lane.md",
-          "C:/Athanor/config/automation-backbone/failure-routing-matrix.json"
+          "C:/athanor-devstack/docs/promotion-packets/goose-operator-shell.md",
+          "C:/Athanor/reports/truth-inventory/goose-boundary-evidence.md",
+          "C:/Athanor/config/automation-backbone/lane-selection-matrix.json",
+          "C:/Athanor/reports/truth-inventory/goose-operator-shell-formal-eval.json",
+          "C:/Athanor/reports/truth-inventory/goose-operator-shell-promptfoo-results.json"
         ],
+        "release_tier": "shadow",
+        "rollback_or_disable_path": "Remove Goose from the preferred shell path, restore direct terminal plus specialist CLI routing as the default operator path, and keep Goose-specific logic outside Athanor adopted truth.",
+        "runtime_ownership_lanes": [
+          "desk-goose-operator-shell"
+        ],
+        "runtime_packet_ids": [
+          "desk-goose-operator-shell-rollout-packet"
+        ],
+        "runtime_target": "Athanor operator shell, dashboard routing recommendations, and shell-level execution policy",
+        "source_artifacts": [
+          "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
+          "C:/athanor-devstack/docs/promotion-packets/goose-operator-shell.md",
+          "C:/Athanor/reports/truth-inventory/goose-boundary-evidence.md"
+        ],
+        "source_lane_id": "goose-operator-shell",
+        "source_packet_id": "goose-operator-shell-promotion-packet",
+        "source_repo": "C:/athanor-devstack",
+        "source_safe_remaining": [],
+        "stage": "adopted"
+      },
+      {
         "acceptance_criteria": [
           "OpenHands runs only as an explicitly selected worker lane.",
           "Its MCP and tool surfaces remain bounded by Athanor policy and repo sensitivity.",
           "Worker outputs are reproducible, reviewable, and do not accumulate competing control-plane state.",
           "Failure fallback returns cleanly to Codex, Aider, or local sovereign lanes."
         ],
+        "affected_domains": [
+          "product_foundry",
+          "operator_control"
+        ],
+        "affected_namespaces": [],
+        "archive_instructions": "Archive OpenHands-specific onboarding or experiment notes that are not needed for later pilot replay or rejection rationale.",
         "athanor_target_surfaces": [
           "config/automation-backbone/lane-selection-matrix.json",
           "config/automation-backbone/failure-routing-matrix.json",
           "config/automation-backbone/vendor-policy-registry.json",
           "docs/operations/ATHANOR-OPERATING-SYSTEM.md"
         ],
+        "authority_class": "build_system",
+        "data_handling_profile_id": "cloud_safe",
+        "id": "openhands-bounded-worker-lane",
+        "label": "OpenHands Bounded Worker Lane",
+        "landing_project": "config/automation-backbone",
+        "notes": [
+          "OpenHands is a bounded sidecar candidate, not a core stack replacement.",
+          "Any worker-lane adoption must remain subordinate to Athanor routing and sidecar retention policy."
+        ],
+        "owner": "shaun",
+        "pilot_blocker_class": "install_required",
         "promotion_packet_id": "pending-openhands-bounded-worker-lane",
+        "proof_artifacts": [
+          "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
+          "C:/athanor-devstack/docs/promotion-packets/openhands-bounded-worker-lane.md",
+          "C:/Athanor/config/automation-backbone/failure-routing-matrix.json"
+        ],
+        "release_tier": "offline_eval",
+        "rollback_or_disable_path": "Demote OpenHands back to research-only status, remove it from preferred lane-selection output, and keep its artifacts as devstack-only pilot evidence.",
         "runtime_ownership_lanes": [
           "pending"
         ],
         "runtime_packet_ids": [
           "pending"
         ],
-        "pilot_blocker_class": "install_required",
-        "rollback_or_disable_path": "Demote OpenHands back to research-only status, remove it from preferred lane-selection output, and keep its artifacts as devstack-only pilot evidence.",
-        "archive_instructions": "Archive OpenHands-specific onboarding or experiment notes that are not needed for later pilot replay or rejection rationale.",
-        "notes": [
-          "OpenHands is a bounded sidecar candidate, not a core stack replacement.",
-          "Any worker-lane adoption must remain subordinate to Athanor routing and sidecar retention policy."
+        "runtime_target": "Athanor bounded worker-lane orchestration and governed coding-worker experiments",
+        "source_artifacts": [
+          "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
+          "C:/athanor-devstack/docs/promotion-packets/openhands-bounded-worker-lane.md"
         ],
         "source_lane_id": "openhands-bounded-worker-lane",
         "source_packet_id": "pending-openhands-bounded-worker-lane",
-        "affected_domains": [
-          "product_foundry",
-          "operator_control"
-        ],
-        "affected_namespaces": [],
-        "landing_project": "config/automation-backbone",
-        "release_tier": "offline_eval",
-        "data_handling_profile_id": "cloud_safe"
+        "source_repo": "C:/athanor-devstack",
+        "stage": "concept"
       },
       {
-        "id": "protocol-first-builder-kernel",
-        "label": "Protocol-First Builder Kernel",
-        "owner": "shaun",
-        "source_repo": "C:/athanor-devstack",
-        "source_artifacts": [
-          "C:/athanor-devstack/docs/DEVSTACK-BUILDER-ARCHITECTURE-BRIEF.md",
-          "C:/athanor-devstack/configs/devstack-builder-adapter-routing-matrix.json",
-          "C:/athanor-devstack/docs/operations/DEVSTACK-BUILDER-SCENARIOS.md",
-          "C:/athanor-devstack/docs/promotion-packets/protocol-first-builder-kernel.md"
-        ],
-        "stage": "prototype",
-        "authority_class": "build_system",
-        "runtime_target": "Athanor builder front door, routing kernel, worker selection, and verification orchestration",
-        "proof_artifacts": [
-          "C:/athanor-devstack/docs/DEVSTACK-BUILDER-ARCHITECTURE-BRIEF.md",
-          "C:/athanor-devstack/configs/devstack-builder-adapter-routing-matrix.json",
-          "C:/athanor-devstack/docs/operations/DEVSTACK-BUILDER-SCENARIOS.md",
-          "C:/athanor-devstack/docs/promotion-packets/protocol-first-builder-kernel.md",
-          "C:/Athanor/reports/truth-inventory/protocol-first-builder-kernel-live-smoke.json"
-        ],
         "acceptance_criteria": [
           "Athanor exposes one builder front door instead of a visible bundle of equal tools.",
           "The builder kernel remains thin and does not become a universal super-agent.",
@@ -5457,83 +5463,69 @@
           "Private and adult-sensitive local tasks fail closed against cloud transfer.",
           "Goose remains bounded and OpenHands remains pilot-only unless later proof changes that status."
         ],
+        "affected_domains": [
+          "operator_control",
+          "product_foundry"
+        ],
+        "affected_namespaces": [],
+        "archive_instructions": "Archive superseded builder-stack planning notes that still describe devstack as a permanent separate user-facing stack. Keep the proof brief, routing matrix, and scenario suite as lineage.",
         "athanor_target_surfaces": [
           "config/automation-backbone/operator-surface-registry.json",
           "config/automation-backbone/lane-selection-matrix.json",
           "config/automation-backbone/failure-routing-matrix.json",
           "docs/operations/ATHANOR-OPERATING-SYSTEM.md"
         ],
+        "authority_class": "build_system",
+        "data_handling_profile_id": "cloud_safe",
+        "id": "protocol-first-builder-kernel",
+        "label": "Protocol-First Builder Kernel",
+        "landing_project": "config/automation-backbone",
+        "next_release_tier_on_green": "shadow",
+        "notes": [
+          "This capability describes target Athanor behavior while remaining devstack-owned until adoption proof is complete.",
+          "The first proof step is a bounded route slice rather than a broad control-plane rewrite.",
+          "The 2026-04-17 bounded live smoke proved builder:codex:direct_cli end to end with approval gating, a resumable handle, structured result transport, and passing verification.",
+          "Builder-generated `.codex` residue is scrubbed from user-facing changed-file accounting before the final ResultPacket is published.",
+          "The 2026-04-17 formal builder eval proved the direct builder route with TSC-backed verification, fail-closed negative routing, coherent operator projections, and explicit non-takeover bootstrap posture."
+        ],
+        "owner": "shaun",
+        "pilot_blocker_class": null,
         "promotion_packet_id": "pending-protocol-first-builder-kernel",
+        "proof_artifacts": [
+          "C:/athanor-devstack/docs/DEVSTACK-BUILDER-ARCHITECTURE-BRIEF.md",
+          "C:/athanor-devstack/configs/devstack-builder-adapter-routing-matrix.json",
+          "C:/athanor-devstack/docs/operations/DEVSTACK-BUILDER-SCENARIOS.md",
+          "C:/athanor-devstack/docs/promotion-packets/protocol-first-builder-kernel.md",
+          "C:/Athanor/reports/truth-inventory/protocol-first-builder-kernel-live-smoke.json",
+          "C:/Athanor/reports/truth-inventory/protocol-first-builder-kernel-formal-eval.json"
+        ],
+        "release_tier": "shadow",
+        "rollback_or_disable_path": "Demote the builder kernel back to devstack-only proof artifacts and preserve the existing Athanor shell and routing surfaces without adopting a new control layer.",
         "runtime_ownership_lanes": [
           "pending"
         ],
         "runtime_packet_ids": [
           "pending"
         ],
-        "pilot_blocker_class": null,
-        "rollback_or_disable_path": "Demote the builder kernel back to devstack-only proof artifacts and preserve the existing Athanor shell and routing surfaces without adopting a new control layer.",
-        "archive_instructions": "Archive superseded builder-stack planning notes that still describe devstack as a permanent separate user-facing stack. Keep the proof brief, routing matrix, and scenario suite as lineage.",
-        "notes": [
-          "This capability describes target Athanor behavior while remaining devstack-owned until adoption proof is complete.",
-          "The first proof step is a bounded route slice rather than a broad control-plane rewrite.",
-          "The 2026-04-17 bounded live smoke proved builder:codex:direct_cli end to end with approval gating, a resumable handle, structured result transport, and passing verification.",
-          "Builder-generated `.codex` residue is scrubbed from user-facing changed-file accounting before the final ResultPacket is published."
+        "runtime_target": "Athanor builder front door, routing kernel, worker selection, and verification orchestration",
+        "source_artifacts": [
+          "C:/athanor-devstack/docs/DEVSTACK-BUILDER-ARCHITECTURE-BRIEF.md",
+          "C:/athanor-devstack/configs/devstack-builder-adapter-routing-matrix.json",
+          "C:/athanor-devstack/docs/operations/DEVSTACK-BUILDER-SCENARIOS.md",
+          "C:/athanor-devstack/docs/promotion-packets/protocol-first-builder-kernel.md"
         ],
         "source_lane_id": "protocol-first-builder-kernel",
         "source_packet_id": "pending-protocol-first-builder-kernel",
-        "affected_domains": [
-          "operator_control",
-          "product_foundry"
-        ],
-        "affected_namespaces": [],
-        "landing_project": "config/automation-backbone",
-        "release_tier": "offline_eval",
-        "data_handling_profile_id": "cloud_safe"
+        "source_repo": "C:/athanor-devstack",
+        "stage": "proved"
       },
       {
-        "id": "letta-memory-plane",
-        "label": "Letta Memory Plane",
-        "owner": "shaun",
-        "source_repo": "C:/athanor-devstack",
-        "source_artifacts": [
-          "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
-          "C:/athanor-devstack/docs/promotion-packets/letta-memory-plane.md"
-        ],
-        "stage": "concept",
-        "authority_class": "build_system",
-        "runtime_target": "Athanor memory-plane, context retention, and cross-session state governance",
-        "proof_artifacts": [
-          "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
-          "C:/athanor-devstack/docs/promotion-packets/letta-memory-plane.md",
-          "C:/Athanor/config/automation-backbone/memory-namespace-registry.json"
-        ],
         "acceptance_criteria": [
           "Letta is used as an explicit memory plane, not a hidden parallel truth system.",
           "Memory retention boundaries are compatible with Athanor privacy, sovereignty, and artifact-topology rules.",
           "Cross-session state can be audited, replayed, and pruned under current governance rules.",
           "Memory use improves operator continuity or agent quality on measured tasks."
         ],
-        "athanor_target_surfaces": [
-          "config/automation-backbone/memory-namespace-registry.json",
-          "config/automation-backbone/artifact-topology-registry.json",
-          "config/automation-backbone/vendor-policy-registry.json",
-          "docs/operations/ATHANOR-OPERATING-SYSTEM.md"
-        ],
-        "promotion_packet_id": "pending-letta-memory-plane",
-        "runtime_ownership_lanes": [
-          "pending"
-        ],
-        "runtime_packet_ids": [
-          "pending"
-        ],
-        "pilot_blocker_class": "env_wiring",
-        "rollback_or_disable_path": "Disable the pilot memory adapter and keep durable context on the current registry, packet, and repo-doc stack only.",
-        "archive_instructions": "Archive memory-plane comparison notes or prompt-state experiments that do not become part of the accepted memory contract.",
-        "notes": [
-          "Letta is a memory-plane candidate only if it improves continuity without becoming another truth surface."
-        ],
-        "source_lane_id": "letta-memory-plane",
-        "source_packet_id": "pending-letta-memory-plane",
         "affected_domains": [
           "knowledge",
           "operator_control"
@@ -5542,22 +5534,81 @@
           "truth.docs",
           "truth.graph"
         ],
+        "archive_instructions": "Archive memory-plane comparison notes or prompt-state experiments that do not become part of the accepted memory contract.",
+        "athanor_target_surfaces": [
+          "config/automation-backbone/memory-namespace-registry.json",
+          "config/automation-backbone/artifact-topology-registry.json",
+          "config/automation-backbone/vendor-policy-registry.json",
+          "docs/operations/ATHANOR-OPERATING-SYSTEM.md"
+        ],
+        "authority_class": "build_system",
+        "data_handling_profile_id": "sovereign_private",
+        "id": "letta-memory-plane",
+        "label": "Letta Memory Plane",
         "landing_project": "config/automation-backbone",
-        "release_tier": "offline_eval",
-        "data_handling_profile_id": "sovereign_private"
-      },
-      {
-        "id": "agent-governance-toolkit-policy-plane",
-        "label": "Agent Governance Toolkit Policy Plane",
+        "notes": [
+          "Letta is a memory-plane candidate only if it improves continuity without becoming another truth surface."
+        ],
         "owner": "shaun",
-        "source_repo": "C:/athanor-devstack",
+        "pilot_blocker_class": "env_wiring",
+        "promotion_packet_id": "pending-letta-memory-plane",
+        "proof_artifacts": [
+          "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
+          "C:/athanor-devstack/docs/promotion-packets/letta-memory-plane.md",
+          "C:/Athanor/config/automation-backbone/memory-namespace-registry.json"
+        ],
+        "release_tier": "offline_eval",
+        "rollback_or_disable_path": "Disable the pilot memory adapter and keep durable context on the current registry, packet, and repo-doc stack only.",
+        "runtime_ownership_lanes": [
+          "pending"
+        ],
+        "runtime_packet_ids": [
+          "pending"
+        ],
+        "runtime_target": "Athanor memory-plane, context retention, and cross-session state governance",
         "source_artifacts": [
           "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
-          "C:/athanor-devstack/docs/promotion-packets/agent-governance-toolkit-policy-plane.md"
+          "C:/athanor-devstack/docs/promotion-packets/letta-memory-plane.md"
         ],
-        "stage": "concept",
+        "source_lane_id": "letta-memory-plane",
+        "source_packet_id": "pending-letta-memory-plane",
+        "source_repo": "C:/athanor-devstack",
+        "stage": "concept"
+      },
+      {
+        "acceptance_criteria": [
+          "AGT can enforce or enrich existing Athanor policy classes without duplicating the whole control plane.",
+          "Trust, identity, and protocol governance produce measurable guardrail value for autonomous mutation or protocol bridging.",
+          "Governance events remain auditable through current operator-stream and decision-record surfaces.",
+          "Disabling the integration cleanly returns control to native Athanor policy enforcement."
+        ],
+        "affected_domains": [
+          "operator_control",
+          "research"
+        ],
+        "affected_namespaces": [],
+        "approval_gated_remaining": [],
+        "archive_instructions": "Archive protocol-governance comparison notes and unused bridge experiments that do not become part of the adopted governance layer.",
+        "athanor_target_surfaces": [
+          "config/automation-backbone/approval-matrix.json",
+          "config/automation-backbone/vendor-policy-registry.json",
+          "config/automation-backbone/failure-routing-matrix.json",
+          "projects/agents"
+        ],
         "authority_class": "build_system",
-        "runtime_target": "Athanor agent governance, trust, identity, and protocol-policy enforcement",
+        "data_handling_profile_id": "sovereign_private",
+        "id": "agent-governance-toolkit-policy-plane",
+        "label": "Agent Governance Toolkit Policy Plane",
+        "landing_project": "config/automation-backbone",
+        "notes": [
+          "AGT is a policy-plane candidate, not a control-plane replacement.",
+          "The first implementation slice should stay narrow and protocol-boundary focused.",
+          "The current benchmark bundle shows a narrow bridge that adds only an explanatory policy verdict and stricter blocked actions.",
+          "The 2026-04-12 manual review concluded that this single approval-held-mutation scenario is still too redundant to justify a live adapter or release-tier advancement."
+        ],
+        "owner": "shaun",
+        "pilot_blocker_class": "non_duplicative_value_unproven",
+        "promotion_packet_id": "pending-agent-governance-toolkit-policy-plane",
         "proof_artifacts": [
           "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
           "C:/athanor-devstack/docs/promotion-packets/agent-governance-toolkit-policy-plane.md",
@@ -5567,52 +5618,57 @@
           "C:/Athanor/reports/truth-inventory/agt-policy-plane-rollback-note.md",
           "C:/Athanor/reports/truth-inventory/agt-policy-plane-manual-review.md"
         ],
-        "acceptance_criteria": [
-          "AGT can enforce or enrich existing Athanor policy classes without duplicating the whole control plane.",
-          "Trust, identity, and protocol governance produce measurable guardrail value for autonomous mutation or protocol bridging.",
-          "Governance events remain auditable through current operator-stream and decision-record surfaces.",
-          "Disabling the integration cleanly returns control to native Athanor policy enforcement."
-        ],
-        "athanor_target_surfaces": [
-          "config/automation-backbone/approval-matrix.json",
-          "config/automation-backbone/vendor-policy-registry.json",
-          "config/automation-backbone/failure-routing-matrix.json",
-          "projects/agents"
-        ],
-        "promotion_packet_id": "pending-agent-governance-toolkit-policy-plane",
+        "release_tier": "offline_eval",
+        "rollback_or_disable_path": "Remove the AGT adapter or policy bridge and fall back to the existing Athanor approval, routing, and failure-governance contracts.",
         "runtime_ownership_lanes": [
           "pending"
         ],
         "runtime_packet_ids": [
           "pending"
         ],
-        "pilot_blocker_class": "non_duplicative_value_unproven",
+        "runtime_target": "Athanor agent governance, trust, identity, and protocol-policy enforcement",
+        "source_artifacts": [
+          "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
+          "C:/athanor-devstack/docs/promotion-packets/agent-governance-toolkit-policy-plane.md"
+        ],
+        "source_lane_id": "agent-governance-toolkit-policy-plane",
+        "source_packet_id": "pending-agent-governance-toolkit-policy-plane",
+        "source_repo": "C:/athanor-devstack",
         "source_safe_remaining": [
           "Do not draft a live Athanor adapter on the current single-scenario bundle.",
           "Only reopen this lane if a second protocol-boundary scenario shows non-duplicative value over the native approval matrix without widening permissions."
         ],
-        "approval_gated_remaining": [],
-        "rollback_or_disable_path": "Remove the AGT adapter or policy bridge and fall back to the existing Athanor approval, routing, and failure-governance contracts.",
-        "archive_instructions": "Archive protocol-governance comparison notes and unused bridge experiments that do not become part of the adopted governance layer.",
-        "notes": [
-          "AGT is a policy-plane candidate, not a control-plane replacement.",
-          "The first implementation slice should stay narrow and protocol-boundary focused.",
-          "The current benchmark bundle shows a narrow bridge that adds only an explanatory policy verdict and stricter blocked actions.",
-          "The 2026-04-12 manual review concluded that this single approval-held-mutation scenario is still too redundant to justify a live adapter or release-tier advancement."
-        ],
-        "source_lane_id": "agent-governance-toolkit-policy-plane",
-        "source_packet_id": "pending-agent-governance-toolkit-policy-plane",
-        "affected_domains": [
-          "operator_control",
-          "research"
-        ],
-        "affected_namespaces": [],
-        "landing_project": "config/automation-backbone",
-        "release_tier": "offline_eval",
-        "data_handling_profile_id": "sovereign_private"
+        "stage": "concept"
       }
     ],
-    "data_handling_profile_contract": "Every capability must declare a governed handling profile aligned with its landing surface."
+    "capability_stages": [
+      {
+        "definition": "Design intent exists but no proof artifact is ready.",
+        "id": "concept"
+      },
+      {
+        "definition": "Working slice exists but is not yet ready for Athanor adoption.",
+        "id": "prototype"
+      },
+      {
+        "definition": "Capability has concrete evidence and is eligible for a promotion packet.",
+        "id": "proved"
+      },
+      {
+        "definition": "Capability is represented in Athanor canonical truth and may affect real behavior.",
+        "id": "adopted"
+      },
+      {
+        "definition": "Capability is intentionally superseded and kept only for lineage.",
+        "id": "retired"
+      }
+    ],
+    "data_handling_profile_contract": "Every capability must declare a governed handling profile aligned with its landing surface.",
+    "promotion_contract": "promotion_packet",
+    "source_of_truth": "config/automation-backbone/capability-adoption-registry.json",
+    "status": "active",
+    "updated_at": "2026-04-17T19:16:07.754081+00:00",
+    "version": "2026-04-15.1"
   },
   "capability_pilot_readiness": {
     "generated_at": "2026-04-16T15:11:19.861884+00:00",
@@ -9191,7 +9247,7 @@
     }
   ],
   "router_shadow_summary": {
-    "generated_at": "2026-04-17T18:14:50.926617+00:00",
+    "generated_at": "2026-04-17T19:19:03.352274+00:00",
     "phase": 1,
     "phase_label": "router_shadow_mode",
     "shadow_disagreement_rate": 0.0,
@@ -9201,11 +9257,11 @@
     "ready_for_phase_2": true
   },
   "routing_decisions_latest": {
-    "generated_at": "2026-04-17T18:14:50.926808+00:00",
+    "generated_at": "2026-04-17T19:19:03.352479+00:00",
     "alert_state": "warning",
     "active_override_count": 0,
     "quota_posture": {
-      "generated_at": "2026-04-17T18:14:50.926792+00:00",
+      "generated_at": "2026-04-17T19:19:03.352461+00:00",
       "quota_posture": "max_burn_with_thin_reserve",
       "respect_vendor_policy_before_harvest": true,
       "other_metered_disabled_for_auto_harvest_by_default": true,
@@ -9258,7 +9314,7 @@
       }
     },
     "router_shadow_summary": {
-      "generated_at": "2026-04-17T18:14:50.926617+00:00",
+      "generated_at": "2026-04-17T19:19:03.352274+00:00",
       "phase": 1,
       "phase_label": "router_shadow_mode",
       "shadow_disagreement_rate": 0.0,
@@ -9444,8 +9500,8 @@
       "top_dispatchable_task_id": null,
       "top_dispatchable_title": null,
       "governed_dispatch_status": "claimed",
-      "governed_current_task_id": "burn_class:local_bulk_sovereign",
-      "governed_on_deck_task_id": "burn_class:overnight_harvest"
+      "governed_current_task_id": "burn_class:overnight_harvest",
+      "governed_on_deck_task_id": "burn_class:cheap_bulk_cloud"
     }
   },
   "safe_surface_summary": {
@@ -9461,21 +9517,33 @@
     "top_dispatchable_task_id": null,
     "top_dispatchable_title": null,
     "governed_dispatch_status": "claimed",
-    "governed_current_task_id": "burn_class:local_bulk_sovereign",
-    "governed_on_deck_task_id": "burn_class:overnight_harvest"
+    "governed_current_task_id": "burn_class:overnight_harvest",
+    "governed_on_deck_task_id": "burn_class:cheap_bulk_cloud"
   },
   "autonomous_queue_summary": {
     "queue_count": 12,
     "dispatchable_queue_count": 12,
     "blocked_queue_count": 0,
-    "top_dispatchable_task_id": "burn_class:local_bulk_sovereign",
-    "top_dispatchable_title": "Local Bulk Sovereign",
+    "top_dispatchable_task_id": "burn_class:overnight_harvest",
+    "top_dispatchable_title": "Overnight Harvest",
     "top_dispatchable_value_class": "capacity_truth_drift",
     "top_dispatchable_lane_family": "capacity_truth_repair",
     "last_outcome": "claimed",
     "last_success_at": null,
     "recent_dispatch_outcome_count": 6,
     "recent_dispatch_outcomes": [
+      {
+        "action_class": "autonomous_planning",
+        "automation_id": "ralph-loop",
+        "completed_at": "1776449745.133015",
+        "dispatch_outcome": "claimed",
+        "lane": "ralph_loop",
+        "subscription": null,
+        "success": null,
+        "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim burn_class:overnight_harvest via already_dispatched.",
+        "task_id": "burn_class:overnight_harvest",
+        "task_title": "Overnight Harvest"
+      },
       {
         "action_class": "autonomous_planning",
         "automation_id": "ralph-loop",
@@ -9535,18 +9603,6 @@
         "summary": "Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim workstream:capacity-and-harvest-truth via already_dispatched.",
         "task_id": "workstream:capacity-and-harvest-truth",
         "task_title": "Capacity and Harvest Truth"
-      },
-      {
-        "action_class": "autonomous_planning",
-        "automation_id": "ralph-loop",
-        "completed_at": "1776391849.613316",
-        "dispatch_outcome": "claimed",
-        "lane": "ralph_loop",
-        "subscription": null,
-        "success": null,
-        "summary": "Ralph loop selected dispatch-and-work-economy-closure under governor_scheduling with evidence fresh and claim workstream:validation-and-publication via already_dispatched.",
-        "task_id": "workstream:validation-and-publication",
-        "task_title": "Validation and Publication"
       }
     ],
     "governed_dispatch_claim": {
@@ -9602,28 +9658,28 @@
         "scheduler_queue_depth": 0,
         "scheduler_slot_count": 5,
         "slot_pressure_state": "open_harvest_window",
-        "stale_after": "2026-04-17T16:40:16.952899+00:00"
+        "stale_after": "2026-04-17T16:40:17.032665+00:00"
       },
-      "claim_id": "ralph-claim-20260417T164735524455+0000-burn_class-local_bulk_sovereign",
+      "claim_id": "ralph-claim-20260417T181534942125+0000-burn_class-overnight_harvest",
       "claim_rotation_reason": "recent_no_delta_suppressed",
-      "claim_rotation_source_task_id": "burn_class:local_bulk_sovereign",
+      "claim_rotation_source_task_id": "burn_class:overnight_harvest",
       "claim_source": "reports/ralph-loop/latest.json#ranked_autonomous_queue",
-      "claimed_at": "2026-04-17T16:47:35.524455+00:00",
-      "closure_rule": "Keep burn class local_bulk_sovereign on an eligible routed lane and record ordinary execution evidence.",
+      "claimed_at": "2026-04-17T18:15:34.942125+00:00",
+      "closure_rule": "Keep burn class overnight_harvest on an eligible routed lane and record ordinary execution evidence.",
       "current_lane_family": "capacity_truth_repair",
       "current_repo": "/mnt/c/Athanor",
       "current_source_type": "burn_class",
-      "current_task_id": "burn_class:local_bulk_sovereign",
-      "current_task_title": "Local Bulk Sovereign",
+      "current_task_id": "burn_class:overnight_harvest",
+      "current_task_title": "Overnight Harvest",
       "current_workstream_id": null,
       "dispatch_outcome": "claimed",
-      "eligible_queue_count": 6,
+      "eligible_queue_count": 5,
       "fallback_lane_family": "operator_follow_through",
       "no_delta_evidence_refs": [],
-      "observed_at": "2026-04-17T16:47:35.524455+00:00",
-      "on_deck_lane_family": "capacity_truth_repair",
-      "on_deck_task_id": "burn_class:overnight_harvest",
-      "on_deck_task_title": "Overnight Harvest",
+      "observed_at": "2026-04-17T18:15:34.942125+00:00",
+      "on_deck_lane_family": "dispatch_truth_repair",
+      "on_deck_task_id": "burn_class:cheap_bulk_cloud",
+      "on_deck_task_title": "Cheap Bulk Cloud",
       "preferred_lane_family": "capacity_truth_repair",
       "proof_command_or_eval_surface": "reports/truth-inventory/capacity-telemetry.json",
       "reopen_reason_scope": null,
@@ -9661,7 +9717,7 @@
       "protected_reserve_slot_count": 2,
       "provisional_harvest_candidate_count": 1,
       "ready_for_harvest_now": true,
-      "sample_age_seconds": 569,
+      "sample_age_seconds": 5848,
       "sample_posture": "scheduler_projection_backed",
       "scheduler_queue_depth": 0,
       "scheduler_slot_count": 5
@@ -9702,33 +9758,33 @@
       "scheduler_queue_depth": 0,
       "scheduler_slot_count": 5,
       "slot_pressure_state": "open_harvest_window",
-      "stale_after": "2026-04-17T16:40:16.952899+00:00"
+      "stale_after": "2026-04-17T16:40:17.032665+00:00"
     },
-    "claim_id": "ralph-claim-20260417T164735524455+0000-burn_class-local_bulk_sovereign",
+    "claim_id": "ralph-claim-20260417T181534942125+0000-burn_class-overnight_harvest",
     "claim_source": "reports/ralph-loop/latest.json#ranked_autonomous_queue",
-    "claimed_at": "2026-04-17T16:47:35.524455+00:00",
-    "closure_rule": "Keep burn class local_bulk_sovereign on an eligible routed lane and record ordinary execution evidence.",
+    "claimed_at": "2026-04-17T18:15:34.942125+00:00",
+    "closure_rule": "Keep burn class overnight_harvest on an eligible routed lane and record ordinary execution evidence.",
     "current_repo": "/mnt/c/Athanor",
     "current_source_type": "burn_class",
-    "current_task_id": "burn_class:local_bulk_sovereign",
-    "current_task_title": "Local Bulk Sovereign",
+    "current_task_id": "burn_class:overnight_harvest",
+    "current_task_title": "Overnight Harvest",
     "current_workstream_id": null,
     "dispatch_outcome": "claimed",
     "dispatch_phase_label": "governed_dispatch_shadow",
-    "dispatchable_queue_count": 6,
-    "eligible_queue_count": 6,
+    "dispatchable_queue_count": 5,
+    "eligible_queue_count": 5,
     "execution": {
       "agent_server_base_url": "http://192.168.1.244:9000",
-      "backlog_id": "backlog-44e9caaa",
+      "backlog_id": "backlog-c40b0536",
       "backlog_status": "scheduled",
-      "claim_id": "ralph-claim-20260417T164735524455+0000-burn_class-local_bulk_sovereign",
-      "current_task_id": "burn_class:local_bulk_sovereign",
-      "current_task_title": "Local Bulk Sovereign",
+      "claim_id": "ralph-claim-20260417T181534942125+0000-burn_class-overnight_harvest",
+      "current_task_id": "burn_class:overnight_harvest",
+      "current_task_title": "Overnight Harvest",
       "dispatch_outcome": "claimed",
       "dispatch_path": null,
       "dispatch_status_code": null,
       "error": null,
-      "generated_at": "2026-04-17T16:47:35.524455+00:00",
+      "generated_at": "2026-04-17T18:15:34.942125+00:00",
       "governor_level": "A",
       "governor_reason": "Source 'operator_backlog' is permitted inside autonomy phase full_system_phase_3; agent='coding-agent', workload='coding_implementation'",
       "lookup_task_status_code": 200,
@@ -9745,12 +9801,12 @@
       "retry_of_task_id": null,
       "source_of_truth": "scripts/run_ralph_loop_pass.py",
       "status": "already_dispatched",
-      "task_id": "44ac66a065b6",
+      "task_id": "870a962e1bda",
       "task_source": "operator_backlog",
       "task_status": "completed"
     },
     "fallback_lane_family": "operator_follow_through",
-    "generated_at": "2026-04-17T16:47:35.524455+00:00",
+    "generated_at": "2026-04-17T18:15:34.942125+00:00",
     "governed_dispatch_claim": {
       "approved_actions": [
         "bounded_cloud_safe_backlog",
@@ -9804,28 +9860,28 @@
         "scheduler_queue_depth": 0,
         "scheduler_slot_count": 5,
         "slot_pressure_state": "open_harvest_window",
-        "stale_after": "2026-04-17T16:40:16.952899+00:00"
+        "stale_after": "2026-04-17T16:40:17.032665+00:00"
       },
-      "claim_id": "ralph-claim-20260417T164735524455+0000-burn_class-local_bulk_sovereign",
+      "claim_id": "ralph-claim-20260417T181534942125+0000-burn_class-overnight_harvest",
       "claim_rotation_reason": "recent_no_delta_suppressed",
-      "claim_rotation_source_task_id": "burn_class:local_bulk_sovereign",
+      "claim_rotation_source_task_id": "burn_class:overnight_harvest",
       "claim_source": "reports/ralph-loop/latest.json#ranked_autonomous_queue",
-      "claimed_at": "2026-04-17T16:47:35.524455+00:00",
-      "closure_rule": "Keep burn class local_bulk_sovereign on an eligible routed lane and record ordinary execution evidence.",
+      "claimed_at": "2026-04-17T18:15:34.942125+00:00",
+      "closure_rule": "Keep burn class overnight_harvest on an eligible routed lane and record ordinary execution evidence.",
       "current_lane_family": "capacity_truth_repair",
       "current_repo": "/mnt/c/Athanor",
       "current_source_type": "burn_class",
-      "current_task_id": "burn_class:local_bulk_sovereign",
-      "current_task_title": "Local Bulk Sovereign",
+      "current_task_id": "burn_class:overnight_harvest",
+      "current_task_title": "Overnight Harvest",
       "current_workstream_id": null,
       "dispatch_outcome": "claimed",
-      "eligible_queue_count": 6,
+      "eligible_queue_count": 5,
       "fallback_lane_family": "operator_follow_through",
       "no_delta_evidence_refs": [],
-      "observed_at": "2026-04-17T16:47:35.524455+00:00",
-      "on_deck_lane_family": "capacity_truth_repair",
-      "on_deck_task_id": "burn_class:overnight_harvest",
-      "on_deck_task_title": "Overnight Harvest",
+      "observed_at": "2026-04-17T18:15:34.942125+00:00",
+      "on_deck_lane_family": "dispatch_truth_repair",
+      "on_deck_task_id": "burn_class:cheap_bulk_cloud",
+      "on_deck_task_title": "Cheap Bulk Cloud",
       "preferred_lane_family": "capacity_truth_repair",
       "proof_command_or_eval_surface": "reports/truth-inventory/capacity-telemetry.json",
       "reopen_reason_scope": null,
@@ -9841,14 +9897,14 @@
     "materialization": {
       "advisory_blockers": [],
       "agent_server_base_url": "http://192.168.1.244:9000",
-      "backlog_id": "backlog-44e9caaa",
+      "backlog_id": "backlog-c40b0536",
       "backlog_status": "scheduled",
-      "claim_id": "ralph-claim-20260417T164735524455+0000-burn_class-local_bulk_sovereign",
-      "current_task_id": "burn_class:local_bulk_sovereign",
-      "current_task_title": "Local Bulk Sovereign",
+      "claim_id": "ralph-claim-20260417T181534942125+0000-burn_class-overnight_harvest",
+      "current_task_id": "burn_class:overnight_harvest",
+      "current_task_title": "Overnight Harvest",
       "error": null,
-      "generated_at": "2026-04-17T16:47:35.524455+00:00",
-      "latest_task_id": "44ac66a065b6",
+      "generated_at": "2026-04-17T18:15:34.942125+00:00",
+      "latest_task_id": "870a962e1bda",
       "materialization_source": "governed_dispatch_state",
       "operator_backlog_path": "/v1/operator/backlog",
       "post_status_code": null,
@@ -9865,10 +9921,10 @@
       "task_source": null
     },
     "no_delta_evidence_refs": [],
-    "observed_at": "2026-04-17T16:47:35.524455+00:00",
-    "on_deck_lane_family": "capacity_truth_repair",
-    "on_deck_task_id": "burn_class:overnight_harvest",
-    "on_deck_task_title": "Overnight Harvest",
+    "observed_at": "2026-04-17T18:15:34.942125+00:00",
+    "on_deck_lane_family": "dispatch_truth_repair",
+    "on_deck_task_id": "burn_class:cheap_bulk_cloud",
+    "on_deck_task_title": "Cheap Bulk Cloud",
     "preferred_lane_family": "capacity_truth_repair",
     "proof_command_or_eval_surface": "reports/truth-inventory/capacity-telemetry.json",
     "provider_gate_state": "completed",
@@ -9885,24 +9941,24 @@
     "source_of_truth": "scripts/run_ralph_loop_pass.py",
     "status": "claimed",
     "top_dispatchable_lane_family": "capacity_truth_repair",
-    "top_dispatchable_task_id": "burn_class:local_bulk_sovereign",
-    "top_dispatchable_title": "Local Bulk Sovereign",
+    "top_dispatchable_task_id": "burn_class:overnight_harvest",
+    "top_dispatchable_title": "Overnight Harvest",
     "value_class": "capacity_truth_drift",
     "work_economy_ready_now": true,
     "work_economy_status": "ready"
   },
   "governed_dispatch_execution": {
     "agent_server_base_url": "http://192.168.1.244:9000",
-    "backlog_id": "backlog-44e9caaa",
+    "backlog_id": "backlog-c40b0536",
     "backlog_status": "scheduled",
-    "claim_id": "ralph-claim-20260417T164735524455+0000-burn_class-local_bulk_sovereign",
-    "current_task_id": "burn_class:local_bulk_sovereign",
-    "current_task_title": "Local Bulk Sovereign",
+    "claim_id": "ralph-claim-20260417T181534942125+0000-burn_class-overnight_harvest",
+    "current_task_id": "burn_class:overnight_harvest",
+    "current_task_title": "Overnight Harvest",
     "dispatch_outcome": "claimed",
     "dispatch_path": null,
     "dispatch_status_code": null,
     "error": null,
-    "generated_at": "2026-04-17T16:47:35.524455+00:00",
+    "generated_at": "2026-04-17T18:15:34.942125+00:00",
     "governor_level": "A",
     "governor_reason": "Source 'operator_backlog' is permitted inside autonomy phase full_system_phase_3; agent='coding-agent', workload='coding_implementation'",
     "lookup_task_status_code": 200,
@@ -9919,7 +9975,7 @@
     "retry_of_task_id": null,
     "source_of_truth": "scripts/run_ralph_loop_pass.py",
     "status": "already_dispatched",
-    "task_id": "44ac66a065b6",
+    "task_id": "870a962e1bda",
     "task_source": "operator_backlog",
     "task_status": "completed"
   },
@@ -9942,7 +9998,7 @@
     }
   ],
   "dashboard_summary": {
-    "generated_at": "2026-04-17T18:14:50.926827+00:00",
+    "generated_at": "2026-04-17T19:19:03.352498+00:00",
     "capability_count": 10,
     "adopted_count": 6,
     "packet_ready_count": 1,
@@ -9952,7 +10008,7 @@
     "governance_posture": "healthy",
     "governance_blocker_count": 0,
     "governance_blockers": [],
-    "top_missing_proof": "formal_eval_run",
+    "top_missing_proof": "release_tier_progression",
     "best_next_implementation_wave": "protocol-first-builder-kernel",
     "best_next_promotion_candidate": "protocol-first-builder-kernel",
     "turnover_status": "ready_for_low_touch_execution",
@@ -9996,8 +10052,8 @@
     "safe_surface_queue_count": 27,
     "autonomous_queue_count": 12,
     "autonomous_dispatchable_queue_count": 12,
-    "autonomous_top_task_id": "burn_class:local_bulk_sovereign",
-    "autonomous_top_task_title": "Local Bulk Sovereign",
+    "autonomous_top_task_id": "burn_class:overnight_harvest",
+    "autonomous_top_task_title": "Overnight Harvest",
     "automation_feedback_state": "healthy",
     "automation_feedback_recent_run_count": 8,
     "deferred_operator_input_count": 3,
@@ -10018,10 +10074,10 @@
         "next_step": "Repair the DESK WSL-first substrate only when the bounded worker pilot is intentionally reactivated."
       }
     ],
-    "repo_dirty_file_count": 5,
+    "repo_dirty_file_count": 2,
     "publication_checkpoint_required": false,
     "repo_dirty_status_counts": {
-      "modified": 5
+      "modified": 2
     },
     "next_required_approval": {
       "approval_class": "auto_harvest",
@@ -10042,7 +10098,7 @@
         "id": "best-next-implementation-wave",
         "subject": "protocol-first-builder-kernel",
         "summary": "Finish the highest-priority ready-for-review lane first.",
-        "reason": "formal_eval_run"
+        "reason": "release_tier_progression"
       },
       {
         "id": "best-next-promotion-candidate",

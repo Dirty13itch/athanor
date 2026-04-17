@@ -89,6 +89,7 @@ The operating rule is simple:
 - One bounded live builder route now exists in Athanor for `multi_file_implementation` with `private_but_cloud_allowed`, `repo_worktree`, and `needs_github=false`: `codex` direct CLI builder slice.
 - That route remains approval-gated and must publish a resumable handle, structured `ResultPacket`, and passing `VerificationContract` state before success is reported.
 - The capability remains devstack-owned until packet review and wider adoption proof are complete; a live route slice does not make every adapter or pilot lane first-class automatically.
+- External bootstrap builders remain the live bootstrap stack until the takeover promotion check is explicitly green and operator-reviewed; builder-kernel proof does not silently change primary builder authority.
 - Stable proof for the bounded live slice lives in the builder live-smoke artifact under `reports/truth-inventory`, while volatile lane ordering remains owned by the devstack board and atlas.
 
 ## Gateway Onboarding Boundary

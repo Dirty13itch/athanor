@@ -616,7 +616,9 @@ async function finalizeRun(
     lastMessage,
     failed ? "Builder execution finished with validation failures." : "Builder execution completed successfully.",
   );
-  const remainingRisks = extractRemainingRisks(lastMessage, verification.records);
+  const remainingRisks = extractRemainingRisks(lastMessage, verification.records).filter(
+    (risk) => !risk.includes("`.codex`") || filesChanged.includes(".codex"),
+  );
 
   await mutateBuilderSession(sessionId, (draft, events) => {
     draft.status = failed ? "failed" : "completed";

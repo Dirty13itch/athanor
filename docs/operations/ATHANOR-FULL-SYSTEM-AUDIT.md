@@ -58,7 +58,7 @@
 
 ## Tool and Manifest Inventory
 
-- Athanor top-level file counts: `{'projects': 1153, 'services': 49, 'scripts': 229, 'config': 82, 'docs': 326, 'reports': 211, 'ansible': 141, 'tests': 1, 'evals': 17}`
+- Athanor top-level file counts: `{'projects': 1155, 'services': 49, 'scripts': 230, 'config': 82, 'docs': 326, 'reports': 212, 'ansible': 141, 'tests': 1, 'evals': 17}`
 - Devstack top-level file counts: `{'services': 32, 'scripts': 29, 'configs': 27, 'docs': 28, 'reports': 22, 'research': 32, 'designs': 21, 'shipped': 7}`
 - Athanor manifests:
   - `projects/agents/docker-compose.yml`

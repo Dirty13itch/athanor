@@ -292,6 +292,63 @@
       "wrapper_mode": "service_runtime"
     },
     {
+      "baseline_id": "bootstrap_external_builder_stack",
+      "challenger_id": "devstack_protocol_first_builder_kernel_v1",
+      "champion_id": "bootstrap_external_builder_stack",
+      "corpus_id": "builder_kernel_boundary_trials_v1",
+      "evidence_artifacts": [
+        "C:/athanor-devstack/docs/DEVSTACK-BUILDER-ARCHITECTURE-BRIEF.md",
+        "C:/athanor-devstack/configs/devstack-builder-adapter-routing-matrix.json",
+        "C:/athanor-devstack/docs/operations/DEVSTACK-BUILDER-SCENARIOS.md",
+        "C:/athanor-devstack/docs/promotion-packets/protocol-first-builder-kernel.md",
+        "C:/Athanor/reports/truth-inventory/protocol-first-builder-kernel-live-smoke.json",
+        "C:/Athanor/projects/dashboard/src/lib/builder-kernel-formal-eval.test.ts",
+        "C:/Athanor/reports/truth-inventory/protocol-first-builder-kernel-formal-eval.json",
+        "C:/Athanor/projects/dashboard/src/lib/builder-kernel-live-route.test.ts",
+        "C:/Athanor/scripts/run_protocol_first_builder_kernel_formal_eval.py"
+      ],
+      "formal_eval_artifact_path": "C:/Athanor/reports/truth-inventory/protocol-first-builder-kernel-formal-eval.json",
+      "freshness_window_days": 30,
+      "green_result_advances_release_tier_to": "shadow",
+      "initiative_id": "protocol-first-builder-kernel",
+      "initiative_kind": "capability_promotion",
+      "judge_config": {
+        "evaluation_dimensions": [
+          "functional_quality",
+          "execution_boundary_discipline",
+          "operator_surface_coherence",
+          "policy_pass"
+        ],
+        "judge_role": "judge_verifier",
+        "policy_class": "private_but_cloud_allowed"
+      },
+      "last_run_at": "2026-04-17T19:16:07.754081+00:00",
+      "linked_promotion_packet": "C:/athanor-devstack/docs/promotion-packets/protocol-first-builder-kernel.md",
+      "notes": [
+        "This run proves only the bounded Codex direct-CLI builder slice; it does not silently promote a general internal builder takeover.",
+        "A green result advances the builder kernel into shadow-tier packet review while external bootstrap builders remain live until the takeover promotion check is explicit and operator-reviewed.",
+        "2026-04-17T18:48:29.819600+00:00: Builder kernel formal eval remains blocked until the live route, fail-closed routing checks, and bootstrap boundaries all pass together.",
+        "2026-04-17T19:02:18.295741+00:00: Builder kernel formal eval is green: the direct live route passed TSC-backed verification, fail-closed routing checks held, operator projections stayed coherent, and bootstrap takeover remains explicit.",
+        "2026-04-17T19:09:07.424704+00:00: Builder kernel formal eval is green: the direct live route passed TSC-backed verification, fail-closed routing checks held, operator projections stayed coherent, and bootstrap takeover remains explicit.",
+        "2026-04-17T19:16:07.754081+00:00: Builder kernel formal eval is green: the direct live route passed TSC-backed verification, fail-closed routing checks held, operator projections stayed coherent, and bootstrap takeover remains explicit."
+      ],
+      "promotion_validity": "valid",
+      "run_id": "protocol-first-builder-kernel-eval-2026q2",
+      "source_safe_remaining": [
+        "Keep Codex and Claude external bootstrap builders live until the takeover-promotion-check family is explicitly green and operator-reviewed.",
+        "Keep runtime packet linkage pending until a bounded builder runtime packet exists for wider adoption."
+      ],
+      "status": "completed",
+      "task_class": "builder_kernel_boundary_eval",
+      "thresholds": {
+        "functional_quality_min": "one_real_dashboard_route_with_verification",
+        "judge_delta_requirement": "no_regression_on_negative_routing_and_operator_projection",
+        "operational_quality_min": "clean_worktree_and_resumable_handle",
+        "policy_pass_required": true
+      },
+      "wrapper_mode": "builder_frontdoor_live_route"
+    },
+    {
       "baseline_id": "sovereign_coder",
       "challenger_id": "glm_cloudsafe_bulk",
       "champion_id": "codex_cloudsafe",
@@ -800,6 +857,6 @@
   ],
   "source_of_truth": "config/automation-backbone/eval-run-ledger.json",
   "status": "active",
-  "updated_at": "2026-04-16T15:10:55Z",
+  "updated_at": "2026-04-17T19:16:07.754081+00:00",
   "version": "2026-04-16.1"
 }
