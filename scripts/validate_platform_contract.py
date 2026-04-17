@@ -248,6 +248,7 @@ ALLOWED_RALPH_CONTINUITY_STOP_STATES = {
     "none",
     "approval_required",
     "external_block",
+    "proof_required",
     "destructive_ambiguity",
     "queue_exhausted",
 }

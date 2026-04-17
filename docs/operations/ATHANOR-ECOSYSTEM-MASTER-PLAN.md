@@ -7,7 +7,7 @@ Do not edit manually.
 
 ### Live
 
-- Athanor adopted system is `repo_safe_complete` with operator mode `steady_state_monitoring`.
+- Athanor adopted system is `repo_safe_complete` with operator mode `active_closure`.
 - Live claim rotation, queue posture, and packet inbox state are carried by `/mnt/c/Athanor/reports/truth-inventory/steady-state-live.md` and `reports/ralph-loop/latest.json`.
 - The canonical command center remains `https://athanor.local/`.
 
@@ -43,7 +43,7 @@ Do not edit manually.
 
 | Domain | Owner | State Class | Current State | Blockers | Next Maturity Move |
 | --- | --- | --- | --- | --- | --- |
-| `Athanor core adopted system` | `C:/Athanor` | `adopted` | Core posture is `repo_safe_complete` with `steady_state_monitoring`; live claim, queue posture, and packet inbox state are intentionally carried by the ignored live operator feed and machine JSON surfaces. | none | Keep the steady-state control-plane pass green and reopen only on typed debt, packet, or validator evidence. |
+| `Athanor core adopted system` | `C:/Athanor` | `adopted` | Core posture is `repo_safe_complete` with `active_closure`; live claim, queue posture, and packet inbox state are intentionally carried by the ignored live operator feed and machine JSON surfaces. | none | Keep the steady-state control-plane pass green and reopen only on typed debt, packet, or validator evidence. |
 | `devstack forge` | `C:/athanor-devstack` | `proving` | Turnover is `ready_for_low_touch_execution`; current top lane and packet drafting flow are carried live by the forge board and atlas surfaces. | Provider secret repair, LETTA_API_KEY, OpenHands substrate readiness | Advance the next bounded promotion lane through proof, packet, and Athanor landing surfaces without leaking build truth into runtime truth. |
 | `cluster and host substrate` | `FOUNDRY / WORKSHOP / VAULT / DEV / DESK` | `runtime` | Topology tracks `5` nodes; atlas harvest posture is `open_harvest_window` and work-economy posture is `ready`. | OpenHands substrate readiness on DESK | Keep runtime mutations packet-backed, preserve host-role clarity, and only widen pilot substrate work when a specific activation lane needs it. |
 | `operator-local systems` | `C:/Users/Shaun/.codex and C:/Codex System Config` | `local_only` | Codex System Config is the machine-level control plane, WSL-first execution is the default, and the safe-surface loop remains explicitly non-Athanor by policy. | none | Keep worktree audits, WSL tooling parity, and machine-level control proof current without letting global defaults absorb repo-local truth. |

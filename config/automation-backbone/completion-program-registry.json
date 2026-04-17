@@ -150,6 +150,7 @@
     "hard_brakes": [
       "approval_required",
       "external_block",
+      "proof_required",
       "destructive_ambiguity",
       "queue_exhausted"
     ],

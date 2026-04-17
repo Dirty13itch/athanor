@@ -3,7 +3,7 @@
 
 ## Executive Summary
 
-- Adopted live system posture: closure=`repo_safe_complete` | runtime_packets=`0` | attention=`No action needed` | live_dispatch_surface=`/mnt/c/Athanor/reports/truth-inventory/steady-state-live.md`
+- Adopted live system posture: closure=`repo_safe_complete` | runtime_packets=`0` | attention=`System attention required` | live_dispatch_surface=`/mnt/c/Athanor/reports/truth-inventory/steady-state-live.md`
 - Build/proving posture: turnover=`ready_for_low_touch_execution` | forge_top_lane=`letta-memory-plane` | atlas_top_lane=`letta-memory-plane` | atlas_routing_lane=`codex_cloudsafe`
 - Validator status: Athanor=`fail` | Devstack=`pass`
 - Git posture evidence: `reports/truth-inventory/full-system-audit-index.json` and `reports/truth-inventory/full-system-audit-findings.json`

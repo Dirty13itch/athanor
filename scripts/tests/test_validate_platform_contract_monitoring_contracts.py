@@ -167,6 +167,15 @@ def test_run_generator_check_applies_timeout() -> None:
     assert "timed out" in result.stderr
 
 
+def test_allowed_ralph_continuity_stop_states_include_proof_required() -> None:
+    module = _load_module(
+        f"validate_platform_contract_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "validate_platform_contract.py",
+    )
+
+    assert "proof_required" in module.ALLOWED_RALPH_CONTINUITY_STOP_STATES
+
+
 def test_parse_ignored_generated_doc_args_collects_paths() -> None:
     module = _load_module(
         f"validate_platform_contract_{uuid.uuid4().hex}",
