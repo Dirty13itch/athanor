@@ -3,8 +3,8 @@
 Generated from the cached truth snapshot plus the read-only VAULT Redis audit by `scripts/generate_truth_inventory_reports.py`.
 Do not edit manually.
 
-- Cached truth snapshot: `2026-04-17T19:57:12.951522+00:00`
-- Cached redis audit: `2026-04-17T19:57:12Z`
+- Cached truth snapshot: `2026-04-17T20:13:43.334406+00:00`
+- Cached redis audit: `2026-04-17T20:13:42Z`
 - Surface id: `vault-redis-persistence`
 - Host: `vault`
 - Runtime owner surface: `standalone_docker_container`
@@ -19,7 +19,7 @@ Do not edit manually.
 ## Current Runtime Truth
 
 - Persistence blocker code: `probe_failed`
-- Persistence blocker detail: <3>WSL (162396 - ) ERROR: UtilAcceptVsock:271: accept4 failed 110
+- Persistence blocker detail: <3>WSL (170164 - ) ERROR: UtilAcceptVsock:271: accept4 failed 110
 - Latest temp-RDB no-space error: ``
 - Latest background-save error: ``
 - Latest cross-protocol warning: ``

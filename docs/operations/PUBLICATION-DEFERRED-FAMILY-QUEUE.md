@@ -92,8 +92,8 @@ Sample paths:
 - `docs/operations/GOVERNOR-FACADE-CUTOVER-PACKET.md`
 - `docs/operations/RUNTIME-MIGRATION-REPORT.md`
 - `docs/operations/VAULT-REDIS-REPAIR-PACKET.md`
-- `scripts/run_steady_state_control_plane.py`
-- `scripts/tests/test_run_steady_state_control_plane.py`
+- `scripts/generate_full_system_audit.py`
+- `scripts/tests/test_generate_full_system_audit.py`
 
 ## 7. Tenant Product Lanes (`tenant-product-lanes`)
 

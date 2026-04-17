@@ -122,6 +122,9 @@ def test_build_audit_covers_required_layers_and_subsystems() -> None:
     assert subsystem['finding_count'] >= 1
     assert subsystem['remediation_priority'] in {'medium', 'high'}
 
+    athanor_control = next(item for item in audit['scorecard'] if item['id'] == 'athanor-control-plane')
+    assert athanor_control['summary'].startswith('The Athanor platform validator is currently red.')
+
 
 def test_git_status_ignores_self_generated_audit_paths() -> None:
     module = _load_module(
@@ -231,3 +234,6 @@ def test_build_audit_ignores_non_ralph_failures_when_feedback_state_is_healthy()
 
     finding_ids = {item['id'] for item in audit['findings']}
     assert 'audit.athanor.automation_feedback.degraded' not in finding_ids
+
+    athanor_control = next(item for item in audit['scorecard'] if item['id'] == 'athanor-control-plane')
+    assert athanor_control['summary'] == 'Current control-plane truth surfaces are aligned and internally consistent.'

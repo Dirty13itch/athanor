@@ -599,23 +599,33 @@ def build_scorecard(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
         for subsystem_id in finding.get('affected_subsystems', []):
             per_subsystem_findings[subsystem_id].append(finding)
 
-    summary_by_subsystem = {
-        'athanor-control-plane': 'Closure is complete, but active-claim and queue metrics still diverge across machine and human surfaces.',
-        'runtime-deployment': 'Runtime packets are clear and the live lane is active, but validator drift still affects trust in the current report set.',
-        'dashboard-operator-product': 'The front door is materially better, but it still depends on lower control-plane surfaces converging cleanly.',
-        'agents-orchestration': 'The active claim is live and dispatchable, but Ralph feedback bookkeeping remains degraded.',
-        'gpu-capacity-burn': 'Capacity posture is explicit and harvest-ready, with no critical blocker visible in current truth surfaces.',
-        'ws-pty-bridge': 'The PTY bridge is present as an adopted subsystem and currently has no distinct audit finding from the live truth bundle.',
-        'legacy-shared-services': 'Shared services remain in scope and visible, with no separate critical divergence materialized from the current audit bundle.',
-        'providers-routing-secrets': 'Provider and secret posture are mostly explicit, with no current finding showing hidden routing debt.',
-        'scripts-validators-generators': 'The toolchain is strong, but the Athanor validator is currently red on stale generated docs.',
-        'devstack-forge-atlas': 'Devstack has strong capability truth surfaces, but the forge board is stale and priority ownership is inconsistent.',
-        'devstack-services-proving': 'Proving lanes are explicit, but broad repo dirt reduces confidence in the current build-system snapshot.',
-        'devstack-packets-promotion': 'Promotion and packet posture are visible, but they inherit forge-board staleness and priority ambiguity.',
-        'membrane-adoption-boundary': 'The membrane model is explicit, but dirty devstack state and turnover overstatement still increase shadow-authority risk.',
-        'strategic-reservoir': 'The strategic universe is broad and useful for completeness, but it must remain non-authoritative for live-state conclusions.',
-        'operator-ux': 'Operator visibility is improved and actionable, but surface divergence still needs one more normalization pass.',
+    healthy_summary_by_subsystem = {
+        'athanor-control-plane': 'Current control-plane truth surfaces are aligned and internally consistent.',
+        'runtime-deployment': 'Runtime packets, deploy posture, and validator status are aligned in the current truth bundle.',
+        'dashboard-operator-product': 'The dashboard and operator front door are consistent with current machine truth.',
+        'agents-orchestration': 'The active claim and orchestration posture are coherent in the current Ralph surfaces.',
+        'gpu-capacity-burn': 'Capacity posture is explicit and harvest-ready in the current truth surfaces.',
+        'ws-pty-bridge': 'The PTY bridge is present as an adopted subsystem with no distinct finding in the current audit.',
+        'legacy-shared-services': 'Shared services remain in scope and visible with no separate finding in the current audit.',
+        'providers-routing-secrets': 'Provider, routing, and secret posture are explicit with no hidden debt surfaced in the current audit.',
+        'scripts-validators-generators': 'Validators and generators are converged in the current audit bundle.',
+        'devstack-forge-atlas': 'Devstack forge and atlas surfaces are aligned in the current audit bundle.',
+        'devstack-services-proving': 'Proving lanes and service posture are explicit with no distinct current finding.',
+        'devstack-packets-promotion': 'Promotion packets and readiness posture are aligned in the current audit bundle.',
+        'membrane-adoption-boundary': 'The adoption membrane is explicit and stable in the current audit bundle.',
+        'strategic-reservoir': 'The strategic reservoir remains represented without leaking authority into live-state truth.',
+        'operator-ux': 'Operator-facing surfaces are aligned with current machine truth.',
     }
+
+    def _summary_for_subsystem(subsystem_id: str, subsystem_findings: list[dict[str, Any]]) -> str:
+        if not subsystem_findings:
+            return healthy_summary_by_subsystem[subsystem_id]
+        ordered_findings = sorted(subsystem_findings, key=lambda item: (_severity_rank(item['severity']), item['id']))
+        lead = ordered_findings[0]['statement']
+        remainder = len(ordered_findings) - 1
+        if remainder <= 0:
+            return lead
+        return f"{lead} {remainder} additional finding(s) remain in the current audit bundle."
 
     scorecard: list[dict[str, Any]] = []
     for subsystem in SUBSYSTEMS:
@@ -651,7 +661,7 @@ def build_scorecard(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 'remediation_priority': remediation_priority,
                 'finding_count': len(subsystem_findings),
                 'worst_severity': worst_severity,
-                'summary': summary_by_subsystem[subsystem['id']],
+                'summary': _summary_for_subsystem(subsystem['id'], subsystem_findings),
                 'evidence_paths': _evidence_paths(subsystem['evidence']),
             }
         )
