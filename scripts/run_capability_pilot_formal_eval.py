@@ -18,7 +18,7 @@ from pilot_benchmark_support import (
 )
 from promptfoo_runtime import resolve_promptfoo_runtime
 from routing_contract_support import append_history, dump_json, iso_now
-from truth_inventory import REPO_ROOT, load_registry
+from truth_inventory import REPO_ROOT, load_registry, resolve_external_path
 
 
 PREFLIGHT_PATH = REPO_ROOT / "reports" / "truth-inventory" / "capability-pilot-formal-preflight.json"
@@ -52,14 +52,14 @@ def _scaffold_details(run: dict[str, Any]) -> dict[str, Any]:
     promptfoo_path = str(run.get("promptfoo_config_path") or "").strip() or None
     benchmark_spec_path = str(run.get("benchmark_spec_path") or "").strip() or None
     if promptfoo_path:
-        return {"type": "promptfoo", "path": promptfoo_path}
+        return {"type": "promptfoo", "path": str(resolve_external_path(promptfoo_path))}
     if benchmark_spec_path:
-        return {"type": "benchmark_spec", "path": benchmark_spec_path}
+        return {"type": "benchmark_spec", "path": str(resolve_external_path(benchmark_spec_path))}
     return {"type": None, "path": None}
 
 
 def _write_text(path: str | Path, text: str) -> None:
-    file_path = Path(path)
+    file_path = resolve_external_path(path)
     file_path.parent.mkdir(parents=True, exist_ok=True)
     file_path.write_text(text, encoding="utf-8")
 
@@ -276,7 +276,7 @@ def main() -> int:
     artifact_path_value = str(run.get("formal_eval_artifact_path") or "").strip()
     if not artifact_path_value:
         raise SystemExit(f"Run {args.run_id} is missing formal_eval_artifact_path")
-    artifact_path = Path(artifact_path_value)
+    artifact_path = resolve_external_path(artifact_path_value)
     artifact_path.parent.mkdir(parents=True, exist_ok=True)
 
     initiative_id = str(run.get("initiative_id") or "").strip()
@@ -289,12 +289,12 @@ def main() -> int:
     ]
     scaffold = _scaffold_details(run)
     result_files = [
-        str(item).strip()
+        str(resolve_external_path(str(item).strip()))
         for item in run.get("required_result_files", [])
         if str(item).strip()
     ]
     fixture_files = [
-        str(item).strip()
+        str(resolve_external_path(str(item).strip()))
         for item in run.get("required_fixture_files", [])
         if str(item).strip()
     ]

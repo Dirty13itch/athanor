@@ -6,7 +6,7 @@ Do not edit manually.
 ## Front Door Contract
 
 - Registry version: `2026-04-17.1`
-- Cached truth snapshot: `2026-04-17T21:38:50.759027+00:00`
+- Cached truth snapshot: `2026-04-17T22:57:47.279249+00:00`
 - Recorded portal id: `athanor_command_center`
 - Recorded operator URL: `https://athanor.local/`
 - Recorded front-door node: `dev`
@@ -58,7 +58,7 @@ Do not edit manually.
 - DEV runtime probe target: `dev`
 - DEV deployment mode observed: `containerized_service_behind_caddy`
 - Dashboard container running: `True`
-- Dashboard container status: `Up 2 hours`
+- Dashboard container status: `Up 3 hours`
 - Dashboard container image: `athanor/dashboard:latest`
 - Dashboard container ports: ``
 - Dashboard compose working dir: `/opt/athanor/dashboard`
@@ -81,7 +81,7 @@ No shadow portals are currently registered.
 
 | Surface | Node | Kind | Canonical URL | Operator role | Canonical probe |
 | --- | --- | --- | --- | --- | --- |
-| `Builder Front Door` | `dev` | `domain_app` | `https://athanor.local/builder` | `build_system` | `not_probed` |
+| `Builder Front Door` | `dev` | `domain_app` | `https://athanor.local/builder` | `build_system` | `URLError: [SSL: CERTIFICATE_VERIFY_FAILED] certi` |
 | `Grafana` | `vault` | `specialist_tool` | `http://vault.athanor.local:3000/` | `observability` | `200` |
 | `Prometheus` | `vault` | `specialist_tool` | `http://vault.athanor.local:9090/` | `observability` | `200` |
 | `Uptime Kuma` | `vault` | `specialist_tool` | `http://vault.athanor.local:3009/` | `observability` | `200` |
@@ -109,7 +109,7 @@ No shadow portals are currently registered.
 | Surface | Kind | Node | Status | Navigation | Canonical URL | Runtime URL | Runtime probe |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `athanor_command_center` | `portal` | `dev` | `active_production` | `front_door` | `https://athanor.local/` | `http://dev.athanor.local:3001/` | `200` |
-| `builder_front_door` | `domain_app` | `dev` | `active_specialist` | `launchpad` | `https://athanor.local/builder` | `http://dev.athanor.local:3001/builder` | `not_probed` |
+| `builder_front_door` | `domain_app` | `dev` | `active_specialist` | `launchpad` | `https://athanor.local/builder` | `http://dev.athanor.local:3001/builder` | `200` |
 | `workshop_shadow_command_center` | `retired` | `workshop` | `retired` | `hidden` | `https://athanor.local/` | `http://interface.athanor.local:3001/` | `200` |
 | `desk_goose_operator_shell` | `specialist_tool` | `desk` | `active_specialist` | `hidden` | `local-shell://desk/goose-operator-shell` | `C:/Users/Shaun/AppData/Local/Athanor/operator-shell/run-goose-athanor-shell.ps1` | `not_probed` |
 | `quality_gate` | `internal_api` | `dev` | `retired` | `hidden` | `http://dev.athanor.local:8790/health` | `http://192.168.1.189:8790/health` | `200` |

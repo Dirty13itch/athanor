@@ -6,6 +6,8 @@ Current expected files:
 
 - `agt-native-decision-trace.json`
 - `agt-bridge-decision-trace.json`
+- `agt-native-degraded-fallback-decision-trace.json`
+- `agt-bridge-degraded-fallback-decision-trace.json`
 
 These fixture files should capture one bounded approval-gated policy decision in two forms:
 
@@ -30,3 +32,5 @@ Do not create placeholder success traces just to satisfy readiness. The files sh
 The formal preflight validates this required field set directly. If a trace file exists but omits any required field, the AGT lane stays blocked with `invalid_fixture:` instead of advancing to manual review.
 
 The first accepted fixture pair is the bounded `approval-held-mutation` scenario. Those traces are allowed to be contract-level manual-review evidence as long as they stay narrow, preserve the native approval hold, and point back to the live Athanor decision and audit contracts instead of inventing a second control plane.
+
+The second accepted fixture pair is the bounded `degraded-mode-fallback` scenario. It is only valid if the AGT bridge removes a risky fallback because of an explicit trust-boundary verdict while preserving the native decision and audit lineage.

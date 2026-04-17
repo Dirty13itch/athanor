@@ -33,12 +33,14 @@ DEFAULT_RUN_IDS = [
     "openhands-bounded-worker-lane-eval-2026q2",
     "letta-memory-plane-eval-2026q2",
     "agt-policy-plane-eval-2026q2",
+    "agt-policy-plane-eval-2026q2-degraded-fallback",
 ]
 FALLBACK_FLOW_BY_RUN = {
     "goose-operator-shell-lane-eval-2026q2": "goose_operator_shell",
     "openhands-bounded-worker-lane-eval-2026q2": "openhands_bounded_worker",
     "letta-memory-plane-eval-2026q2": "letta_memory_plane",
     "agt-policy-plane-eval-2026q2": "agt_policy_plane",
+    "agt-policy-plane-eval-2026q2-degraded-fallback": "agt_policy_plane",
 }
 
 

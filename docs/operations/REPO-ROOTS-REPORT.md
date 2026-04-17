@@ -34,8 +34,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane root.`
-- Local dirty file count: `3`
-- Local dirty sample: ` M config/automation-backbone/completion-program-registry.json`, ` M scripts/tests/test_validate_platform_contract_monitoring_contracts.py`, ` M scripts/validate_platform_contract.py`
+- Local dirty file count: `11`
+- Local dirty sample: ` M config/automation-backbone/capability-adoption-registry.json`, ` M config/automation-backbone/eval-run-ledger.json`, ` M evals/pilot-agent-compare/fixtures/README.md`, ` M projects/dashboard/src/generated/master-atlas.json`, ` M scripts/run_capability_pilot_evals.py`, ` M scripts/run_capability_pilot_formal_eval.py`, ` M scripts/run_capability_pilot_formal_preflight.py`, ` M scripts/tests/test_capability_pilot_eval_contracts.py`, `?? evals/pilot-agent-compare/agt-policy-bridge-degraded-fallback.yaml`, `?? evals/pilot-agent-compare/fixtures/agt-bridge-degraded-fallback-decision-trace.json`
 
 ## dev-runtime-repo
 

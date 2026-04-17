@@ -7,8 +7,8 @@
 - Atlas top priority lane: `letta-memory-plane`
 - Forge board top priority lane: `letta-memory-plane`
 - Adopted capabilities tracked in atlas: `7`
-- Concept capabilities tracked in atlas: `3`
-- Devstack dirty count: `1`
+- Concept capabilities tracked in atlas: `2`
+- Devstack dirty count: `14`
 - Devstack contract validator: `pass`
 
 ## Membrane Findings

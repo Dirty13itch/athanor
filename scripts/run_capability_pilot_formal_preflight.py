@@ -12,7 +12,7 @@ from typing import Any
 from pilot_benchmark_support import validate_decision_trace_file
 from promptfoo_runtime import resolve_promptfoo_runtime
 from routing_contract_support import append_history, dump_json, iso_now
-from truth_inventory import REPO_ROOT, load_registry
+from truth_inventory import REPO_ROOT, load_registry, resolve_external_path
 
 
 OUTPUT_PATH = REPO_ROOT / "reports" / "truth-inventory" / "capability-pilot-formal-preflight.json"
@@ -21,6 +21,7 @@ DEFAULT_RUN_IDS = [
     "openhands-bounded-worker-lane-eval-2026q2",
     "letta-memory-plane-eval-2026q2",
     "agt-policy-plane-eval-2026q2",
+    "agt-policy-plane-eval-2026q2-degraded-fallback",
 ]
 MISSING_ENV_RE = re.compile(r"Missing ([A-Z0-9_]+)")
 
@@ -65,16 +66,16 @@ def _scaffold_details(run: dict[str, Any]) -> dict[str, Any]:
     promptfoo_path = str(run.get("promptfoo_config_path") or "").strip() or None
     benchmark_spec_path = str(run.get("benchmark_spec_path") or "").strip() or None
     if promptfoo_path:
-        path = Path(promptfoo_path)
+        path = resolve_external_path(promptfoo_path)
         return {"type": "promptfoo", "path": str(path), "exists": path.exists()}
     if benchmark_spec_path:
-        path = Path(benchmark_spec_path)
+        path = resolve_external_path(benchmark_spec_path)
         return {"type": "benchmark_spec", "path": str(path), "exists": path.exists()}
     return {"type": None, "path": None, "exists": False}
 
 
 def _path_check(path_value: str) -> dict[str, Any]:
-    path = Path(path_value)
+    path = resolve_external_path(path_value)
     return {
         "path": str(path),
         "exists": path.exists(),
@@ -136,7 +137,7 @@ def _run_command_probe(run: dict[str, Any]) -> dict[str, Any] | None:
         _render_probe_value(str(item), tokens)
         for item in probe.get("args", [])
     ]
-    cwd = str(probe.get("cwd") or REPO_ROOT)
+    cwd = str(resolve_external_path(probe.get("cwd") or REPO_ROOT))
     cwd_path = Path(cwd)
     if not cwd_path.exists():
         return {
@@ -237,16 +238,21 @@ def main() -> int:
             if str(item).strip()
         ]
         required_result_files = [
-            str(item).strip()
+            str(resolve_external_path(str(item).strip()))
             for item in run.get("required_result_files", [])
             if str(item).strip()
         ]
         required_fixture_files = [
-            str(item).strip()
+            str(resolve_external_path(str(item).strip()))
             for item in run.get("required_fixture_files", [])
             if str(item).strip()
         ]
-        formal_eval_artifact_path = str(run.get("formal_eval_artifact_path") or "").strip() or None
+        formal_eval_artifact_path_raw = str(run.get("formal_eval_artifact_path") or "").strip()
+        formal_eval_artifact_path = (
+            str(resolve_external_path(formal_eval_artifact_path_raw))
+            if formal_eval_artifact_path_raw
+            else None
+        )
         preflight_only_allowed = bool(run.get("preflight_only_allowed", False))
 
         command_checks: list[dict[str, Any]] = []

@@ -6,7 +6,7 @@ Do not edit manually.
 ## Current Sequence
 
 1. `Letta Memory Plane`
-2. `Agent Governance Toolkit Policy Plane`
+2. `OpenHands Bounded Worker Lane`
 3. `OpenHands Bounded Worker Lane`
 
 ## Typed Blockers

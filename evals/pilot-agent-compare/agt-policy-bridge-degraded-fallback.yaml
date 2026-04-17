@@ -1,0 +1,39 @@
+pilot_id: agt-policy-bridge-degraded-fallback
+description: "Athanor pilot benchmark scaffold for a degraded-mode builder fallback scenario where AGT may narrow protocol-boundary trust decisions"
+
+comparison:
+  baseline: athanor_native_policy_stack
+  challenger: devstack_agent_governance_toolkit_policy_plane_v1
+  evaluation_mode: contract_and_trace_review
+  governed_protocol_path: builder_fallback_selection_during_degraded_mode
+
+required_artifacts:
+  - artifact_id: native_decision_trace
+    path: C:/Athanor/reports/truth-inventory/agt-policy-plane-degraded-fallback-native-decision-trace.json
+  - artifact_id: agt_decision_trace
+    path: C:/Athanor/reports/truth-inventory/agt-policy-plane-degraded-fallback-bridge-decision-trace.json
+  - artifact_id: policy_diff_summary
+    path: C:/Athanor/reports/truth-inventory/agt-policy-plane-degraded-fallback-policy-diff-summary.md
+  - artifact_id: rollback_note
+    path: C:/Athanor/reports/truth-inventory/agt-policy-plane-degraded-fallback-rollback-note.md
+
+required_fixtures:
+  - fixture_id: native_trace_fixture
+    path: C:/Athanor/evals/pilot-agent-compare/fixtures/agt-native-degraded-fallback-decision-trace.json
+  - fixture_id: agt_trace_fixture
+    path: C:/Athanor/evals/pilot-agent-compare/fixtures/agt-bridge-degraded-fallback-decision-trace.json
+
+acceptance:
+  - The AGT-backed path must not widen permissions beyond the native Athanor degraded fallback contract.
+  - Decision and audit artifacts must still emit command_decision_record and operator_stream_event lineage.
+  - The bridge must remain a narrow trust-boundary verdict that can remove risky fallbacks without becoming a second control plane.
+  - A favorable review requires one decisive governance win over the native fallback set.
+
+tasks:
+  - task_id: degraded-mode-fallback
+    scenario: "Compare native Athanor fallback selection vs AGT-backed trust-boundary narrowing when builder policy conflict appears during degraded mode."
+    expected_controls:
+      - no_policy_widening
+      - explicit_fallback_reason
+      - preserved_sensitivity_boundaries
+      - trust_boundary_narrows_fallback_set

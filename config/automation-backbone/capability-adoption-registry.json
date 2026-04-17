@@ -588,19 +588,24 @@
       "notes": [
         "AGT is a policy-plane candidate, not a control-plane replacement.",
         "The first implementation slice should stay narrow and protocol-boundary focused.",
-        "The current benchmark bundle shows a narrow bridge that adds only an explanatory policy verdict and stricter blocked actions.",
-        "The 2026-04-12 manual review concluded that this single approval-held-mutation scenario is still too redundant to justify a live adapter or release-tier advancement."
+        "The 2026-04-12 manual review rejected the single approval-held-mutation scenario as too redundant to justify a live adapter or release-tier advancement.",
+        "The 2026-04-17 degraded-fallback scenario proved a bounded non-duplicative governance delta: AGT removes `external_bootstrap_builder` until a trust-boundary verdict exists while preserving native command-decision and operator-stream lineage.",
+        "This clears the proof blocker for `proved` status only; it does not justify a live Athanor adapter, runtime packet linkage, or release-tier advancement."
       ],
       "owner": "shaun",
-      "pilot_blocker_class": "non_duplicative_value_unproven",
-      "promotion_packet_id": "pending-agent-governance-toolkit-policy-plane",
+      "pilot_blocker_class": null,
+      "promotion_packet_id": "agent-governance-toolkit-policy-plane-promotion-packet",
       "proof_artifacts": [
         "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
         "C:/athanor-devstack/docs/promotion-packets/agent-governance-toolkit-policy-plane.md",
         "C:/Athanor/config/automation-backbone/approval-matrix.json",
+        "C:/Athanor/config/automation-backbone/failure-routing-matrix.json",
         "C:/Athanor/reports/truth-inventory/agt-policy-plane-formal-eval.json",
         "C:/Athanor/reports/truth-inventory/agt-policy-plane-policy-diff-summary.md",
         "C:/Athanor/reports/truth-inventory/agt-policy-plane-rollback-note.md",
+        "C:/Athanor/reports/truth-inventory/agt-policy-plane-degraded-fallback-formal-eval.json",
+        "C:/Athanor/reports/truth-inventory/agt-policy-plane-degraded-fallback-policy-diff-summary.md",
+        "C:/Athanor/reports/truth-inventory/agt-policy-plane-degraded-fallback-rollback-note.md",
         "C:/Athanor/reports/truth-inventory/agt-policy-plane-manual-review.md"
       ],
       "release_tier": "offline_eval",
@@ -617,13 +622,13 @@
         "C:/athanor-devstack/docs/promotion-packets/agent-governance-toolkit-policy-plane.md"
       ],
       "source_lane_id": "agent-governance-toolkit-policy-plane",
-      "source_packet_id": "pending-agent-governance-toolkit-policy-plane",
+      "source_packet_id": "agent-governance-toolkit-policy-plane-promotion-packet",
       "source_repo": "C:/athanor-devstack",
       "source_safe_remaining": [
-        "Do not draft a live Athanor adapter on the current single-scenario bundle.",
-        "Only reopen this lane if a second protocol-boundary scenario shows non-duplicative value over the native approval matrix without widening permissions."
+        "Do not draft a live Athanor adapter or runtime packet from the current proof bundle alone.",
+        "If this lane is reopened for adoption, keep the AGT bridge bounded to degraded-fallback trust-verdict emission while native command-decision and operator-stream lineage remain authoritative."
       ],
-      "stage": "concept"
+      "stage": "proved"
     }
   ],
   "capability_stages": [
@@ -652,6 +657,6 @@
   "promotion_contract": "promotion_packet",
   "source_of_truth": "config/automation-backbone/capability-adoption-registry.json",
   "status": "active",
-  "updated_at": "2026-04-17T22:30:00Z",
-  "version": "2026-04-17.2"
+  "updated_at": "2026-04-17T22:55:00Z",
+  "version": "2026-04-17.3"
 }

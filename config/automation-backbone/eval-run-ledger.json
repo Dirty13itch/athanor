@@ -856,10 +856,82 @@
         "policy_pass_required": true
       },
       "wrapper_mode": "service_runtime"
+    },
+    {
+      "approval_gated_remaining": [],
+      "baseline_id": "athanor_native_policy_stack",
+      "benchmark_spec_path": "C:/Athanor/evals/pilot-agent-compare/agt-policy-bridge-degraded-fallback.yaml",
+      "blocking_checks": [],
+      "challenger_id": "devstack_agent_governance_toolkit_policy_plane_v1",
+      "champion_id": "athanor_native_policy_stack",
+      "corpus_id": "governance_policy_bridge_v2",
+      "evidence_artifacts": [
+        "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
+        "C:/athanor-devstack/docs/promotion-packets/agent-governance-toolkit-policy-plane.md",
+        "C:/Athanor/config/automation-backbone/failure-routing-matrix.json",
+        "C:/Athanor/config/automation-backbone/lane-selection-matrix.json"
+      ],
+      "execution_requirements": {
+        "preferred_hosts": [
+          "dev"
+        ],
+        "request_surface_hint": "degraded fallback trust-boundary policy bridge pilot",
+        "required_commands": []
+      },
+      "formal_eval_artifact_path": "C:/Athanor/reports/truth-inventory/agt-policy-plane-degraded-fallback-formal-eval.json",
+      "freshness_window_days": 30,
+      "initiative_id": "agent-governance-toolkit-policy-plane",
+      "initiative_kind": "capability_promotion",
+      "judge_config": {
+        "evaluation_dimensions": [
+          "guardrail_value",
+          "auditability",
+          "policy_pass",
+          "rollback_clarity"
+        ],
+        "judge_role": "judge_verifier",
+        "policy_class": "sovereign_only"
+      },
+      "last_run_at": "2026-04-17T22:50:30+00:00",
+      "linked_promotion_packet": "C:/athanor-devstack/docs/promotion-packets/agent-governance-toolkit-policy-plane.md",
+      "not_handoff_critical_until_formal_preflight_ready": true,
+      "notes": [
+        "This second AGT run stays bounded to degraded fallback selection rather than broad runtime takeover.",
+        "The target win condition is a non-duplicative trust-boundary verdict that removes a risky fallback the native matrix would otherwise leave available.",
+        "A favorable outcome still does not justify a live adapter by itself; it only clears the non-duplicative-value blocker for proved status."
+      ],
+      "operator_test_flow_id": "agt_policy_plane",
+      "preflight_only_allowed": true,
+      "promotion_validity": "requires_formal_eval_run",
+      "required_env_vars": [],
+      "required_fixture_files": [
+        "C:/Athanor/evals/pilot-agent-compare/fixtures/agt-native-degraded-fallback-decision-trace.json",
+        "C:/Athanor/evals/pilot-agent-compare/fixtures/agt-bridge-degraded-fallback-decision-trace.json"
+      ],
+      "required_result_files": [
+        "C:/Athanor/reports/truth-inventory/agt-policy-plane-degraded-fallback-native-decision-trace.json",
+        "C:/Athanor/reports/truth-inventory/agt-policy-plane-degraded-fallback-bridge-decision-trace.json",
+        "C:/Athanor/reports/truth-inventory/agt-policy-plane-degraded-fallback-policy-diff-summary.md",
+        "C:/Athanor/reports/truth-inventory/agt-policy-plane-degraded-fallback-rollback-note.md"
+      ],
+      "run_id": "agt-policy-plane-eval-2026q2-degraded-fallback",
+      "source_safe_remaining": [
+        "Complete the manual review for the degraded fallback bundle and record whether AGT now shows non-duplicative governance value.",
+        "If the review is favorable, promote AGT to proved without drafting a live adapter or runtime packet yet."
+      ],
+      "status": "active",
+      "task_class": "policy_bridge_comparison",
+      "thresholds": {
+        "functional_quality_min": "better_or_equal",
+        "judge_delta_requirement": "one_decisive_win_plus_operator_smoke",
+        "operational_quality_min": "non_duplicative",
+        "policy_pass_required": true
+      },
+      "wrapper_mode": "service_runtime"
     }
   ],
   "source_of_truth": "config/automation-backbone/eval-run-ledger.json",
   "status": "active",
-  "updated_at": "2026-04-17T22:09:25.898936+00:00",
-  "version": "2026-04-16.1"
+  "updated_at": "2026-04-17T22:40:00+00:00",
+  "version": "2026-04-17.1"
 }

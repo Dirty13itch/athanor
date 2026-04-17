@@ -1231,3 +1231,224 @@ def test_generate_capability_pilot_readiness_reports_benchmark_spec_manual_revie
     assert record["formal_preflight_blocker_class"] == "fixture_required"
     assert "manual contract review" in record["next_formal_gate"]
     assert "benchmark-spec runner" not in record["next_formal_gate"]
+
+
+
+def test_run_capability_pilot_formal_preflight_resolves_windows_paths(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _load_module(
+        f"run_capability_pilot_formal_preflight_windows_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_capability_pilot_formal_preflight.py",
+    )
+    output = tmp_path / "capability-pilot-formal-preflight.json"
+    benchmark_spec = tmp_path / "evals" / "pilot-agent-compare" / "agt-policy-bridge.yaml"
+    benchmark_spec.parent.mkdir(parents=True, exist_ok=True)
+    benchmark_spec.write_text("pilot_id: agt-policy-bridge\n", encoding="utf-8")
+    fixture_dir = tmp_path / "evals" / "pilot-agent-compare" / "fixtures"
+    fixture_dir.mkdir(parents=True, exist_ok=True)
+    fixture_one = fixture_dir / "agt-native-decision-trace.json"
+    fixture_two = fixture_dir / "agt-bridge-decision-trace.json"
+    native_payload = {
+        "trace_id": "native-degraded-fallback",
+        "scenario_id": "degraded-mode-fallback",
+        "request_surface": "builder_policy_conflict",
+        "policy_class": "private_but_cloud_allowed",
+        "decision_summary": "Native allows the external bootstrap fallback.",
+        "decision_reason": "degraded fallback leaves bootstrap path available",
+        "allowed_actions": ["fallback_to_external_bootstrap_builder"],
+        "blocked_actions": [],
+        "command_decision_record_ref": "history/fallback#native",
+        "operator_stream_event_ref": "history/fallback#native-event",
+    }
+    bridge_payload = {
+        "trace_id": "bridge-degraded-fallback",
+        "scenario_id": "degraded-mode-fallback",
+        "request_surface": "builder_policy_conflict",
+        "policy_class": "private_but_cloud_allowed",
+        "decision_summary": "Bridge removes the external bootstrap fallback without trust.",
+        "decision_reason": "trust-boundary verdict required",
+        "allowed_actions": ["fallback_to_sovereign_coder"],
+        "blocked_actions": ["fallback_to_external_bootstrap_builder_without_trust_verdict"],
+        "command_decision_record_ref": "history/fallback#bridge",
+        "operator_stream_event_ref": "history/fallback#bridge-event",
+    }
+    fixture_one.write_text(json.dumps(native_payload), encoding="utf-8")
+    fixture_two.write_text(json.dumps(bridge_payload), encoding="utf-8")
+
+    def _resolve(path_value):
+        text = str(path_value)
+        prefix = "C:/Athanor/"
+        if text.startswith(prefix):
+            return tmp_path / text.removeprefix(prefix)
+        return Path(text)
+
+    monkeypatch.setattr(module, "resolve_external_path", _resolve)
+    monkeypatch.setattr(
+        module,
+        "load_registry",
+        lambda name: {
+            "eval-run-ledger.json": {
+                "runs": [
+                    {
+                        "run_id": "agt-policy-plane-eval-2026q2-degraded-fallback",
+                        "initiative_id": "agent-governance-toolkit-policy-plane",
+                        "benchmark_spec_path": "C:/Athanor/evals/pilot-agent-compare/agt-policy-bridge.yaml",
+                        "formal_eval_artifact_path": "C:/Athanor/reports/truth-inventory/agt-formal-eval.json",
+                        "required_result_files": [
+                            "C:/Athanor/reports/truth-inventory/agt-native-result.json",
+                            "C:/Athanor/reports/truth-inventory/agt-bridge-result.json",
+                            "C:/Athanor/reports/truth-inventory/agt-policy-diff-summary.md",
+                            "C:/Athanor/reports/truth-inventory/agt-rollback-note.md",
+                        ],
+                        "required_fixture_files": [
+                            "C:/Athanor/evals/pilot-agent-compare/fixtures/agt-native-decision-trace.json",
+                            "C:/Athanor/evals/pilot-agent-compare/fixtures/agt-bridge-decision-trace.json",
+                        ],
+                        "execution_requirements": {
+                            "required_commands": [],
+                            "preferred_hosts": ["desk"],
+                        },
+                    }
+                ]
+            },
+            "tooling-inventory.json": {"hosts": [{"id": "desk", "tools": []}]},
+        }[name],
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "run_capability_pilot_formal_preflight.py",
+            "--run-id",
+            "agt-policy-plane-eval-2026q2-degraded-fallback",
+            "--host-id",
+            "desk",
+            "--write",
+            str(output),
+        ],
+    )
+
+    assert module.main() == 0
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    record = payload["records"][0]
+    assert record["preflight_status"] == "ready"
+    assert record["scaffold_path"] == str(benchmark_spec)
+    assert record["formal_eval_artifact_path"] == str(tmp_path / "reports" / "truth-inventory" / "agt-formal-eval.json")
+    assert record["required_result_files"][0] == str(tmp_path / "reports" / "truth-inventory" / "agt-native-result.json")
+    assert all(check["exists"] for check in record["fixture_file_checks"])
+
+
+def test_run_capability_pilot_formal_eval_resolves_windows_paths(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _load_module(
+        f"run_capability_pilot_formal_eval_windows_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_capability_pilot_formal_eval.py",
+    )
+    preflight_path = tmp_path / "capability-pilot-formal-preflight.json"
+    preflight_path.write_text(
+        json.dumps(
+            {
+                "records": [
+                    {
+                        "run_id": "agt-policy-plane-eval-2026q2-degraded-fallback",
+                        "initiative_id": "agent-governance-toolkit-policy-plane",
+                        "preflight_status": "ready",
+                        "blocking_reasons": [],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    benchmark_spec = tmp_path / "evals" / "pilot-agent-compare" / "agt-policy-bridge.yaml"
+    benchmark_spec.parent.mkdir(parents=True, exist_ok=True)
+    benchmark_spec.write_text("pilot_id: agt-policy-bridge\n", encoding="utf-8")
+    fixture_dir = tmp_path / "evals" / "pilot-agent-compare" / "fixtures"
+    fixture_dir.mkdir(parents=True, exist_ok=True)
+    native_fixture = fixture_dir / "agt-native-decision-trace.json"
+    bridge_fixture = fixture_dir / "agt-bridge-decision-trace.json"
+    native_payload = {
+        "trace_id": "native-degraded-fallback",
+        "scenario_id": "degraded-mode-fallback",
+        "request_surface": "builder_policy_conflict",
+        "policy_class": "private_but_cloud_allowed",
+        "decision_summary": "Native allows the external bootstrap fallback.",
+        "decision_reason": "degraded fallback leaves bootstrap path available",
+        "allowed_actions": ["fallback_to_external_bootstrap_builder"],
+        "blocked_actions": [],
+        "command_decision_record_ref": "history/fallback#native",
+        "operator_stream_event_ref": "history/fallback#native-event",
+    }
+    bridge_payload = {
+        "trace_id": "bridge-degraded-fallback",
+        "scenario_id": "degraded-mode-fallback",
+        "request_surface": "builder_policy_conflict",
+        "policy_class": "private_but_cloud_allowed",
+        "decision_summary": "Bridge removes the external bootstrap fallback without trust.",
+        "decision_reason": "trust-boundary verdict required",
+        "allowed_actions": ["fallback_to_sovereign_coder"],
+        "blocked_actions": ["fallback_to_external_bootstrap_builder_without_trust_verdict"],
+        "command_decision_record_ref": "history/fallback#bridge",
+        "operator_stream_event_ref": "history/fallback#bridge-event",
+    }
+    native_fixture.write_text(json.dumps(native_payload), encoding="utf-8")
+    bridge_fixture.write_text(json.dumps(bridge_payload), encoding="utf-8")
+
+    def _resolve(path_value):
+        text = str(path_value)
+        prefix = "C:/Athanor/"
+        if text.startswith(prefix):
+            return tmp_path / text.removeprefix(prefix)
+        return Path(text)
+
+    monkeypatch.setattr(module, "PREFLIGHT_PATH", preflight_path)
+    monkeypatch.setattr(module, "resolve_external_path", _resolve)
+    monkeypatch.setattr(
+        module,
+        "load_registry",
+        lambda name: {
+            "eval-run-ledger.json": {
+                "runs": [
+                    {
+                        "run_id": "agt-policy-plane-eval-2026q2-degraded-fallback",
+                        "initiative_id": "agent-governance-toolkit-policy-plane",
+                        "benchmark_spec_path": "C:/Athanor/evals/pilot-agent-compare/agt-policy-bridge.yaml",
+                        "formal_eval_artifact_path": "C:/Athanor/reports/truth-inventory/agt-formal-eval.json",
+                        "required_fixture_files": [
+                            "C:/Athanor/evals/pilot-agent-compare/fixtures/agt-native-decision-trace.json",
+                            "C:/Athanor/evals/pilot-agent-compare/fixtures/agt-bridge-decision-trace.json",
+                        ],
+                        "required_result_files": [
+                            "C:/Athanor/reports/truth-inventory/agt-native-result.json",
+                            "C:/Athanor/reports/truth-inventory/agt-bridge-result.json",
+                            "C:/Athanor/reports/truth-inventory/agt-policy-diff-summary.md",
+                            "C:/Athanor/reports/truth-inventory/agt-rollback-note.md",
+                        ],
+                    }
+                ]
+            }
+        }[name],
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "run_capability_pilot_formal_eval.py",
+            "--run-id",
+            "agt-policy-plane-eval-2026q2-degraded-fallback",
+        ],
+    )
+
+    assert module.main() == 0
+    artifact_path = tmp_path / "reports" / "truth-inventory" / "agt-formal-eval.json"
+    assert artifact_path.exists()
+    artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
+    assert artifact["status"] == "manual_review_pending"
+    assert artifact["result_paths"][0] == str(tmp_path / "reports" / "truth-inventory" / "agt-native-result.json")
+    assert json.loads((tmp_path / "reports" / "truth-inventory" / "agt-native-result.json").read_text(encoding="utf-8"))["trace_id"] == "native-degraded-fallback"
+    assert json.loads((tmp_path / "reports" / "truth-inventory" / "agt-bridge-result.json").read_text(encoding="utf-8"))["trace_id"] == "bridge-degraded-fallback"
+

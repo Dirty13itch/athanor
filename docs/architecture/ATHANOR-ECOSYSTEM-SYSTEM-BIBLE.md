@@ -28,7 +28,7 @@ This appendix is exhaustive by subsystem. It exists to make every ecosystem doma
 - `reports/truth-inventory/finish-scoreboard.json`
 - `reports/ralph-loop/latest.json`
 - `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`
-- Current state: Core posture is `repo_safe_complete` with `active_closure`; live claim, queue posture, and packet inbox state are intentionally carried by the ignored live operator feed and machine JSON surfaces.
+- Current state: Core posture is `repo_safe_complete` with `steady_state_monitoring`; live claim, queue posture, and packet inbox state are intentionally carried by the ignored live operator feed and machine JSON surfaces.
 - Blockers: none
 - Failure mode: If this layer drifts, the system loses authoritative state, operator visibility, and safe execution ordering.
 - Next maturity move: Keep the steady-state control-plane pass green and reopen only on typed debt, packet, or validator evidence.
@@ -149,7 +149,6 @@ This appendix is exhaustive by subsystem. It exists to make every ecosystem doma
 | Lane | Landing Repo | Landing Workspace | Approval State | Blocking Gate | Next Action |
 | --- | --- | --- | --- | --- | --- |
 | `Letta Memory Plane` | `C:/Athanor` | `config/automation-backbone` | `operator_review_required_before_adoption` | `continuity-gain-unproven` | Wire LETTA_API_KEY, run the bounded continuity benchmark, and keep replayability and pruning explicit. |
-| `Agent Governance Toolkit Policy Plane` | `C:/Athanor` | `config/automation-backbone` | `operator_review_required_before_adoption` | `policy-bridge-slice-unproven` | Hold AGT below adapter work and only reopen the lane if a second protocol-boundary scenario proves unique value over native Athanor policy. |
 | `OpenHands Bounded Worker Lane` | `C:/Athanor` | `config/automation-backbone` | `operator_review_required_before_adoption` | `bounded-worker-value-unproven` | Expose the OpenHands command on DESK, clear the worker env wiring, and run the bounded-worker eval. |
 
 ## Tenant and Product Boundary

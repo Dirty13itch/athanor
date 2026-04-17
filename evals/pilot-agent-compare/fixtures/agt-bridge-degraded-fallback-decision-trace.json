@@ -1,0 +1,22 @@
+{
+  "trace_id": "agt-bridge-degraded-mode-fallback-2026-04-17",
+  "scenario_id": "degraded-mode-fallback",
+  "request_surface": "builder_fallback_selection_during_degraded_mode",
+  "policy_class": "review_required",
+  "decision_summary": "The AGT-backed bridge keeps the native degraded fallback contract but removes external_bootstrap_builder until a protocol-boundary trust verdict confirms that the fallback preserves the requested scope and identity boundary.",
+  "decision_reason": "The AGT bridge adds a bounded trust-boundary verdict on degraded fallback selection. Because the external bootstrap fallback lacks an accepted identity-scope verdict for this request, the bridge narrows the fallback set to sovereign_coder or manual operator review while preserving native lineage.",
+  "allowed_actions": [
+    "emit_command_decision_record",
+    "emit_operator_stream_event",
+    "attach_bridge_policy_verdict",
+    "fallback_to_sovereign_coder",
+    "fallback_to_manual_operator_review"
+  ],
+  "blocked_actions": [
+    "fallback_to_external_bootstrap_builder_without_trust_verdict",
+    "cloud_builder_mutation_for_disallowed_scope",
+    "replace_native_audit_lineage"
+  ],
+  "command_decision_record_ref": "config/automation-backbone/contract-registry.json#command_decision_record",
+  "operator_stream_event_ref": "config/automation-backbone/contract-registry.json#operator_stream_event"
+}

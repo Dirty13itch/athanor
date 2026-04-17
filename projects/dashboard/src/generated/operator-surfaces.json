@@ -1,8 +1,8 @@
 {
   "externalTools": [
     {
-      "canonicalDetail": null,
-      "canonicalState": "not_probed",
+      "canonicalDetail": "URLError: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1000)",
+      "canonicalState": "unreachable",
       "canonicalUrl": "https://athanor.local/builder",
       "category": "tool",
       "description": "Bounded builder front door inside the canonical Athanor command center.",
@@ -10,8 +10,8 @@
       "label": "Builder Front Door",
       "node": "DEV",
       "operatorRole": "build_system",
-      "runtimeDetail": null,
-      "runtimeState": "not_probed",
+      "runtimeDetail": "200",
+      "runtimeState": "reachable",
       "runtimeUrl": "http://dev.athanor.local:3001/builder",
       "status": "active_specialist",
       "url": "https://athanor.local/builder"
@@ -368,7 +368,7 @@
     "status": "active_production",
     "targetDeploymentMode": "containerized_service_behind_caddy"
   },
-  "generatedAt": "2026-04-17T21:38:50.759027+00:00",
+  "generatedAt": "2026-04-17T22:57:47.279249+00:00",
   "quickLinks": [
     {
       "category": "tool",
@@ -504,6 +504,6 @@
     }
   ],
   "registryUpdatedAt": "2026-04-17T22:18:00Z",
-  "runtimeObservedAt": "2026-04-17T21:38:50.759027+00:00",
+  "runtimeObservedAt": "2026-04-17T22:57:47.279249+00:00",
   "sourceOfTruth": "config/automation-backbone/operator-surface-registry.json + reports/truth-inventory/latest.json#operator_surface_probe"
 }

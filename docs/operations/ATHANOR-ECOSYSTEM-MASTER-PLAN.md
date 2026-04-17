@@ -7,7 +7,7 @@ Do not edit manually.
 
 ### Live
 
-- Athanor adopted system is `repo_safe_complete` with operator mode `active_closure`.
+- Athanor adopted system is `repo_safe_complete` with operator mode `steady_state_monitoring`.
 - Live claim rotation, queue posture, and packet inbox state are carried by `/mnt/c/Athanor/reports/truth-inventory/steady-state-live.md` and `reports/ralph-loop/latest.json`.
 - The canonical command center remains `https://athanor.local/`.
 
@@ -15,7 +15,7 @@ Do not edit manually.
 
 - Devstack turnover status is `ready_for_low_touch_execution`.
 - Devstack top packet-drafting lane is `letta-memory-plane`.
-- Atlas tracks `10` capabilities with `7` adopted and `3` concept lanes.
+- Atlas tracks `10` capabilities with `7` adopted and `2` concept lanes.
 
 ### Adopted
 
@@ -43,7 +43,7 @@ Do not edit manually.
 
 | Domain | Owner | State Class | Current State | Blockers | Next Maturity Move |
 | --- | --- | --- | --- | --- | --- |
-| `Athanor core adopted system` | `C:/Athanor` | `adopted` | Core posture is `repo_safe_complete` with `active_closure`; live claim, queue posture, and packet inbox state are intentionally carried by the ignored live operator feed and machine JSON surfaces. | none | Keep the steady-state control-plane pass green and reopen only on typed debt, packet, or validator evidence. |
+| `Athanor core adopted system` | `C:/Athanor` | `adopted` | Core posture is `repo_safe_complete` with `steady_state_monitoring`; live claim, queue posture, and packet inbox state are intentionally carried by the ignored live operator feed and machine JSON surfaces. | none | Keep the steady-state control-plane pass green and reopen only on typed debt, packet, or validator evidence. |
 | `devstack forge` | `C:/athanor-devstack` | `proving` | Turnover is `ready_for_low_touch_execution`; current top lane and packet drafting flow are carried live by the forge board and atlas surfaces. | Provider secret repair, LETTA_API_KEY, OpenHands substrate readiness | Advance the next bounded promotion lane through proof, packet, and Athanor landing surfaces without leaking build truth into runtime truth. |
 | `cluster and host substrate` | `FOUNDRY / WORKSHOP / VAULT / DEV / DESK` | `runtime` | Topology tracks `5` nodes; atlas harvest posture is `open_harvest_window` and work-economy posture is `ready`. | OpenHands substrate readiness on DESK | Keep runtime mutations packet-backed, preserve host-role clarity, and only widen pilot substrate work when a specific activation lane needs it. |
 | `operator-local systems` | `C:/Users/Shaun/.codex and C:/Codex System Config` | `local_only` | Codex System Config is the machine-level control plane, WSL-first execution is the default, and the safe-surface loop remains explicitly non-Athanor by policy. | none | Keep worktree audits, WSL tooling parity, and machine-level control proof current without letting global defaults absorb repo-local truth. |
@@ -65,8 +65,8 @@ Do not edit manually.
 | Order | Lane | Why Now | Prerequisites | Proof Surfaces | Acceptance | Rollback |
 | --- | --- | --- | --- | --- | --- | --- |
 | `1` | `Letta Memory Plane` | It is the top devstack packet-drafting lane and the clearest next memory-plane expansion path. | continuity-gain-unproven, formal_eval_run, release_tier_progression | `C:/athanor-devstack/docs/promotion-packets/letta-memory-plane.md`, `C:/athanor-devstack/docs/operations/DEVSTACK-FORGE-BOARD.md`, `C:/athanor-devstack/docs/operations/MASTER-ATLAS-REPORT.md` | Credential is present, bounded continuity benchmark passes, packet proof is updated, and the Athanor landing surfaces remain explicit and replayable. | Disable the pilot memory adapter and keep durable context on the current registry, packet, and repo-doc stack only. |
-| `2` | `Agent Governance Toolkit Policy Plane` | It is the next governance-plane candidate, but it should remain below adapter work until it proves unique value. | policy-bridge-slice-unproven, formal_eval_run, release_tier_progression | `C:/athanor-devstack/docs/promotion-packets/agent-governance-toolkit-policy-plane.md`, `C:/athanor-devstack/docs/operations/MASTER-ATLAS-REPORT.md` | A second protocol-boundary scenario demonstrates non-duplicative value, proof artifacts are updated, and a bounded Athanor landing plan exists. | Remove the AGT adapter or policy bridge and fall back to the existing Athanor approval, routing, and failure-governance contracts. |
-| `3` | `OpenHands Bounded Worker Lane` | It is the next worker-plane candidate but remains substrate-blocked until DESK can host the bounded worker path cleanly. | bounded-worker-value-unproven, formal_eval_run, release_tier_progression | `C:/athanor-devstack/docs/promotion-packets/openhands-bounded-worker-lane.md`, `C:/athanor-devstack/docs/operations/DEVSTACK-FORGE-BOARD.md` | DESK substrate is ready, the bounded-worker eval passes, and the lane can be disabled cleanly if it misbehaves. | Demote OpenHands back to research-only status, remove it from preferred lane-selection output, and keep its artifacts as devstack-only pilot evidence. |
+| `2` | `OpenHands Bounded Worker Lane` | It is the next governance-plane candidate, but it should remain below adapter work until it proves unique value. | bounded-worker-value-unproven, formal_eval_run, release_tier_progression | `C:/athanor-devstack/docs/promotion-packets/openhands-bounded-worker-lane.md`, `C:/athanor-devstack/docs/operations/MASTER-ATLAS-REPORT.md` | A second protocol-boundary scenario demonstrates non-duplicative value, proof artifacts are updated, and a bounded Athanor landing plan exists. | Demote OpenHands back to research-only status, remove it from preferred lane-selection output, and keep its artifacts as devstack-only pilot evidence. |
+| `3` | `OpenHands Bounded Worker Lane` | It is the next worker-plane candidate but remains substrate-blocked until DESK can host the bounded worker path cleanly. | OpenHands command on DESK, worker env wiring, bounded worker eval | `C:/athanor-devstack/docs/promotion-packets/openhands-bounded-worker-lane.md`, `C:/athanor-devstack/docs/operations/DEVSTACK-FORGE-BOARD.md` | DESK substrate is ready, the bounded-worker eval passes, and the lane can be disabled cleanly if it misbehaves. | Disable the worker lane and fall back to the existing manual/operator workflow. |
 
 ## Operator Model
 
