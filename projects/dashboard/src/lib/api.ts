@@ -15,6 +15,7 @@ import {
   monitoringSnapshotSchema,
   operatorTestsSnapshotSchema,
   operatorStreamResponseSchema,
+  capabilityPilotReadinessSnapshotSchema,
   operationsReadinessSnapshotSchema,
   overviewSnapshotSchema,
   judgePlaneResponseSchema,
@@ -40,6 +41,7 @@ import {
   type MonitoringSnapshot,
   type OperatorTestsSnapshot,
   type OperatorStreamResponse,
+  type CapabilityPilotReadinessSnapshot,
   type OperationsReadinessSnapshot,
   type OverviewSnapshot,
   type JudgePlaneSnapshot,
@@ -163,6 +165,14 @@ export async function getOperatorTests(): Promise<OperatorTestsSnapshot> {
     "/api/governor/operator-tests",
     { cache: "no-store" },
     operatorTestsSnapshotSchema
+  );
+}
+
+export async function getCapabilityPilotReadiness(): Promise<CapabilityPilotReadinessSnapshot> {
+  return fetchJson(
+    "/api/operator/pilot-readiness",
+    { cache: "no-store" },
+    capabilityPilotReadinessSnapshotSchema
   );
 }
 

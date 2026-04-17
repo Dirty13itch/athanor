@@ -22,6 +22,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { RichText } from "@/components/rich-text";
+import { PilotReadinessBlock } from "@/components/pilot-readiness-block";
 import { StatCard } from "@/components/stat-card";
 import { requestJson, postWithoutBody, postJson } from "@/features/workforce/helpers";
 import type { SteadyStateSnapshot } from "@/lib/contracts";
@@ -502,6 +503,8 @@ export function OperatorConsole() {
           />
         </div>
       </PageHeader>
+
+      <PilotReadinessBlock />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(21rem,0.85fr)]">
         <section className="space-y-4">

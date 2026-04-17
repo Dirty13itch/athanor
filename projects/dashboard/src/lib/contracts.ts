@@ -1672,6 +1672,70 @@ export const steadyStateReadStatusSchema = z.object({
   sourcePath: z.string().nullable().optional(),
 });
 
+export const capabilityPilotReadinessCommandCheckSchema = z.object({
+  command: z.string(),
+  availableLocally: z.boolean(),
+  inventoryStatus: z.string(),
+  inventoryVersion: z.string().nullable().optional(),
+  localPath: z.string().nullable().optional(),
+});
+
+export const capabilityPilotReadinessRecordSchema = z.object({
+  capabilityId: z.string(),
+  label: z.string(),
+  laneStatus: z.string().nullable().optional(),
+  capabilityStage: z.string().nullable().optional(),
+  hostId: z.string(),
+  readinessState: z.string(),
+  proofTier: z.string().nullable().optional(),
+  blockingReasons: z.array(z.string()),
+  commandChecks: z.array(capabilityPilotReadinessCommandCheckSchema),
+  packetPath: z.string().nullable().optional(),
+  latestEvalRunId: z.string().nullable().optional(),
+  latestEvalStatus: z.string().nullable().optional(),
+  latestEvalOutcome: z.string().nullable().optional(),
+  latestEvalAt: z.string().nullable().optional(),
+  formalEvalStatus: z.string().nullable().optional(),
+  formalEvalAt: z.string().nullable().optional(),
+  formalEvalDecisionReason: z.string().nullable().optional(),
+  formalEvalPrimaryFailureHint: z.string().nullable().optional(),
+  formalPreflightStatus: z.string().nullable().optional(),
+  formalPreflightAt: z.string().nullable().optional(),
+  formalPreflightBlockerClass: z.string().nullable().optional(),
+  formalPreflightBlockingReasons: z.array(z.string()),
+  formalPreflightMissingCommands: z.array(z.string()),
+  formalPreflightMissingEnvVars: z.array(z.string()),
+  formalPreflightMissingFixtureFiles: z.array(z.string()),
+  formalPreflightMissingResultFiles: z.array(z.string()),
+  manualReviewOutcome: z.string().nullable().optional(),
+  manualReviewSummary: z.string().nullable().optional(),
+  nextAction: z.string().nullable().optional(),
+  nextFormalGate: z.string().nullable().optional(),
+  formalRunnerSupport: z.string().nullable().optional(),
+});
+
+export const capabilityPilotReadinessSummarySchema = z.object({
+  total: z.number().int().nonnegative(),
+  formalEvalComplete: z.number().int().nonnegative(),
+  formalEvalFailed: z.number().int().nonnegative(),
+  manualReviewPending: z.number().int().nonnegative(),
+  readyForFormalEval: z.number().int().nonnegative(),
+  operatorSmokeOnly: z.number().int().nonnegative(),
+  scaffoldOnly: z.number().int().nonnegative(),
+  blocked: z.number().int().nonnegative(),
+});
+
+export const capabilityPilotReadinessSnapshotSchema = z.object({
+  generatedAt: z.string(),
+  available: z.boolean(),
+  degraded: z.boolean(),
+  detail: z.string().nullable().optional(),
+  sourceKind: z.enum(["workspace_generated_atlas", "repo_root_fallback"]).nullable().optional(),
+  sourcePath: z.string().nullable().optional(),
+  summary: capabilityPilotReadinessSummarySchema,
+  records: z.array(capabilityPilotReadinessRecordSchema),
+});
+
 export const overviewSnapshotSchema = z.object({
   generatedAt: z.string(),
   summary: z.object({
@@ -2353,6 +2417,10 @@ export type GpuSnapshot = z.infer<typeof gpuSnapshotSchema>;
 export type GpuNodeSummary = z.infer<typeof gpuNodeSummarySchema>;
 export type SteadyStateSnapshot = z.infer<typeof steadyStateSnapshotSchema>;
 export type SteadyStateReadStatus = z.infer<typeof steadyStateReadStatusSchema>;
+export type CapabilityPilotReadinessCommandCheck = z.infer<typeof capabilityPilotReadinessCommandCheckSchema>;
+export type CapabilityPilotReadinessRecord = z.infer<typeof capabilityPilotReadinessRecordSchema>;
+export type CapabilityPilotReadinessSummary = z.infer<typeof capabilityPilotReadinessSummarySchema>;
+export type CapabilityPilotReadinessSnapshot = z.infer<typeof capabilityPilotReadinessSnapshotSchema>;
 export type OverviewSnapshot = z.infer<typeof overviewSnapshotSchema>;
 export type ServicesSnapshot = z.infer<typeof servicesSnapshotSchema>;
 export type ServicesHistorySnapshot = z.infer<typeof servicesHistorySnapshotSchema>;

@@ -4,6 +4,176 @@ import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { OperatorConsole } from "./operator-console";
 
+const pilotReadinessPayload = {
+  generatedAt: "2026-04-16T15:11:19.861884+00:00",
+  available: true,
+  degraded: false,
+  detail: null,
+  sourceKind: "workspace_generated_atlas" as const,
+  sourcePath: "/mnt/c/Athanor/projects/dashboard/src/generated/master-atlas.json",
+  summary: {
+    total: 3,
+    formalEvalComplete: 0,
+    formalEvalFailed: 0,
+    manualReviewPending: 0,
+    readyForFormalEval: 0,
+    operatorSmokeOnly: 0,
+    scaffoldOnly: 0,
+    blocked: 3,
+  },
+  records: [
+    {
+      capabilityId: "letta-memory-plane",
+      label: "Letta Memory Plane",
+      laneStatus: null,
+      capabilityStage: null,
+      hostId: "desk",
+      readinessState: "blocked",
+      proofTier: "operator_smoke_plus_formal_scaffold",
+      blockingReasons: ["missing_packet", "missing_env:LETTA_API_KEY"],
+      commandChecks: [],
+      packetPath: "C:/athanor-devstack/docs/promotion-packets/letta-memory-plane.md",
+      latestEvalRunId: null,
+      latestEvalStatus: null,
+      latestEvalOutcome: null,
+      latestEvalAt: null,
+      formalEvalStatus: null,
+      formalEvalAt: null,
+      formalEvalDecisionReason: null,
+      formalEvalPrimaryFailureHint: null,
+      formalPreflightStatus: null,
+      formalPreflightAt: null,
+      formalPreflightBlockerClass: "env_wiring",
+      formalPreflightBlockingReasons: ["missing_env:LETTA_API_KEY"],
+      formalPreflightMissingCommands: [],
+      formalPreflightMissingEnvVars: ["LETTA_API_KEY"],
+      formalPreflightMissingFixtureFiles: [],
+      formalPreflightMissingResultFiles: [],
+      manualReviewOutcome: null,
+      manualReviewSummary: null,
+      nextAction: "Wire LETTA_API_KEY, run the bounded continuity benchmark, and keep replayability and pruning explicit.",
+      nextFormalGate: "Wire the required formal-eval env vars: `LETTA_API_KEY`.",
+      formalRunnerSupport: null,
+    },
+    {
+      capabilityId: "openhands-bounded-worker-lane",
+      label: "OpenHands Bounded Worker Lane",
+      laneStatus: null,
+      capabilityStage: null,
+      hostId: "desk",
+      readinessState: "blocked",
+      proofTier: "blocked",
+      blockingReasons: [
+        "missing_command:openhands",
+        "missing_packet",
+        "missing_env:OPENAI_API_KEY",
+        "missing_env:PROMPTFOO_OPENHANDS_CMD",
+        "missing_env:PROMPTFOO_OPENHANDS_ARGS_JSON",
+      ],
+      commandChecks: [],
+      packetPath: "C:/athanor-devstack/docs/promotion-packets/openhands-bounded-worker-lane.md",
+      latestEvalRunId: null,
+      latestEvalStatus: null,
+      latestEvalOutcome: null,
+      latestEvalAt: null,
+      formalEvalStatus: null,
+      formalEvalAt: null,
+      formalEvalDecisionReason: null,
+      formalEvalPrimaryFailureHint: null,
+      formalPreflightStatus: null,
+      formalPreflightAt: null,
+      formalPreflightBlockerClass: "missing_command",
+      formalPreflightBlockingReasons: ["missing_command:openhands"],
+      formalPreflightMissingCommands: ["openhands"],
+      formalPreflightMissingEnvVars: ["OPENAI_API_KEY"],
+      formalPreflightMissingFixtureFiles: [],
+      formalPreflightMissingResultFiles: [],
+      manualReviewOutcome: null,
+      manualReviewSummary: null,
+      nextAction: "Expose the OpenHands command on DESK, clear the worker env wiring, and run the bounded-worker eval.",
+      nextFormalGate: "Install or expose `openhands` on the preferred pilot host.",
+      formalRunnerSupport: null,
+    },
+    {
+      capabilityId: "agent-governance-toolkit-policy-plane",
+      label: "Agent Governance Toolkit Policy Plane",
+      laneStatus: null,
+      capabilityStage: null,
+      hostId: "desk",
+      readinessState: "blocked",
+      proofTier: "formal_eval_failed",
+      blockingReasons: ["missing_packet"],
+      commandChecks: [],
+      packetPath: "C:/athanor-devstack/docs/promotion-packets/agent-governance-toolkit-policy-plane.md",
+      latestEvalRunId: null,
+      latestEvalStatus: null,
+      latestEvalOutcome: null,
+      latestEvalAt: null,
+      formalEvalStatus: "failed",
+      formalEvalAt: null,
+      formalEvalDecisionReason: null,
+      formalEvalPrimaryFailureHint: null,
+      formalPreflightStatus: null,
+      formalPreflightAt: null,
+      formalPreflightBlockerClass: null,
+      formalPreflightBlockingReasons: [],
+      formalPreflightMissingCommands: [],
+      formalPreflightMissingEnvVars: [],
+      formalPreflightMissingFixtureFiles: [],
+      formalPreflightMissingResultFiles: [],
+      manualReviewOutcome: "rejected_as_redundant_for_current_stack",
+      manualReviewSummary: "Current narrow approval-held mutation bundle does not prove non-duplicative operational value.",
+      nextAction: "Leave this lane below adapter work on the current manual review, and only reopen it if a second protocol-boundary scenario proves unique value over native Athanor policy.",
+      nextFormalGate: "Keep this lane below adapter work unless a second protocol-boundary scenario shows non-duplicative value over native Athanor policy.",
+      formalRunnerSupport: null,
+    },
+  ],
+};
+
+vi.mock("@/generated/master-atlas.json", () => ({
+  default: {
+    capability_pilot_readiness: {
+      generated_at: "2026-04-16T15:11:19.861884+00:00",
+      records: [
+        {
+          capability_id: "letta-memory-plane",
+          label: "Letta Memory Plane",
+          readiness_state: "blocked",
+          blocking_reasons: ["missing_packet", "missing_env:LETTA_API_KEY"],
+          next_action: "Wire LETTA_API_KEY, run the bounded continuity benchmark, and keep replayability and pruning explicit.",
+          next_formal_gate: "Wire the required formal-eval env vars: `LETTA_API_KEY`.",
+          proof_tier: "operator_smoke_plus_formal_scaffold",
+        },
+        {
+          capability_id: "openhands-bounded-worker-lane",
+          label: "OpenHands Bounded Worker Lane",
+          readiness_state: "blocked",
+          blocking_reasons: [
+            "missing_command:openhands",
+            "missing_packet",
+            "missing_env:OPENAI_API_KEY",
+            "missing_env:PROMPTFOO_OPENHANDS_CMD",
+            "missing_env:PROMPTFOO_OPENHANDS_ARGS_JSON",
+          ],
+          next_action: "Expose the OpenHands command on DESK, clear the worker env wiring, and run the bounded-worker eval.",
+          next_formal_gate: "Install or expose `openhands` on the preferred pilot host.",
+          proof_tier: "blocked",
+        },
+        {
+          capability_id: "agent-governance-toolkit-policy-plane",
+          label: "Agent Governance Toolkit Policy Plane",
+          readiness_state: "blocked",
+          blocking_reasons: ["missing_packet"],
+          next_action: "Leave this lane below adapter work on the current manual review, and only reopen it if a second protocol-boundary scenario proves unique value over native Athanor policy.",
+          next_formal_gate: "Keep this lane below adapter work unless a second protocol-boundary scenario shows non-duplicative value over native Athanor policy.",
+          proof_tier: "formal_eval_failed",
+          manual_review_outcome: "rejected_as_redundant_for_current_stack",
+        },
+      ],
+    },
+  },
+}));
+
 const { requestJson, postWithoutBody, postJson } = vi.hoisted(() => ({
   requestJson: vi.fn(),
   postWithoutBody: vi.fn(),
@@ -109,6 +279,10 @@ describe("OperatorConsole", () => {
         };
       }
 
+      if (url === "/api/operator/pilot-readiness") {
+        return pilotReadinessPayload;
+      }
+
       if (url === "/api/master-atlas") {
         return {
           generated_at: "2026-04-13T08:01:42.197539+00:00",
@@ -196,7 +370,10 @@ describe("OperatorConsole", () => {
     expect(screen.getAllByText(/No action needed/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/workspace report/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Cheap Bulk Cloud/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Letta Memory Plane/i).length).toBeGreaterThan(0);
+    expect(await screen.findByText(/Pilot readiness/i)).toBeInTheDocument();
+    expect((await screen.findAllByText(/Letta Memory Plane/i)).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(/OpenHands Bounded Worker Lane/i)).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(/Agent Governance Toolkit Policy Plane/i)).length).toBeGreaterThan(0);
     expect(await screen.findByText(/Advance GPU scheduler packet after verifying the rollout evidence\./i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Open Routing/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Open Topology/i })).toBeInTheDocument();
@@ -244,6 +421,15 @@ describe("OperatorConsole", () => {
         };
       }
 
+      if (url === "/api/operator/pilot-readiness") {
+        return {
+          ...pilotReadinessPayload,
+          available: false,
+          degraded: true,
+          detail: "Capability pilot readiness feed is unavailable.",
+        };
+      }
+
       return {};
     });
 
@@ -280,6 +466,10 @@ describe("OperatorConsole", () => {
             failed_historical_repaired: 0,
           },
         };
+      }
+
+      if (url === "/api/operator/pilot-readiness") {
+        return pilotReadinessPayload;
       }
 
       if (url === "/api/master-atlas") {
@@ -360,6 +550,10 @@ describe("OperatorConsole", () => {
             sourcePath: "/tmp/steady-state-status.json",
           },
         };
+      }
+
+      if (url === "/api/operator/pilot-readiness") {
+        return pilotReadinessPayload;
       }
 
       if (url === "/api/master-atlas") {

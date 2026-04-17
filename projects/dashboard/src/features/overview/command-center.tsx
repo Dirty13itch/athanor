@@ -16,6 +16,7 @@ import { getOverview } from "@/lib/api";
 import type { OverviewSnapshot } from "@/lib/contracts";
 import { formatPercent, formatRelativeTime } from "@/lib/format";
 import { LIVE_REFRESH_INTERVALS, liveQueryOptions } from "@/lib/live-updates";
+import { PilotReadinessBlock } from "@/components/pilot-readiness-block";
 import type { MasterAtlasRelationshipMap } from "@/lib/master-atlas";
 import { queryKeys } from "@/lib/query-client";
 import { buildSteadyStateDecisionSummary } from "@/lib/steady-state-summary";
@@ -809,6 +810,8 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
           </div>
         </div>
       </section>
+
+      <PilotReadinessBlock compact />
 
       <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
         <section className="surface-panel overflow-hidden rounded-[1.25rem] border">
