@@ -76,6 +76,60 @@ def test_report_check_ignores_vault_audit_timestamp_only_drift() -> None:
     )
 
 
+def test_operator_surface_artifact_check_ignores_runtime_timestamp_only_drift() -> None:
+    module = _load_module(
+        f"truth_inventory_report_contracts_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "generate_truth_inventory_reports.py",
+    )
+    existing = json.dumps(
+        {
+            "frontDoor": {"id": "athanor_command_center"},
+            "generatedAt": "2026-03-29T05:31:46.726811+00:00",
+            "runtimeObservedAt": "2026-03-29T05:31:46.726811+00:00",
+        },
+        indent=2,
+        sort_keys=True,
+    ) + "\n"
+    rendered = json.dumps(
+        {
+            "frontDoor": {"id": "athanor_command_center"},
+            "generatedAt": "2026-03-29T06:58:00.000000+00:00",
+            "runtimeObservedAt": "2026-03-29T06:58:00.000000+00:00",
+        },
+        indent=2,
+        sort_keys=True,
+    ) + "\n"
+
+    assert module._artifact_is_stale("operator_surfaces", existing=existing, rendered=rendered) is False
+
+
+def test_operator_surface_artifact_check_still_flags_real_content_drift() -> None:
+    module = _load_module(
+        f"truth_inventory_report_contracts_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "generate_truth_inventory_reports.py",
+    )
+    existing = json.dumps(
+        {
+            "frontDoor": {"id": "athanor_command_center"},
+            "generatedAt": "2026-03-29T05:31:46.726811+00:00",
+            "runtimeObservedAt": "2026-03-29T05:31:46.726811+00:00",
+        },
+        indent=2,
+        sort_keys=True,
+    ) + "\n"
+    rendered = json.dumps(
+        {
+            "frontDoor": {"id": "another_surface"},
+            "generatedAt": "2026-03-29T06:58:00.000000+00:00",
+            "runtimeObservedAt": "2026-03-29T06:58:00.000000+00:00",
+        },
+        indent=2,
+        sort_keys=True,
+    ) + "\n"
+
+    assert module._artifact_is_stale("operator_surfaces", existing=existing, rendered=rendered) is True
+
+
 def test_generated_local_git_ignore_paths_include_publication_loop_outputs() -> None:
     module = _load_module(
         f"truth_inventory_report_contracts_{uuid.uuid4().hex}",

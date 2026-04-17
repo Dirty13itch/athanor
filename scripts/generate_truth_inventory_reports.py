@@ -228,6 +228,14 @@ VOLATILE_REPORT_LINE_PREFIXES: dict[str, tuple[str, ...]] = {
 }
 
 
+VOLATILE_ARTIFACT_JSON_KEYS: dict[str, tuple[str, ...]] = {
+    "operator_surfaces": (
+        "generatedAt",
+        "runtimeObservedAt",
+    ),
+}
+
+
 def _slash_path(value: str | None) -> str:
     if not value:
         return ""
@@ -464,6 +472,27 @@ def _normalize_report_for_check(report_id: str, text: str) -> str:
 
 def _report_is_stale(report_id: str, *, existing: str, rendered: str) -> bool:
     return _normalize_report_for_check(report_id, existing) != _normalize_report_for_check(report_id, rendered)
+
+
+def _normalize_artifact_for_check(report_id: str, text: str) -> str:
+    normalized = text.replace("\r\n", "\n")
+    volatile_keys = VOLATILE_ARTIFACT_JSON_KEYS.get(report_id)
+    if not volatile_keys:
+        return normalized
+    try:
+        payload = json.loads(normalized)
+    except json.JSONDecodeError:
+        return normalized
+    if not isinstance(payload, dict):
+        return normalized
+    for key in volatile_keys:
+        if key in payload:
+            payload[key] = "<volatile>"
+    return json.dumps(payload, indent=2, sort_keys=True) + "\n"
+
+
+def _artifact_is_stale(report_id: str, *, existing: str, rendered: str) -> bool:
+    return _normalize_artifact_for_check(report_id, existing) != _normalize_artifact_for_check(report_id, rendered)
 
 
 def _tooling_provider_index(tooling: dict[str, Any]) -> dict[str, list[dict[str, str]]]:
@@ -4354,15 +4383,15 @@ def main() -> int:
     for report_id in report_ids:
         output_path = REPORT_PATHS[report_id]
         rendered = REPORT_RENDERERS[report_id]()
+        existing = (
+            output_path.read_text(encoding="utf-8").replace("\r\n", "\n")
+            if output_path.exists()
+            else ""
+        )
         if args.check:
-            existing = (
-                output_path.read_text(encoding="utf-8").replace("\r\n", "\n")
-                if output_path.exists()
-                else ""
-            )
             if _report_is_stale(report_id, existing=existing, rendered=rendered):
                 stale.append(output_path.relative_to(REPO_ROOT).as_posix())
-        else:
+        elif _report_is_stale(report_id, existing=existing, rendered=rendered):
             output_path.write_text(rendered, encoding="utf-8", newline="\n")
             print(f"Wrote {output_path.relative_to(REPO_ROOT).as_posix()}")
 
@@ -4371,18 +4400,19 @@ def main() -> int:
             continue
         artifact_path, render_artifact = artifact_renderer
         rendered_artifact = render_artifact()
+        existing_artifact = (
+            artifact_path.read_text(encoding="utf-8").replace("\r\n", "\n")
+            if artifact_path.exists()
+            else ""
+        )
         if args.check:
-            existing_artifact = (
-                artifact_path.read_text(encoding="utf-8").replace("\r\n", "\n")
-                if artifact_path.exists()
-                else ""
-            )
-            if existing_artifact != rendered_artifact:
+            if _artifact_is_stale(report_id, existing=existing_artifact, rendered=rendered_artifact):
                 stale.append(artifact_path.relative_to(REPO_ROOT).as_posix())
             continue
-        artifact_path.parent.mkdir(parents=True, exist_ok=True)
-        artifact_path.write_text(rendered_artifact, encoding="utf-8", newline="\n")
-        print(f"Wrote {artifact_path.relative_to(REPO_ROOT).as_posix()}")
+        if _artifact_is_stale(report_id, existing=existing_artifact, rendered=rendered_artifact):
+            artifact_path.parent.mkdir(parents=True, exist_ok=True)
+            artifact_path.write_text(rendered_artifact, encoding="utf-8", newline="\n")
+            print(f"Wrote {artifact_path.relative_to(REPO_ROOT).as_posix()}")
 
     if stale:
         for path in stale:
