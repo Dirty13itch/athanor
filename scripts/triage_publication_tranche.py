@@ -15,6 +15,7 @@ LOCAL_NOISE_HINTS = [
     ".letta/",
     "evals/.letta/",
     "output/",
+    ".data/builder-runs/",
     "__pycache__/",
     ".pytest_cache/",
     "node_modules/",

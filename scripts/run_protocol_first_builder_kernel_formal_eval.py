@@ -22,6 +22,8 @@ DASHBOARD_DIR = REPO_ROOT / "projects" / "dashboard"
 FORMAL_TEST_PATH = DASHBOARD_DIR / "src" / "lib" / "builder-kernel-formal-eval.test.ts"
 LIVE_ROUTE_TEST_PATH = DASHBOARD_DIR / "src" / "lib" / "builder-kernel-live-route.test.ts"
 SMOKE_TARGET_PATH = "projects/dashboard/PROTOCOL_FIRST_BUILDER_KERNEL_FORMAL_EVAL.md"
+EXPECTED_RUNTIME_OWNERSHIP_LANES = ["dev-dashboard-compose"]
+EXPECTED_RUNTIME_PACKET_IDS = ["dev-dashboard-compose-deploy-packet"]
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -116,6 +118,20 @@ def _check_bootstrap_takeover_explicit() -> dict[str, bool]:
     }
 
 
+def _check_runtime_linkage(capability: dict[str, Any]) -> dict[str, Any]:
+    runtime_ownership_lanes = [str(item) for item in capability.get("runtime_ownership_lanes", []) if str(item).strip()]
+    runtime_packet_ids = [str(item) for item in capability.get("runtime_packet_ids", []) if str(item).strip()]
+    return {
+        "runtime_ownership_lanes": runtime_ownership_lanes,
+        "runtime_packet_ids": runtime_packet_ids,
+        "expected_runtime_ownership_lanes": EXPECTED_RUNTIME_OWNERSHIP_LANES,
+        "expected_runtime_packet_ids": EXPECTED_RUNTIME_PACKET_IDS,
+        "dashboard_rollout_path_bound": all(
+            item in runtime_ownership_lanes for item in EXPECTED_RUNTIME_OWNERSHIP_LANES
+        ) and all(item in runtime_packet_ids for item in EXPECTED_RUNTIME_PACKET_IDS),
+    }
+
+
 def _write_report(report: dict[str, Any]) -> None:
     dump_json(OUTPUT_PATH, report)
     append_history(
@@ -170,7 +186,7 @@ def _update_registries(
     run["task_class"] = "builder_kernel_boundary_eval"
     run["source_safe_remaining"] = [
         "Keep Codex and Claude external bootstrap builders live until the takeover-promotion-check family is explicitly green and operator-reviewed.",
-        "Keep runtime packet linkage pending until a bounded builder runtime packet exists for wider adoption.",
+        "Keep dev-dashboard-compose-deploy-packet as the only bounded builder rollout path until a distinct runtime owner or rollback surface justifies a separate packet.",
     ]
 
     proof_artifacts = _dedupe_paths(
@@ -208,6 +224,7 @@ def main() -> int:
     run = _find_run(eval_payload, RUN_ID)
     capability = _find_capability(capability_payload, "protocol-first-builder-kernel")
     bootstrap_checks = _check_bootstrap_takeover_explicit()
+    runtime_linkage = _check_runtime_linkage(capability)
 
     if LIVE_ROUTE_OUTPUT_PATH.exists():
         LIVE_ROUTE_OUTPUT_PATH.unlink()
@@ -274,17 +291,18 @@ def main() -> int:
         "dashboard_file_accounted_for": SMOKE_TARGET_PATH in changed_files,
         "operational_residue_scrubbed": ".codex" not in changed_files,
         "bootstrap_takeover_still_explicit": all(bootstrap_checks.values()),
+        "runtime_packet_linkage_bound": bool(runtime_linkage.get("dashboard_rollout_path_bound")),
     }
     blocking_reasons = [name for name, passed in checks.items() if not passed]
     promotion_eval_status = "passed" if not blocking_reasons else "blocked"
     promotion_validity = "valid" if promotion_eval_status == "passed" else "requires_formal_eval_run"
     summary = (
-        "Builder kernel formal eval is green: the direct live route passed TSC-backed verification, fail-closed routing checks held, operator projections stayed coherent, and bootstrap takeover remains explicit."
+        "Builder kernel formal eval is green: the direct live route passed TSC-backed verification, fail-closed routing checks held, operator projections stayed coherent, bootstrap takeover remains explicit, and the dashboard deploy packet is now the bounded rollout path."
         if promotion_eval_status == "passed"
         else "Builder kernel formal eval remains blocked until the direct live route, fail-closed routing checks, and bootstrap boundaries all pass together."
     )
     report = {
-        "version": "2026-04-17.4",
+        "version": "2026-04-17.5",
         "generated_at": now,
         "source_of_truth": OUTPUT_PATH.as_posix(),
         "initiative_id": "protocol-first-builder-kernel",
@@ -296,6 +314,7 @@ def main() -> int:
         "live_route_artifact_path": LIVE_ROUTE_OUTPUT_PATH.as_posix(),
         "live_route": live_payload,
         "bootstrap_checks": bootstrap_checks,
+        "runtime_linkage": runtime_linkage,
         "fast_formal_vitest": {
             "returncode": formal_completed.returncode,
             "stdout": formal_completed.stdout.strip(),
@@ -310,7 +329,7 @@ def main() -> int:
         },
         "summary": summary,
         "next_action": (
-            "Carry the shadow-tier builder proof through packet review and bind a bounded runtime packet before any wider builder takeover decision."
+            "Carry the linked builder proof through operator packet review and an explicit dashboard deploy decision before any wider builder takeover or release-tier advance."
             if promotion_eval_status == "passed"
             else "Fix the blocked builder-kernel formal-eval checks and rerun the bounded builder promotion eval."
         ),

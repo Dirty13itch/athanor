@@ -79,6 +79,7 @@ def test_build_triage_bundle_prefers_specific_slice_hints_and_classifies_deferre
         {'status': ' M', 'path': 'projects/dashboard/src/app/page.tsx'},
         {'status': '??', 'path': '.claude/hooks/session-start.sh'},
         {'status': '??', 'path': 'output/local.json'},
+        {'status': '??', 'path': '.data/builder-runs/session-1/codex-events.jsonl'},
         {'status': '??', 'path': 'misc/unclassified.txt'},
     ]
     monkeypatch.setattr(module, '_git_status_entries', lambda _repo_root: entries)
@@ -92,7 +93,7 @@ def test_build_triage_bundle_prefers_specific_slice_hints_and_classifies_deferre
     assert slices['forge']['match_count'] == 1
     assert deferred_families['operator-tooling']['match_count'] == 1
     assert bundle['summary']['ambiguous_entries'] == 0
-    assert bundle['summary']['local_noise_entries'] == 1
+    assert bundle['summary']['local_noise_entries'] == 2
     assert bundle['summary']['unclassified_entries'] == 1
 
 

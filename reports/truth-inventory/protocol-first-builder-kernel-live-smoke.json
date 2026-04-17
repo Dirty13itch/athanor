@@ -1,10 +1,10 @@
 {
-  "session_id": "builder-995e6c74-3bd5-4a78-9f96-a2c8734e8627",
+  "session_id": "builder-fd5f9898-2a14-447b-97f0-9907162b011f",
   "final_status": "completed",
   "verification_status": "passed",
-  "resumable_handle": "019d9ce0-375c-7103-885f-8efd5744a041",
+  "resumable_handle": "019d9cf4-6369-7ff2-bf31-6bb92c71508c",
   "target_relative_path": "projects/dashboard/PROTOCOL_FIRST_BUILDER_KERNEL_FORMAL_EVAL.md",
-  "target_file": "/tmp/athanor-builder-live-formal-eval-FUvg71/worktrees/builder-995e6c74-3bd5-4a78-9f96-a2c8734e8627/projects/dashboard/PROTOCOL_FIRST_BUILDER_KERNEL_FORMAL_EVAL.md",
+  "target_file": "/tmp/athanor-builder-live-formal-eval-N5kK0r/worktrees/builder-fd5f9898-2a14-447b-97f0-9907162b011f/projects/dashboard/PROTOCOL_FIRST_BUILDER_KERNEL_FORMAL_EVAL.md",
   "target_body": "Builder formal eval succeeded.",
   "files_changed": [
     "projects/dashboard/PROTOCOL_FIRST_BUILDER_KERNEL_FORMAL_EVAL.md"
@@ -14,7 +14,7 @@
       "id": "targeted_tests_or_build",
       "label": "targeted tests or build",
       "status": "passed",
-      "detail": "Type-check dashboard changes. Passed in 16.9s."
+      "detail": "Type-check dashboard changes. Passed in 16.5s."
     },
     {
       "id": "diff_review",
@@ -33,7 +33,7 @@
     "id": "targeted_tests_or_build",
     "label": "targeted tests or build",
     "status": "passed",
-    "detail": "Type-check dashboard changes. Passed in 16.9s."
+    "detail": "Type-check dashboard changes. Passed in 16.5s."
   },
   "remaining_risks": []
 }

@@ -469,7 +469,8 @@
         "The first proof step is a bounded route slice rather than a broad control-plane rewrite.",
         "The 2026-04-17 bounded live smoke proved builder:codex:direct_cli end to end with approval gating, a resumable handle, structured result transport, and passing verification.",
         "Builder-generated `.codex` residue is scrubbed from user-facing changed-file accounting before the final ResultPacket is published.",
-        "The 2026-04-17 formal builder eval proved the direct builder route with TSC-backed verification, fail-closed negative routing, coherent operator projections, and explicit non-takeover bootstrap posture."
+        "The 2026-04-17 formal builder eval proved the direct builder route with TSC-backed verification, fail-closed negative routing, coherent operator projections, and explicit non-takeover bootstrap posture.",
+        "The governed runtime path for live builder-front-door rollout is the existing dev-dashboard-compose lane and dev-dashboard-compose-deploy-packet; no builder-specific runtime packet is required yet."
       ],
       "owner": "shaun",
       "pilot_blocker_class": null,
@@ -485,12 +486,12 @@
       "release_tier": "shadow",
       "rollback_or_disable_path": "Demote the builder kernel back to devstack-only proof artifacts and preserve the existing Athanor shell and routing surfaces without adopting a new control layer.",
       "runtime_ownership_lanes": [
-        "pending"
+        "dev-dashboard-compose"
       ],
       "runtime_packet_ids": [
-        "pending"
+        "dev-dashboard-compose-deploy-packet"
       ],
-      "runtime_target": "Athanor builder front door, routing kernel, worker selection, and verification orchestration",
+      "runtime_target": "Athanor builder front door, routing kernel, worker selection, and verification orchestration delivered through the governed dashboard compose lane",
       "source_artifacts": [
         "C:/athanor-devstack/docs/DEVSTACK-BUILDER-ARCHITECTURE-BRIEF.md",
         "C:/athanor-devstack/configs/devstack-builder-adapter-routing-matrix.json",
@@ -650,6 +651,6 @@
   "promotion_contract": "promotion_packet",
   "source_of_truth": "config/automation-backbone/capability-adoption-registry.json",
   "status": "active",
-  "updated_at": "2026-04-17T19:16:07.754081+00:00",
+  "updated_at": "2026-04-17T19:38:11.399766+00:00",
   "version": "2026-04-15.1"
 }

@@ -1,6 +1,6 @@
 {
   "version": "2026-04-15.1",
-  "generated_at": "2026-04-17T19:19:03.352514+00:00",
+  "generated_at": "2026-04-17T19:32:04.172477+00:00",
   "status": "active",
   "source_of_truth": {
     "lane_registry": "configs/devstack-capability-lane-registry.json",
@@ -27,7 +27,7 @@
     }
   ],
   "readiness_ledger": {
-    "generated_at": "2026-04-17T19:19:03.351372+00:00",
+    "generated_at": "2026-04-17T19:32:04.171346+00:00",
     "records": [
       {
         "capability_id": "agent-gateway-layer",
@@ -414,22 +414,22 @@
         "affected_namespaces": [],
         "packet_status": "ready_for_review",
         "release_tier": "offline_eval",
-        "runtime_rollout_state": "not_linked",
+        "runtime_rollout_state": "linked_not_live",
         "proof_state": "evidence_only",
         "approval_state": "operator_review_required_before_adoption",
         "membrane_status": "aligned_to_athanor",
         "blocker_state": "blocked",
         "implementable_now": false,
-        "blocking_gate": "release_tier_progression",
+        "blocking_gate": "operator_review_release_tier_progression",
         "missing_proof": [
-          "release_tier_progression"
+          "operator_review_release_tier_progression"
         ],
-        "next_action": "Review the proved bounded route, bind a real runtime packet id, and only then decide whether shadow-tier promotion is admissible without widening beyond builder:codex:direct_cli.",
+        "next_action": "Use dev-dashboard-compose-deploy-packet as the bounded rollout path, complete operator packet review, and only then decide whether shadow-tier promotion is admissible without widening beyond builder:codex:direct_cli.",
         "source_safe_remaining": [],
         "approval_gated_remaining": [],
-        "runtime_target": "Athanor builder front door, routing kernel, worker selection, and verification orchestration",
+        "runtime_target": "Athanor builder front door, routing kernel, worker selection, and verification orchestration delivered through the governed dashboard compose lane",
         "runtime_packet_ids": [
-          "pending"
+          "dev-dashboard-compose-deploy-packet"
         ],
         "eval_run_ids": [
           "protocol-first-builder-kernel-eval-2026q2"
@@ -442,7 +442,8 @@
           "The first proof step is a bounded route slice rather than a broad control-plane rewrite.",
           "The 2026-04-17 bounded live smoke proved builder:codex:direct_cli end to end with approval gating, a resumable handle, structured result transport, and passing verification.",
           "Builder-generated `.codex` residue is scrubbed from user-facing changed-file accounting before the final ResultPacket is published.",
-          "The 2026-04-17 formal builder eval proved the direct builder route with TSC-backed verification, fail-closed negative routing, coherent operator projections, and explicit non-takeover bootstrap posture."
+          "The 2026-04-17 formal builder eval proved the direct builder route with TSC-backed verification, fail-closed negative routing, coherent operator projections, and explicit non-takeover bootstrap posture.",
+          "The governed runtime path for live builder-front-door rollout is the existing dev-dashboard-compose lane and dev-dashboard-compose-deploy-packet; no builder-specific runtime packet is required yet."
         ]
       },
       {
@@ -710,9 +711,9 @@
       "admissibility_state": "blocked",
       "may_execute_automatically_now": false,
       "blocked_by": [
-        "release_tier_not_advanced"
+        "operator_review_release_tier_progression"
       ],
-      "runtime_target": "Athanor builder front door, routing kernel, worker selection, and verification orchestration"
+      "runtime_target": "Athanor builder front door, routing kernel, worker selection, and verification orchestration delivered through the governed dashboard compose lane"
     },
     {
       "packet_id": "watchdog-runtime-guard-promotion-packet",
@@ -3558,7 +3559,7 @@
     ]
   },
   "governance_confidence": {
-    "generated_at": "2026-04-17T19:19:03.351277+00:00",
+    "generated_at": "2026-04-17T19:32:04.171251+00:00",
     "current_autonomy_phase": "full_system_phase_3",
     "freshness_window_days": 30,
     "overall_status": "healthy",
@@ -3615,7 +3616,7 @@
     ]
   },
   "turnover_readiness": {
-    "generated_at": "2026-04-17T19:19:03.352388+00:00",
+    "generated_at": "2026-04-17T19:32:04.172352+00:00",
     "current_mode": "devstack_primary_for_build_proving_and_shadow",
     "target_mode": "local_devstack_primary_for_low_touch_execution",
     "build_system_handoff_state": "active_now",
@@ -4203,7 +4204,7 @@
       "recommendation_id": "best-next-implementation-wave",
       "subject": "protocol-first-builder-kernel",
       "summary": "Finish the highest-priority ready-for-review lane first.",
-      "reason": "release_tier_progression",
+      "reason": "operator_review_release_tier_progression",
       "evidence_refs": [
         "C:/athanor-devstack/configs/devstack-capability-lane-registry.json",
         "C:/athanor-devstack/docs/promotion-packets/protocol-first-builder-kernel.md"
@@ -4240,9 +4241,9 @@
     },
     {
       "recommendation_id": "best-next-cleanup-pass",
-      "subject": "release_tier_progression",
+      "subject": "formal_eval_run",
       "summary": "Clean up the highest-frequency readiness gap before widening automation.",
-      "reason": "The most common missing readiness evidence right now is `release_tier_progression`.",
+      "reason": "The most common missing readiness evidence right now is `formal_eval_run`.",
       "evidence_refs": [
         "C:/athanor-devstack/reports/master-atlas/readiness-ledger.json"
       ]
@@ -5486,7 +5487,8 @@
           "The first proof step is a bounded route slice rather than a broad control-plane rewrite.",
           "The 2026-04-17 bounded live smoke proved builder:codex:direct_cli end to end with approval gating, a resumable handle, structured result transport, and passing verification.",
           "Builder-generated `.codex` residue is scrubbed from user-facing changed-file accounting before the final ResultPacket is published.",
-          "The 2026-04-17 formal builder eval proved the direct builder route with TSC-backed verification, fail-closed negative routing, coherent operator projections, and explicit non-takeover bootstrap posture."
+          "The 2026-04-17 formal builder eval proved the direct builder route with TSC-backed verification, fail-closed negative routing, coherent operator projections, and explicit non-takeover bootstrap posture.",
+          "The governed runtime path for live builder-front-door rollout is the existing dev-dashboard-compose lane and dev-dashboard-compose-deploy-packet; no builder-specific runtime packet is required yet."
         ],
         "owner": "shaun",
         "pilot_blocker_class": null,
@@ -5502,12 +5504,12 @@
         "release_tier": "shadow",
         "rollback_or_disable_path": "Demote the builder kernel back to devstack-only proof artifacts and preserve the existing Athanor shell and routing surfaces without adopting a new control layer.",
         "runtime_ownership_lanes": [
-          "pending"
+          "dev-dashboard-compose"
         ],
         "runtime_packet_ids": [
-          "pending"
+          "dev-dashboard-compose-deploy-packet"
         ],
-        "runtime_target": "Athanor builder front door, routing kernel, worker selection, and verification orchestration",
+        "runtime_target": "Athanor builder front door, routing kernel, worker selection, and verification orchestration delivered through the governed dashboard compose lane",
         "source_artifacts": [
           "C:/athanor-devstack/docs/DEVSTACK-BUILDER-ARCHITECTURE-BRIEF.md",
           "C:/athanor-devstack/configs/devstack-builder-adapter-routing-matrix.json",
@@ -9247,7 +9249,7 @@
     }
   ],
   "router_shadow_summary": {
-    "generated_at": "2026-04-17T19:19:03.352274+00:00",
+    "generated_at": "2026-04-17T19:32:04.172243+00:00",
     "phase": 1,
     "phase_label": "router_shadow_mode",
     "shadow_disagreement_rate": 0.0,
@@ -9257,11 +9259,11 @@
     "ready_for_phase_2": true
   },
   "routing_decisions_latest": {
-    "generated_at": "2026-04-17T19:19:03.352479+00:00",
+    "generated_at": "2026-04-17T19:32:04.172443+00:00",
     "alert_state": "warning",
     "active_override_count": 0,
     "quota_posture": {
-      "generated_at": "2026-04-17T19:19:03.352461+00:00",
+      "generated_at": "2026-04-17T19:32:04.172425+00:00",
       "quota_posture": "max_burn_with_thin_reserve",
       "respect_vendor_policy_before_harvest": true,
       "other_metered_disabled_for_auto_harvest_by_default": true,
@@ -9314,7 +9316,7 @@
       }
     },
     "router_shadow_summary": {
-      "generated_at": "2026-04-17T19:19:03.352274+00:00",
+      "generated_at": "2026-04-17T19:32:04.172243+00:00",
       "phase": 1,
       "phase_label": "router_shadow_mode",
       "shadow_disagreement_rate": 0.0,
@@ -9998,7 +10000,7 @@
     }
   ],
   "dashboard_summary": {
-    "generated_at": "2026-04-17T19:19:03.352498+00:00",
+    "generated_at": "2026-04-17T19:32:04.172461+00:00",
     "capability_count": 10,
     "adopted_count": 6,
     "packet_ready_count": 1,
@@ -10008,7 +10010,7 @@
     "governance_posture": "healthy",
     "governance_blocker_count": 0,
     "governance_blockers": [],
-    "top_missing_proof": "release_tier_progression",
+    "top_missing_proof": "formal_eval_run",
     "best_next_implementation_wave": "protocol-first-builder-kernel",
     "best_next_promotion_candidate": "protocol-first-builder-kernel",
     "turnover_status": "ready_for_low_touch_execution",
@@ -10098,7 +10100,7 @@
         "id": "best-next-implementation-wave",
         "subject": "protocol-first-builder-kernel",
         "summary": "Finish the highest-priority ready-for-review lane first.",
-        "reason": "release_tier_progression"
+        "reason": "operator_review_release_tier_progression"
       },
       {
         "id": "best-next-promotion-candidate",

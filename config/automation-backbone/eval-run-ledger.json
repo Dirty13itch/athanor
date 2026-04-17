@@ -322,7 +322,7 @@
         "judge_role": "judge_verifier",
         "policy_class": "private_but_cloud_allowed"
       },
-      "last_run_at": "2026-04-17T19:16:07.754081+00:00",
+      "last_run_at": "2026-04-17T19:38:11.399766+00:00",
       "linked_promotion_packet": "C:/athanor-devstack/docs/promotion-packets/protocol-first-builder-kernel.md",
       "notes": [
         "This run proves only the bounded Codex direct-CLI builder slice; it does not silently promote a general internal builder takeover.",
@@ -330,13 +330,14 @@
         "2026-04-17T18:48:29.819600+00:00: Builder kernel formal eval remains blocked until the live route, fail-closed routing checks, and bootstrap boundaries all pass together.",
         "2026-04-17T19:02:18.295741+00:00: Builder kernel formal eval is green: the direct live route passed TSC-backed verification, fail-closed routing checks held, operator projections stayed coherent, and bootstrap takeover remains explicit.",
         "2026-04-17T19:09:07.424704+00:00: Builder kernel formal eval is green: the direct live route passed TSC-backed verification, fail-closed routing checks held, operator projections stayed coherent, and bootstrap takeover remains explicit.",
-        "2026-04-17T19:16:07.754081+00:00: Builder kernel formal eval is green: the direct live route passed TSC-backed verification, fail-closed routing checks held, operator projections stayed coherent, and bootstrap takeover remains explicit."
+        "2026-04-17T19:16:07.754081+00:00: Builder kernel formal eval is green: the direct live route passed TSC-backed verification, fail-closed routing checks held, operator projections stayed coherent, and bootstrap takeover remains explicit.",
+        "2026-04-17T19:38:11.399766+00:00: Builder kernel formal eval is green: the direct live route passed TSC-backed verification, fail-closed routing checks held, operator projections stayed coherent, bootstrap takeover remains explicit, and the dashboard deploy packet is now the bounded rollout path."
       ],
       "promotion_validity": "valid",
       "run_id": "protocol-first-builder-kernel-eval-2026q2",
       "source_safe_remaining": [
         "Keep Codex and Claude external bootstrap builders live until the takeover-promotion-check family is explicitly green and operator-reviewed.",
-        "Keep runtime packet linkage pending until a bounded builder runtime packet exists for wider adoption."
+        "Keep dev-dashboard-compose-deploy-packet as the only bounded builder rollout path until a distinct runtime owner or rollback surface justifies a separate packet."
       ],
       "status": "completed",
       "task_class": "builder_kernel_boundary_eval",
@@ -857,6 +858,6 @@
   ],
   "source_of_truth": "config/automation-backbone/eval-run-ledger.json",
   "status": "active",
-  "updated_at": "2026-04-17T19:16:07.754081+00:00",
+  "updated_at": "2026-04-17T19:38:11.399766+00:00",
   "version": "2026-04-16.1"
 }
