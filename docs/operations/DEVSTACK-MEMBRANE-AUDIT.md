@@ -1,6 +1,6 @@
 # Devstack Membrane Audit
 
-Generated: `2026-04-16T22:55:23.152338+00:00`
+Generated: `2026-04-17T00:05:32.068506+00:00`
 
 ## Posture
 
@@ -9,7 +9,7 @@ Generated: `2026-04-16T22:55:23.152338+00:00`
 - Forge board top priority lane: `letta-memory-plane`
 - Adopted capabilities tracked in atlas: `6`
 - Concept capabilities tracked in atlas: `3`
-- Devstack dirty count: `8`
+- Devstack dirty count: `1`
 - Devstack contract validator: `pass`
 
 ## Membrane Findings

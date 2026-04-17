@@ -30,6 +30,8 @@ Start in this order:
 7. [docs/operations/ATHANOR-LAYERED-MASTER-PLAN.md](/C:/Athanor/docs/operations/ATHANOR-LAYERED-MASTER-PLAN.md)
 8. [config/automation-backbone](/C:/Athanor/config/automation-backbone)
 
+For multi-system planning and external dependency truth, read [docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md](/mnt/c/Athanor/docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md), [docs/operations/ATHANOR-OPERATOR-MODEL.md](/mnt/c/Athanor/docs/operations/ATHANOR-OPERATOR-MODEL.md), [docs/operations/ATHANOR-ECOSYSTEM-DEPENDENCY-MAP.md](/mnt/c/Athanor/docs/operations/ATHANOR-ECOSYSTEM-DEPENDENCY-MAP.md), and [docs/architecture/ATHANOR-ECOSYSTEM-SYSTEM-BIBLE.md](/mnt/c/Athanor/docs/architecture/ATHANOR-ECOSYSTEM-SYSTEM-BIBLE.md) immediately after the startup sources above.
+
 Prefer runtime truth and current registries over historical analysis.
 
 ## Project Layout

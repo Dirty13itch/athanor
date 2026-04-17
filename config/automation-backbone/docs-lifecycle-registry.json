@@ -1,5 +1,5 @@
 {
-  "version": "2026-04-15.4",
+  "version": "2026-04-16.1",
   "status": "active",
   "source_of_truth": "config/automation-backbone/docs-lifecycle-registry.json",
   "classes": [
@@ -1721,6 +1721,78 @@
       "path": "projects/dashboard/docs/UI_AUDIT.md",
       "class": "reference",
       "owner": "shaun"
+    },
+    {
+      "path": "docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md",
+      "class": "generated",
+      "owner": "shaun",
+      "layer": "ecosystem_governance",
+      "authority_plane": "ecosystem_governance",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_ecosystem_master_plan.py",
+      "validator": "python scripts/generate_ecosystem_master_plan.py --check",
+      "allowed_content_class": "ecosystem_governance",
+      "downstream_consumers": [
+        "operator_startup",
+        "cross_repo_planning"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
+    },
+    {
+      "path": "docs/operations/ATHANOR-ECOSYSTEM-DEPENDENCY-MAP.md",
+      "class": "generated",
+      "owner": "shaun",
+      "layer": "ecosystem_governance",
+      "authority_plane": "ecosystem_governance",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_ecosystem_master_plan.py",
+      "validator": "python scripts/generate_ecosystem_master_plan.py --check",
+      "allowed_content_class": "ecosystem_governance",
+      "downstream_consumers": [
+        "operator_startup",
+        "activation_planning"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
+    },
+    {
+      "path": "docs/operations/ATHANOR-OPERATOR-MODEL.md",
+      "class": "generated",
+      "owner": "shaun",
+      "layer": "operator_control",
+      "authority_plane": "adopted_system",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_ecosystem_master_plan.py",
+      "validator": "python scripts/generate_ecosystem_master_plan.py --check",
+      "allowed_content_class": "operator_control",
+      "downstream_consumers": [
+        "operator_startup",
+        "cross_repo_planning"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
+    },
+    {
+      "path": "docs/architecture/ATHANOR-ECOSYSTEM-SYSTEM-BIBLE.md",
+      "class": "generated",
+      "owner": "shaun",
+      "layer": "architecture_reference",
+      "authority_plane": "ecosystem_governance",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_ecosystem_master_plan.py",
+      "validator": "python scripts/generate_ecosystem_master_plan.py --check",
+      "allowed_content_class": "reference_context",
+      "downstream_consumers": [
+        "cross_repo_planning",
+        "historical_lookup"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
     }
   ],
   "layers": [

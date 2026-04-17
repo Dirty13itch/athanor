@@ -46,7 +46,7 @@ def test_build_audit_covers_required_layers_and_subsystems() -> None:
             'suppressed_task_count': 4,
         }
 
-    def fake_git_status(repo):
+    def fake_git_status(repo, ignored_paths=None):
         if str(repo).endswith('athanor-devstack'):
             return {
                 'lines': [' M MASTER-PLAN.md', '?? docs/operations/DEVSTACK-FORGE-BOARD.md'] * 20,

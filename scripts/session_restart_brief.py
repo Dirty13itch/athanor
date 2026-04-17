@@ -18,12 +18,17 @@ NEXT_ROTATION_PREFLIGHT_PATH = REPO_ROOT / "reports" / "truth-inventory" / "next
 FINISH_SCOREBOARD_PATH = REPO_ROOT / "reports" / "truth-inventory" / "finish-scoreboard.json"
 RUNTIME_PACKET_INBOX_PATH = REPO_ROOT / "reports" / "truth-inventory" / "runtime-packet-inbox.json"
 STEADY_STATE_STATUS_PATH = REPO_ROOT / "reports" / "truth-inventory" / "steady-state-status.json"
+ECOSYSTEM_MASTER_PLAN_JSON_PATH = REPO_ROOT / "reports" / "truth-inventory" / "ecosystem-master-plan.json"
 ATLAS_LATEST_PATH = Path(r"C:\athanor-devstack\reports\master-atlas\latest.json")
 CANONICAL_DOCS = [
     "STATUS.md",
     "docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md",
     "docs/operations/ATHANOR-OPERATING-SYSTEM.md",
     "docs/operations/REPO-STRUCTURE-RULES.md",
+    "docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md",
+    "docs/operations/ATHANOR-OPERATOR-MODEL.md",
+    "docs/operations/ATHANOR-ECOSYSTEM-DEPENDENCY-MAP.md",
+    "docs/architecture/ATHANOR-ECOSYSTEM-SYSTEM-BIBLE.md",
 ]
 CONTROL_SURFACES = [
     "https://athanor.local/",
@@ -329,6 +334,7 @@ def build_restart_snapshot() -> dict[str, Any]:
             "finish_scoreboard": str(FINISH_SCOREBOARD_PATH),
             "runtime_packet_inbox": str(RUNTIME_PACKET_INBOX_PATH),
             "steady_state_status": str(STEADY_STATE_STATUS_PATH),
+            "ecosystem_master_plan": str(ECOSYSTEM_MASTER_PLAN_JSON_PATH),
             "master_atlas_latest": str(ATLAS_LATEST_PATH),
         },
     }
@@ -501,6 +507,7 @@ def render_restart_brief(snapshot: dict[str, Any]) -> str:
             f"- Finish scoreboard: `{artifacts.get('finish_scoreboard', str(FINISH_SCOREBOARD_PATH))}`",
             f"- Runtime packet inbox: `{artifacts.get('runtime_packet_inbox', str(RUNTIME_PACKET_INBOX_PATH))}`",
             f"- Steady-state status: `{artifacts.get('steady_state_status', str(STEADY_STATE_STATUS_PATH))}`",
+            f"- Ecosystem master plan JSON: `{artifacts.get('ecosystem_master_plan', str(ECOSYSTEM_MASTER_PLAN_JSON_PATH))}`",
             f"- Master atlas: `{artifacts.get('master_atlas_latest', str(ATLAS_LATEST_PATH))}`",
             "",
             "## Control Surfaces",

@@ -3,14 +3,14 @@
 **Last updated:** 2026-04-16 00:32 CDT
 **Program:** Truth convergence, Ralph-loop steady-state governance, shadow-tier promotion follow-through, provider weak-lane closure, runtime recovery, aggressive prune, and low-touch devstack turnover prep
 
-> **Boundary:** This file is a curated operator summary, not the sole live runtime oracle. For mutable queue, runtime, provider, deployment, and publication state, prefer `python scripts/session_restart_brief.py --refresh`, `reports/ralph-loop/latest.json`, `reports/truth-inventory/finish-scoreboard.json`, `reports/truth-inventory/runtime-packet-inbox.json`, `reports/truth-inventory/`, and the generated reports under `docs/operations/`.
+> **Boundary:** This file is a curated operator summary, not the sole live runtime oracle. For mutable queue, runtime, provider, deployment, and publication state, prefer `python scripts/session_restart_brief.py --refresh`, `reports/ralph-loop/latest.json`, `reports/truth-inventory/finish-scoreboard.json`, `reports/truth-inventory/runtime-packet-inbox.json`, `reports/truth-inventory/`, and the generated reports under `docs/operations/`. Multi-system planning and external dependency truth now start with `docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md` and `docs/operations/ATHANOR-OPERATOR-MODEL.md`.
 
 ## Program Health
 
 | Lane | Status | Notes |
 |------|--------|-------|
 | Authority model | Completed | `C:\Athanor` is the implementation authority, DEV runtime state is explicitly governed through the runtime-ownership packet layer, and `athanor-next` remains incubation-only. |
-| Startup docs | Completed | Top-entry docs, backlog truth, operating-system truth, and Ralph-loop state now converge materially instead of routing humans and agents to stale startup layers. |
+| Startup docs | Completed | Top-entry docs, backlog truth, operating-system truth, Ralph-loop state, and the ecosystem planning/operator surfaces now converge materially instead of routing humans and agents to stale startup layers. |
 | Mainline synthesis | Completed | The clean synthesis lane landed the 2026-03-29 through 2026-03-30 Athanor-core integrator train plus the remaining script-service contract slice onto `main`, and the follow-on normalization tranche collapsed the repo to one live branch, one live remote ref, and one registered worktree. The deleted branch and worktree state is preserved under `C:\Athanor_cleanup_archive\2026-03-30-branch-normalization`, so branch sprawl is no longer active repo debt. |
 | Truth inventories | Steady-state monitoring | Hardware, model, provider, subscription-burn, tooling, credential, repo-root, and routing-taxonomy registries are now canonical, validator-backed, and routinely refreshed; remaining drift is runtime-owned maintenance, not inventory ambiguity. |
 | Portfolio and source reconciliation | Completed | The three-depth `C:\` sweep, GitHub portfolio mirror, tenant-family audit, and ecosystem-role classification now cover all 35 live Dirty13itch repos and the meaningful local roots. Remaining work is execution and freeze follow-through under existing packets, not classification drift. |

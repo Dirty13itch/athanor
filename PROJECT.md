@@ -31,11 +31,18 @@ The current meta-program for this repo is full reconciliation and ecosystem norm
 - GitHub `Dirty13itch/athanor` `origin/main` is the only remote mainline
 - `/home/shaun/repos/athanor` on `DEV` remains runtime authority
 - `C:\athanor-devstack` is the build-system lane for future Athanor capabilities and promotions must land through the capability-adoption registry plus a promotion packet instead of narrative merge
+- `docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md` is the active planning spine for cross-system execution and external dependencies
+- `docs/operations/ATHANOR-OPERATOR-MODEL.md` and `docs/operations/ATHANOR-ECOSYSTEM-DEPENDENCY-MAP.md` define operator visibility and blocker sequencing across provider, substrate, devstack, and approval gates
+- `docs/architecture/ATHANOR-ECOSYSTEM-SYSTEM-BIBLE.md` holds exhaustive ecosystem depth without replacing live operator truth
 - `athanor-next` and `C:\Reconcile` are harvest lanes, not competing truth
 - the broader Dirty13itch GitHub portfolio is governed as part of the Athanor ecosystem, not merged blindly into core
 
 Use these control artifacts for that work:
 - `docs/operations/ATHANOR-LAYERED-MASTER-PLAN.md`
+- `docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md`
+- `docs/operations/ATHANOR-OPERATOR-MODEL.md`
+- `docs/operations/ATHANOR-ECOSYSTEM-DEPENDENCY-MAP.md`
+- `docs/architecture/ATHANOR-ECOSYSTEM-SYSTEM-BIBLE.md`
 - `docs/operations/ATHANOR-RECONCILIATION-PACKET.md`
 - `config/automation-backbone/reconciliation-source-registry.json`
 - `docs/operations/ATHANOR-ECOSYSTEM-REGISTRY.md`

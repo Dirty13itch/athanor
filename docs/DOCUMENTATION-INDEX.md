@@ -7,13 +7,13 @@ Do not edit manually.
 
 ## Summary
 
-- Registry version: `2026-04-15.4`
-- Total tracked entries: `147`
+- Registry version: `2026-04-16.1`
+- Total tracked entries: `151`
 
 | Class | Count |
 | --- | ---: |
 | `canonical` | 55 |
-| `generated` | 25 |
+| `generated` | 29 |
 | `reference` | 21 |
 | `archive` | 46 |
 
@@ -82,7 +82,11 @@ Do not edit manually.
 | Path | Kind | Owner |
 | --- | --- | --- |
 | `docs/DOCUMENTATION-INDEX.md` | markdown | `shaun` |
+| `docs/architecture/ATHANOR-ECOSYSTEM-SYSTEM-BIBLE.md` | markdown | `shaun` |
+| `docs/operations/ATHANOR-ECOSYSTEM-DEPENDENCY-MAP.md` | markdown | `shaun` |
+| `docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md` | markdown | `shaun` |
 | `docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md` | markdown | `shaun` |
+| `docs/operations/ATHANOR-OPERATOR-MODEL.md` | markdown | `shaun` |
 | `docs/operations/AUDIT-REMEDIATION-BACKLOG.md` | markdown | `shaun` |
 | `docs/operations/AUTONOMY-ACTIVATION-REPORT.md` | markdown | `shaun` |
 | `docs/operations/DEVSTACK-MEMBRANE-AUDIT.md` | markdown | `shaun` |

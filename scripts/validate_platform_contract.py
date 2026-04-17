@@ -665,6 +665,18 @@ GENERATED_DOC_GENERATORS = {
     "docs/operations/AUDIT-REMEDIATION-BACKLOG.md": [
         "scripts/generate_full_system_audit.py",
     ],
+    "docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md": [
+        "scripts/generate_ecosystem_master_plan.py",
+    ],
+    "docs/operations/ATHANOR-ECOSYSTEM-DEPENDENCY-MAP.md": [
+        "scripts/generate_ecosystem_master_plan.py",
+    ],
+    "docs/operations/ATHANOR-OPERATOR-MODEL.md": [
+        "scripts/generate_ecosystem_master_plan.py",
+    ],
+    "docs/architecture/ATHANOR-ECOSYSTEM-SYSTEM-BIBLE.md": [
+        "scripts/generate_ecosystem_master_plan.py",
+    ],
 }
 CI_WORKFLOW_PATH = REPO_ROOT / ".gitea" / "workflows" / "ci.yml"
 BUILD_MANIFEST_ACTIVE_PATH = REPO_ROOT / "docs" / "BUILD-MANIFEST.md"

@@ -5,19 +5,20 @@ Do not edit manually.
 
 ## Summary
 
-- Registry version: `2026-04-15.4`
-- Total tracked surfaces: `147`
-- Generated surfaces: `8`
+- Registry version: `2026-04-16.1`
+- Total tracked surfaces: `151`
+- Generated surfaces: `12`
 
 ## Layer Counts
 
 | Layer | Count |
 | --- | --- |
+| `architecture_reference` | 1 |
 | `archive_reference` | 46 |
-| `ecosystem_governance` | 3 |
+| `ecosystem_governance` | 5 |
 | `historical_working_memory` | 2 |
 | `live_execution` | 7 |
-| `operator_control` | 11 |
+| `operator_control` | 12 |
 | `startup_doctrine` | 4 |
 | `startup_reference` | 1 |
 | `strategic_reference` | 1 |

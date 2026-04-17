@@ -302,6 +302,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Runtime packet inbox: `{artifacts.get('runtime_packet_inbox', '')}`",
         f"- Session restart brief source: `python scripts/session_restart_brief.py --refresh`",
         f"- Steady-state JSON: `{artifacts.get('steady_state_status_json', '')}`",
+        "- Cross-system read: `docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md`, `docs/operations/ATHANOR-OPERATOR-MODEL.md`, `docs/operations/ATHANOR-ECOSYSTEM-DEPENDENCY-MAP.md`",
         "",
     ])
     return "\n".join(lines)
