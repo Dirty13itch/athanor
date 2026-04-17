@@ -28,7 +28,7 @@ This appendix is exhaustive by subsystem. It exists to make every ecosystem doma
 - `reports/truth-inventory/finish-scoreboard.json`
 - `reports/ralph-loop/latest.json`
 - `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`
-- Current state: Core posture is `closure_in_progress` with `active_closure`; live claim, queue posture, and packet inbox state are intentionally carried by the ignored live operator feed and machine JSON surfaces.
+- Current state: Core posture is `repo_safe_complete` with `steady_state_monitoring`; live claim, queue posture, and packet inbox state are intentionally carried by the ignored live operator feed and machine JSON surfaces.
 - Blockers: none
 - Failure mode: If this layer drifts, the system loses authoritative state, operator visibility, and safe execution ordering.
 - Next maturity move: Keep the steady-state control-plane pass green and reopen only on typed debt, packet, or validator evidence.
