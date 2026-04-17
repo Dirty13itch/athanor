@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -44,3 +45,32 @@ def test_build_commands_can_skip_restart_brief():
     commands = module.build_commands(include_restart_brief=False)
     assert all(cmd[1] != "scripts/session_restart_brief.py" for cmd in commands)
     assert commands[-1][1:] == ["scripts/validate_platform_contract.py"]
+
+
+def test_run_commands_records_timeout_and_stops(monkeypatch):
+    module = _load_module()
+    commands = [
+        [module.PYTHON, 'scripts/generate_documentation_index.py'],
+        [module.PYTHON, 'scripts/validate_platform_contract.py'],
+        [module.PYTHON, 'scripts/write_finish_scoreboard.py', '--json'],
+    ]
+    calls: list[list[str]] = []
+
+    def fake_run(command, **kwargs):
+        calls.append(command)
+        if command[1:] == ['scripts/validate_platform_contract.py']:
+            raise subprocess.TimeoutExpired(command, timeout=kwargs['timeout'], output=b'partial', stderr=b'')
+        return subprocess.CompletedProcess(command, 0, stdout='ok', stderr='')
+
+    monkeypatch.setattr(module.subprocess, 'run', fake_run)
+
+    results = module.run_commands(commands)
+
+    assert calls == commands[:2]
+    assert results[0]['returncode'] == 0
+    assert results[0]['timed_out'] is False
+    assert results[1]['returncode'] == 124
+    assert results[1]['timed_out'] is True
+    assert results[1]['timeout_seconds'] == 90
+    assert results[1]['stdout'] == 'partial'
+    assert 'Timed out after 90s' in str(results[1]['stderr'])

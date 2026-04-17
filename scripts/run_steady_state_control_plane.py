@@ -10,6 +10,10 @@ from typing import Iterable, List
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PYTHON = sys.executable
+DEFAULT_COMMAND_TIMEOUT_SECONDS = 120
+COMMAND_TIMEOUT_OVERRIDES: dict[tuple[str, ...], int] = {
+    ('scripts/validate_platform_contract.py',): 90,
+}
 
 
 def build_commands(include_restart_brief: bool = True) -> List[List[str]]:
@@ -37,17 +41,44 @@ def build_commands(include_restart_brief: bool = True) -> List[List[str]]:
     return commands
 
 
+def command_timeout_seconds(command: List[str]) -> int:
+    script_and_args = tuple(command[1:])
+    return COMMAND_TIMEOUT_OVERRIDES.get(script_and_args, DEFAULT_COMMAND_TIMEOUT_SECONDS)
+
+
 def run_commands(commands: Iterable[List[str]]) -> list[dict[str, object]]:
     results: list[dict[str, object]] = []
     for command in commands:
-        proc = subprocess.run(command, cwd=REPO_ROOT, capture_output=True, text=True)
-        results.append({
-            'command': command,
-            'returncode': proc.returncode,
-            'stdout': proc.stdout,
-            'stderr': proc.stderr,
-        })
-        if proc.returncode != 0:
+        timeout_seconds = command_timeout_seconds(command)
+        try:
+            proc = subprocess.run(
+                command,
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                timeout=timeout_seconds,
+            )
+            result = {
+                'command': command,
+                'returncode': proc.returncode,
+                'stdout': proc.stdout,
+                'stderr': proc.stderr,
+                'timeout_seconds': timeout_seconds,
+                'timed_out': False,
+            }
+        except subprocess.TimeoutExpired as exc:
+            stdout = exc.stdout if isinstance(exc.stdout, str) else (exc.stdout.decode() if exc.stdout else '')
+            stderr = exc.stderr if isinstance(exc.stderr, str) else (exc.stderr.decode() if exc.stderr else '')
+            result = {
+                'command': command,
+                'returncode': 124,
+                'stdout': stdout,
+                'stderr': stderr or f'Timed out after {timeout_seconds}s',
+                'timeout_seconds': timeout_seconds,
+                'timed_out': True,
+            }
+        results.append(result)
+        if int(result['returncode']) != 0:
             break
     return results
 

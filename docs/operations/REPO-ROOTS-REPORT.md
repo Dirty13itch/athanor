@@ -34,8 +34,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane root.`
-- Local dirty file count: `20`
-- Local dirty sample: ` M projects/dashboard/src/app/api/operator/summary/route.ts`, ` M projects/dashboard/src/features/operator/operator-console.test.tsx`, ` M projects/dashboard/src/features/operator/operator-console.tsx`, ` M projects/dashboard/src/features/overview/command-center.test.tsx`, ` M projects/dashboard/src/features/overview/command-center.tsx`, ` M projects/dashboard/src/lib/contracts.ts`, ` M projects/dashboard/src/lib/dashboard-data.ts`, ` M projects/dashboard/src/lib/dashboard-fixtures.ts`, ` M projects/dashboard/src/lib/nav-attention.test.ts`, ` M projects/dashboard/src/lib/nav-attention.ts`
+- Local dirty file count: `4`
+- Local dirty sample: ` M scripts/refresh_validation_publication_loop.py`, ` M scripts/run_steady_state_control_plane.py`, ` M scripts/tests/test_refresh_validation_publication_loop.py`, ` M scripts/tests/test_run_steady_state_control_plane.py`
 
 ## dev-runtime-repo
 

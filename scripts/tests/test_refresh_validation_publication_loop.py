@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -47,3 +48,30 @@ def test_build_commands_can_include_restart_brief_and_skip_ralph():
     ]
     assert [cmd[1:] for cmd in commands][-1] == ['scripts/validate_platform_contract.py']
     assert all(cmd[1] != 'scripts/run_ralph_loop_pass.py' for cmd in commands)
+
+
+def test_run_commands_records_timeout_and_stops(monkeypatch):
+    module = _load_module()
+    commands = [
+        [module.PYTHON, 'scripts/generate_documentation_index.py'],
+        [module.PYTHON, 'scripts/validate_platform_contract.py'],
+        [module.PYTHON, 'scripts/generate_publication_deferred_family_queue.py'],
+    ]
+    calls: list[list[str]] = []
+
+    def fake_run(command, **kwargs):
+        calls.append(command)
+        if command[1:] == ['scripts/validate_platform_contract.py']:
+            raise subprocess.TimeoutExpired(command, timeout=kwargs['timeout'], output=b'', stderr=b'blocked')
+        return subprocess.CompletedProcess(command, 0, stdout='ok', stderr='')
+
+    monkeypatch.setattr(module.subprocess, 'run', fake_run)
+
+    results = module.run_commands(commands)
+
+    assert calls == commands[:2]
+    assert results[0]['returncode'] == 0
+    assert results[1]['returncode'] == 124
+    assert results[1]['timed_out'] is True
+    assert results[1]['timeout_seconds'] == 90
+    assert results[1]['stderr'] == 'blocked'
