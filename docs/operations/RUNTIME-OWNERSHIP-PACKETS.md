@@ -4,7 +4,7 @@ Generated from `config/automation-backbone/runtime-ownership-packets.json`, `con
 Do not edit manually.
 
 - Registry version: `2026-04-16.2`
-- Cached truth snapshot: `2026-04-17T04:59:59.018641+00:00`
+- Cached truth snapshot: `2026-04-17T19:57:12.951522+00:00`
 - Packets tracked: `17`
 
 | Packet | Status | Lane | Approval type | Goal |
@@ -251,7 +251,7 @@ Do not edit manually.
 - Nested source dir present: `False`
 - bak-codex files: none
 - Container running: `True`
-- Container status: `Up 9 hours`
+- Container status: `Up 24 hours`
 - Runtime import path: `/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py`
 
 ### Preflight Commands

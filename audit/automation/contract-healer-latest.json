@@ -1,18 +1,18 @@
 {
-  "generated_at": "2026-04-17T04:22:38.061703+00:00",
+  "generated_at": "2026-04-17T20:07:58.412912+00:00",
   "lane": "contract_healer",
   "action_class": "drift_report_generation",
-  "success": false,
+  "success": true,
   "checks": [
     {
       "command": [
         "/usr/bin/python3",
         "scripts/validate_platform_contract.py"
       ],
-      "returncode": 1,
-      "stdout": "",
-      "stderr": "FAIL: Generated doc is stale: docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md (/mnt/c/Athanor/docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md is stale)\nFAIL: Generated doc is stale: docs/operations/AUDIT-REMEDIATION-BACKLOG.md (/mnt/c/Athanor/docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md is stale)\nFAIL: Generated doc is stale: docs/operations/DEVSTACK-MEMBRANE-AUDIT.md (/mnt/c/Athanor/docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md is stale)\nFAIL: Generated doc is stale: docs/operations/PUBLICATION-TRIAGE-REPORT.md (docs/operations/PUBLICATION-TRIAGE-REPORT.md is stale)",
-      "duration_seconds": 71.354,
+      "returncode": 0,
+      "stdout": "Platform contract OK: 5 nodes, 43 services, 11 projects, 151 doc lifecycle entries.",
+      "stderr": "",
+      "duration_seconds": 65.18,
       "timed_out": false
     },
     {
@@ -24,7 +24,7 @@
       "returncode": 0,
       "stdout": "",
       "stderr": "",
-      "duration_seconds": 0.266,
+      "duration_seconds": 0.178,
       "timed_out": false
     },
     {
@@ -36,11 +36,11 @@
       "returncode": 0,
       "stdout": "",
       "stderr": "",
-      "duration_seconds": 0.081,
+      "duration_seconds": 0.062,
       "timed_out": false
     }
   ],
-  "operator_visible_summary": "Contract healer detected drift or generator failures.",
+  "operator_visible_summary": "Contract healer regenerated drift evidence successfully.",
   "automation_record_persisted": true,
   "automation_record_error": null
 }
