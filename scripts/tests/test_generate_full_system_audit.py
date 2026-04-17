@@ -147,3 +147,71 @@ def test_git_status_ignores_self_generated_audit_paths() -> None:
     assert status['lines'] == [' M docs/operations/STEADY-STATE-STATUS.md', '?? reports/truth-inventory/tmp.json']
     assert status['counts'] == {'modified': 1, 'untracked': 1}
     assert status['total'] == 2
+
+
+def test_build_audit_ignores_non_ralph_failures_when_feedback_state_is_healthy() -> None:
+    module = _load_module(
+        f'generate_full_system_audit_{uuid.uuid4().hex}',
+        SCRIPTS_DIR / 'generate_full_system_audit.py',
+    )
+
+    def fake_run_command(cwd, command, timeout=90):
+        return {'command': command, 'cwd': str(cwd), 'returncode': 0, 'stdout': '', 'stderr': ''}
+
+    def fake_run_json_command(cwd, command, timeout=90):
+        return {
+            'active_claim_task_id': 'deferred_family:operator-tooling-and-helper-surfaces',
+            'active_claim_task_title': 'Operator Tooling and Helper Surfaces',
+            'queue_dispatchable': 3,
+            'suppressed_task_count': 9,
+        }
+
+    fake_json = {
+        'ralph_latest': {
+            'active_claim_task_id': 'deferred_family:operator-tooling-and-helper-surfaces',
+            'active_claim_task_title': 'Operator Tooling and Helper Surfaces',
+            'automation_feedback_summary': {
+                'feedback_state': 'healthy',
+                'feedback_scope': 'ralph_loop',
+                'failure_count': 1,
+                'last_outcome': 'success',
+            },
+        },
+        'finish_scoreboard': {
+            'closure_state': 'closure_in_progress',
+            'active_claim_task_id': 'deferred_family:operator-tooling-and-helper-surfaces',
+            'queue_dispatchable_count': 3,
+            'suppressed_queue_count': 9,
+        },
+        'runtime_packet_inbox': {'packet_count': 0},
+        'steady_state_status': {
+            'intervention_label': 'Review recommended',
+            'queue_dispatchable': 3,
+            'suppressed_task_count': 9,
+            'current_work': {'task_id': 'deferred_family:operator-tooling-and-helper-surfaces'},
+        },
+        'devstack_atlas': {
+            'summary': {
+                'turnover_status': 'ready_for_low_touch_execution',
+                'top_priority_lane': 'protocol-first-builder-kernel',
+            },
+            'readiness_ledger': {'records': [{'stage': 'adopted'}]},
+        },
+        'devstack_forge_board': {
+            'top_priority_lane': 'protocol-first-builder-kernel',
+        },
+    }
+
+    module._run_command = fake_run_command
+    module._run_json_command = fake_run_json_command
+    module._git_status = lambda repo, ignored_paths=None: {'lines': [], 'counts': {}, 'total': 0}
+    module._discover_manifests = lambda repo: []
+    module._top_level_counts = lambda repo, folders: {folder: 0 for folder in folders}
+    module._path_exists_map = lambda root, mapping: {name: True for name in mapping}
+    module._load_json = lambda path: fake_json.get(path.stem.replace('-', '_'), fake_json.get(path.parent.name + '_' + path.stem.replace('-', '_'), {}))
+    module._load_text = lambda path: f'text from {path.name}'
+
+    audit = module.build_audit(run_checks=True)
+
+    finding_ids = {item['id'] for item in audit['findings']}
+    assert 'audit.athanor.automation_feedback.degraded' not in finding_ids

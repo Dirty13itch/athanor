@@ -1514,6 +1514,15 @@ def _build_automation_feedback_summary(recent_records: list[dict[str, Any]]) -> 
     success_count = sum(1 for outcome in outcomes if outcome == "success")
     failure_count = sum(1 for outcome in outcomes if outcome == "failure")
     recognized_count = success_count + failure_count
+    ralph_records = [
+        record
+        for record in records
+        if str(record.get("automation_id") or "").strip() == "ralph-loop"
+    ]
+    feedback_records = ralph_records or records
+    feedback_outcomes = [_automation_run_outcome(record) for record in feedback_records]
+    feedback_success_count = sum(1 for outcome in feedback_outcomes if outcome == "success")
+    feedback_failure_count = sum(1 for outcome in feedback_outcomes if outcome == "failure")
 
     last_success_at = next((record.get("timestamp") for record, outcome in zip(records, outcomes) if outcome == "success"), None)
     last_failure_at = next((record.get("timestamp") for record, outcome in zip(records, outcomes) if outcome == "failure"), None)
@@ -1569,13 +1578,13 @@ def _build_automation_feedback_summary(recent_records: list[dict[str, Any]]) -> 
     anti_spin_state = "spin_detected" if (same_task_claims_24h >= 3 or same_task_claims_12h >= 2) else "clear"
     changed_last_run = None if not ralph_claims else (not bool(latest_claim.get("no_new_delta")))
 
-    if not records:
+    if not feedback_records:
         feedback_state = "quiet"
     elif anti_spin_state == "spin_detected":
         feedback_state = "spin_detected"
-    elif failure_count and not success_count:
+    elif feedback_failure_count and not feedback_success_count:
         feedback_state = "degraded"
-    elif failure_count:
+    elif feedback_failure_count:
         feedback_state = "mixed"
     else:
         feedback_state = "healthy"
@@ -1599,6 +1608,7 @@ def _build_automation_feedback_summary(recent_records: list[dict[str, Any]]) -> 
         "success_count": success_count,
         "failure_count": failure_count,
         "unknown_count": len(records) - recognized_count,
+        "feedback_scope": "ralph_loop" if ralph_records else "automation_stream",
         "last_outcome": outcomes[0] if outcomes else "unknown",
         "last_recorded_at": last_record.get("timestamp"),
         "last_success_at": last_success_at,

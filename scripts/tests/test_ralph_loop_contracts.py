@@ -1772,9 +1772,38 @@ def test_automation_feedback_summary_compresses_recent_runs_without_noise() -> N
     assert summary["success_count"] == 2
     assert summary["failure_count"] == 1
     assert summary["unknown_count"] == 0
+    assert summary["feedback_scope"] == "ralph_loop"
     assert summary["last_outcome"] == "success"
     assert summary["last_success_at"] == "2026-04-13T12:03:00+00:00"
     assert summary["last_failure_at"] == "2026-04-13T12:01:00+00:00"
+    assert summary["feedback_state"] == "healthy"
+
+
+def test_automation_feedback_summary_uses_stream_scope_when_ralph_records_absent() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+    recent_records = [
+        {
+            "timestamp": "2026-04-13T12:01:00+00:00",
+            "automation_id": "contract-healer",
+            "lane": "contract_healer",
+            "action_class": "drift_report_generation",
+            "result": {"success": False},
+        },
+        {
+            "timestamp": "2026-04-13T11:58:00+00:00",
+            "automation_id": "restore-drill-evidence",
+            "lane": "recovery_evidence",
+            "action_class": "restore_drill_rehearsal",
+            "result": {"success": True},
+        },
+    ]
+
+    summary = module._build_automation_feedback_summary(recent_records)
+
+    assert summary["feedback_scope"] == "automation_stream"
     assert summary["feedback_state"] == "mixed"
 
 
