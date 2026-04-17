@@ -151,6 +151,14 @@ def test_build_triage_bundle_ignores_self_managed_publication_outputs(monkeypatc
     {
       "path": "docs/architecture/ATHANOR-ECOSYSTEM-SYSTEM-BIBLE.md",
       "generator": "python scripts/generate_ecosystem_master_plan.py"
+    },
+    {
+      "path": "docs/operations/REPO-ROOTS-REPORT.md",
+      "generator": "python scripts/generate_truth_inventory_reports.py"
+    },
+    {
+      "path": "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+      "generator": "python scripts/generate_truth_inventory_reports.py"
     }
   ]
 }""",
@@ -169,6 +177,8 @@ def test_build_triage_bundle_ignores_self_managed_publication_outputs(monkeypatc
             {'status': ' M', 'path': 'docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md'},
             {'status': ' M', 'path': 'docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md'},
             {'status': ' M', 'path': 'docs/architecture/ATHANOR-ECOSYSTEM-SYSTEM-BIBLE.md'},
+            {'status': ' M', 'path': 'docs/operations/REPO-ROOTS-REPORT.md'},
+            {'status': ' M', 'path': 'docs/operations/RUNTIME-OWNERSHIP-REPORT.md'},
             {'status': '??', 'path': 'reports/truth-inventory/publication-deferred-family-queue.json'},
             {'status': '??', 'path': 'reports/truth-inventory/steady-state-status.json'},
         ],

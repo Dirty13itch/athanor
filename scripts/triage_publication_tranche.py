@@ -28,6 +28,7 @@ SELF_MANAGED_GENERATOR_SCRIPTS = (
     'scripts/write_steady_state_status.py',
     'scripts/generate_full_system_audit.py',
     'scripts/generate_ecosystem_master_plan.py',
+    'scripts/generate_truth_inventory_reports.py',
 )
 
 SELF_MANAGED_GENERATOR_SIDECARS = {
