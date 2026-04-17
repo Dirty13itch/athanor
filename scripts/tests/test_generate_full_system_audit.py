@@ -149,6 +149,22 @@ def test_git_status_ignores_self_generated_audit_paths() -> None:
     assert status['total'] == 2
 
 
+def test_with_ignored_generated_docs_appends_audit_targets() -> None:
+    module = _load_module(
+        f'generate_full_system_audit_{uuid.uuid4().hex}',
+        SCRIPTS_DIR / 'generate_full_system_audit.py',
+    )
+
+    athanor_validator_command = module._with_ignored_generated_docs(['python3', 'scripts/validate_platform_contract.py'])
+
+    assert athanor_validator_command == [
+        'python3', 'scripts/validate_platform_contract.py',
+        '--ignore-generated-doc', 'docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md',
+        '--ignore-generated-doc', 'docs/operations/DEVSTACK-MEMBRANE-AUDIT.md',
+        '--ignore-generated-doc', 'docs/operations/AUDIT-REMEDIATION-BACKLOG.md',
+    ]
+
+
 def test_build_audit_ignores_non_ralph_failures_when_feedback_state_is_healthy() -> None:
     module = _load_module(
         f'generate_full_system_audit_{uuid.uuid4().hex}',

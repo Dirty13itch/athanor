@@ -165,3 +165,25 @@ def test_run_generator_check_applies_timeout() -> None:
     assert calls[0]["kwargs"]["timeout"] == module.GENERATED_DOC_CHECK_TIMEOUT_SECONDS
     assert result.returncode == 124
     assert "timed out" in result.stderr
+
+
+def test_parse_ignored_generated_doc_args_collects_paths() -> None:
+    module = _load_module(
+        f"validate_platform_contract_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "validate_platform_contract.py",
+    )
+
+    ignored, remaining = module._parse_ignored_generated_doc_args(
+        [
+            "--ignore-generated-doc",
+            "docs\\operations\\ATHANOR-FULL-SYSTEM-AUDIT.md",
+            "--ignore-generated-doc",
+            "./docs/operations/AUDIT-REMEDIATION-BACKLOG.md",
+        ]
+    )
+
+    assert ignored == {
+        "docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md",
+        "docs/operations/AUDIT-REMEDIATION-BACKLOG.md",
+    }
+    assert remaining == []

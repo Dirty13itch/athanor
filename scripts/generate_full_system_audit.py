@@ -22,6 +22,12 @@ INDEX_JSON = REPORTS_DIR / 'full-system-audit-index.json'
 FINDINGS_JSON = REPORTS_DIR / 'full-system-audit-findings.json'
 SCORECARD_JSON = REPORTS_DIR / 'full-system-audit-scorecard.json'
 
+SELF_GENERATED_DOC_PATHS = (
+    'docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md',
+    'docs/operations/DEVSTACK-MEMBRANE-AUDIT.md',
+    'docs/operations/AUDIT-REMEDIATION-BACKLOG.md',
+)
+
 SOURCE_LAYERS = {
     'athanor_backlog': REPO_ROOT / 'docs' / 'operations' / 'CONTINUOUS-COMPLETION-BACKLOG.md',
     'athanor_layered_plan': REPO_ROOT / 'docs' / 'operations' / 'ATHANOR-LAYERED-MASTER-PLAN.md',
@@ -228,6 +234,13 @@ def _run_json_command(cwd: Path, command: list[str], timeout: int = 90) -> dict[
     except json.JSONDecodeError:
         return {}
     return payload if isinstance(payload, dict) else {}
+
+
+def _with_ignored_generated_docs(command: list[str], ignored_paths: tuple[str, ...] = SELF_GENERATED_DOC_PATHS) -> list[str]:
+    expanded = list(command)
+    for path in ignored_paths:
+        expanded.extend(['--ignore-generated-doc', path])
+    return expanded
 
 
 def _git_status(repo: Path, ignored_paths: set[str] | None = None) -> dict[str, Any]:
@@ -855,7 +868,7 @@ def _load_existing_index_checks() -> dict[str, Any] | None:
 
 def build_audit(run_checks: bool = True, preset_checks: dict[str, Any] | None = None) -> dict[str, Any]:
     checks = preset_checks or {
-        'athanor_platform_contract': _run_command(REPO_ROOT, ['python3', 'scripts/validate_platform_contract.py']) if run_checks else {'returncode': 0, 'stdout': '', 'stderr': ''},
+        'athanor_platform_contract': _run_command(REPO_ROOT, _with_ignored_generated_docs(['python3', 'scripts/validate_platform_contract.py'])) if run_checks else {'returncode': 0, 'stdout': '', 'stderr': ''},
         'devstack_contract': _run_command(DEVSTACK_ROOT, ['python3', 'scripts/validate_devstack_contract.py']) if run_checks else {'returncode': 0, 'stdout': '', 'stderr': ''},
     }
     surfaces = {name: _load_json(path) for name, path in SOURCE_LAYERS.items() if path.suffix == '.json'}
@@ -869,11 +882,7 @@ def build_audit(run_checks: bool = True, preset_checks: dict[str, Any] | None = 
     git = {
         'athanor': _git_status(
             REPO_ROOT,
-            ignored_paths={
-                'docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md',
-                'docs/operations/DEVSTACK-MEMBRANE-AUDIT.md',
-                'docs/operations/AUDIT-REMEDIATION-BACKLOG.md',
-            },
+            ignored_paths=set(SELF_GENERATED_DOC_PATHS),
         ),
         'devstack': _git_status(DEVSTACK_ROOT),
     }

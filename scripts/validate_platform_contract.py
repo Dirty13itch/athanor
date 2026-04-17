@@ -1710,6 +1710,27 @@ def _parse_registry_generator_command(command: str) -> list[str]:
     return parts
 
 
+def _normalize_generated_doc_path(path: str) -> str:
+    return path.strip().replace("\\", "/").lstrip("./")
+
+
+def _parse_ignored_generated_doc_args(argv: list[str]) -> tuple[set[str], list[str]]:
+    ignored: set[str] = set()
+    remaining: list[str] = []
+    index = 0
+    while index < len(argv):
+        token = argv[index]
+        if token == "--ignore-generated-doc":
+            if index + 1 >= len(argv):
+                raise ValueError("--ignore-generated-doc requires a relative doc path")
+            ignored.add(_normalize_generated_doc_path(argv[index + 1]))
+            index += 2
+            continue
+        remaining.append(token)
+        index += 1
+    return ignored, remaining
+
+
 def _looks_like_secret(value: str) -> bool:
     stripped = value.strip()
     if not stripped:
@@ -2800,7 +2821,17 @@ def _validate_routing_runtime_ledgers(
             errors.append(f"project-packet-registry.json project {project_id} is missing routing_reason")
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    args = list(argv or [])
+    try:
+        ignored_generated_docs, remaining_args = _parse_ignored_generated_doc_args(args)
+    except ValueError as exc:
+        print(f"FAIL: {exc}")
+        return 2
+    if remaining_args:
+        print(f"FAIL: Unexpected arguments: {' '.join(remaining_args)}")
+        return 2
+
     errors: list[str] = []
 
     vault_host_vars = _load_yaml(VAULT_HOST_VARS_PATH)
@@ -5996,6 +6027,8 @@ def main() -> int:
                 )
             )
         if doc_class == "generated":
+            if relative_path in ignored_generated_docs:
+                continue
             generator_command = None
             registry_generator = str(document.get("generator") or "").strip()
             if registry_generator:
@@ -6309,4 +6342,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(main(sys.argv[1:]))
