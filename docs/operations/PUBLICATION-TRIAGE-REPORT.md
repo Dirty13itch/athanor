@@ -1,9 +1,9 @@
 # Publication Triage Summary
 
 - Active sequence: `2026-04-15-publication-triage-governance`
-- Dirty entries: `4`
+- Dirty entries: `6`
 - Slice-matched entries: `2`
-- Deferred-family entries: `2`
+- Deferred-family entries: `4`
 - Ambiguous entries: `0`
 - Unclassified entries: `0`
 - Local-noise entries: `0`
@@ -80,7 +80,7 @@ Sample dirty paths:
 | `audit-and-eval-artifacts` | `audit_artifact` | `0` |
 | `deployment-authority-follow-on` | `deferred_out_of_sequence` | `0` |
 | `runtime-service-follow-on` | `runtime_follow_on` | `0` |
-| `control-plane-follow-on` | `deferred_out_of_sequence` | `2` |
+| `control-plane-follow-on` | `deferred_out_of_sequence` | `4` |
 | `tenant-product-lanes` | `tenant_surface` | `0` |
 
 ## Deferred: Reference and Archive Prune (`reference-and-archive-prune`)
@@ -141,7 +141,7 @@ Sample dirty paths:
 ## Deferred: Control-Plane Follow-on (`control-plane-follow-on`)
 
 - Disposition: `deferred_out_of_sequence`
-- Dirty matches: `2`
+- Dirty matches: `4`
 - Path hints: `4`
 - Scope: Implementation-authority control-plane, agent-runtime, and operations packet work that is real but intentionally outside the six ready checkpoint slices.
 - Execution class: `program_slice`
@@ -152,6 +152,8 @@ Sample dirty paths:
 Sample dirty paths:
 - `M` docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md
 - `M` docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md
+- `M` scripts/run_steady_state_control_plane.py
+- `M` scripts/tests/test_run_steady_state_control_plane.py
 
 ## Deferred: Tenant Product Lanes (`tenant-product-lanes`)
 

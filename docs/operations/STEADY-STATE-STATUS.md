@@ -26,8 +26,8 @@ Do not edit manually.
 ## What Changed Recently
 
 - `Validation and Publication` | outcome=`claimed` | Ralph loop selected dispatch-and-work-economy-closure under governor_scheduling with evidence fresh and claim workstream:validation-and-publication via already_dispatched.
+- `Audit and Eval Artifacts` | outcome=`claimed` | Ralph loop selected dispatch-and-work-economy-closure under governor_scheduling with evidence fresh and claim deferred_family:audit-and-eval-artifacts via already_dispatched.
 - `Operator Tooling and Helper Surfaces` | outcome=`claimed` | Ralph loop selected dispatch-and-work-economy-closure under governor_scheduling with evidence fresh and claim deferred_family:operator-tooling-and-helper-surfaces via already_dispatched.
-- `Reference and Archive Prune` | outcome=`claimed` | Ralph loop selected dispatch-and-work-economy-closure under governor_scheduling with evidence fresh and claim deferred_family:reference-and-archive-prune via already_dispatched.
 
 ## Operator Action
 
