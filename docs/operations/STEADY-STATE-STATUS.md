@@ -2,25 +2,27 @@
 
 Do not edit manually.
 
-## At A Glance
+## Purpose
 
-- System state: `closure_in_progress`
-- Attention level: `Review recommended`
-- Needs you: `True`
-- Why: Closure debt or reopen conditions are active.
+- This tracked document is the durable operator contract for steady-state monitoring and reopen handling.
+- Live claim rotation, provider routing, queue posture, and recent activity belong in the ignored live feed and machine JSON, not in repo-tracked markdown.
+- Read the live feed first when you need to know what Athanor is doing right now.
 - Live operator feed: `/mnt/c/Athanor/reports/truth-inventory/steady-state-live.md`
 - Machine proof: `/mnt/c/Athanor/reports/truth-inventory/steady-state-status.json`
 
 ## Operating Contract
 
 - This tracked document is durable by design.
-- Live claim rotation, provider routing, queue posture, and recent activity move through the ignored live operator feed and machine JSON, not this repo-tracked markdown surface.
-- Strategic workstream family: `Dispatch and Work-Economy Closure`
-- Repo-safe debt gates: cash_now=`0` | bounded_follow_on=`0` | program_slice=`1` | runtime_packets=`0`
+- `docs/operations/STEADY-STATE-STATUS.md` should only change when the operator contract or proof paths change.
+- `reports/truth-inventory/steady-state-live.md` is the volatile front door for current work, next up, queue posture, and recent activity.
+- `reports/truth-inventory/steady-state-status.json` is the machine-readable source for intervention level, reopen state, and queue counts.
+- `reports/ralph-loop/latest.json` remains the deeper live dispatch proof when operator surfaces need forensic confirmation.
 
 ## Operator Action
 
-- Re-enter closure work through `python scripts/session_restart_brief.py --refresh` and cash the next surfaced debt family or runtime packet.
+- Start with the live operator feed to see the current lane, provider, and next handoff.
+- If the JSON or live feed raises attention above `No action needed`, re-enter through `python scripts/session_restart_brief.py --refresh`.
+- Use the finish scoreboard and runtime packet inbox before making closure or reopen claims.
 
 ## Reopen Triggers
 
@@ -31,8 +33,7 @@ Do not edit manually.
 
 ## Active Reopen Reasons
 
-- program-slice debt remains (`1`)
-- finish scoreboard closure_state is `closure_in_progress`
+- Read `reports/truth-inventory/steady-state-status.json` for the current reopen reasons.
 
 ## Evidence
 

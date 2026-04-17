@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import subprocess
 import sys
 import uuid
 from pathlib import Path
@@ -139,3 +140,28 @@ def test_repo_structure_contract_rejects_root_and_scripts_tmp_files(tmp_path: Pa
 
     assert any("tmp_probe.py" in error for error in errors)
     assert any("scripts/tmp_refresh.py" in error for error in errors)
+
+
+def test_run_generator_check_applies_timeout() -> None:
+    module = _load_module(
+        f"validate_platform_contract_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "validate_platform_contract.py",
+    )
+
+    calls: list[dict[str, object]] = []
+
+    def _fake_run(*args, **kwargs):
+        calls.append({"args": args, "kwargs": kwargs})
+        raise subprocess.TimeoutExpired(cmd=[sys.executable, "scripts/example.py", "--check"], timeout=30)
+
+    original_run = module.subprocess.run
+    module.subprocess.run = _fake_run
+    try:
+        result = module._run_generator_check(["scripts/example.py"])
+    finally:
+        module.subprocess.run = original_run
+
+    assert calls
+    assert calls[0]["kwargs"]["timeout"] == module.GENERATED_DOC_CHECK_TIMEOUT_SECONDS
+    assert result.returncode == 124
+    assert "timed out" in result.stderr

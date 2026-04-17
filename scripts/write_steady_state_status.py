@@ -232,25 +232,27 @@ def render_markdown(payload: dict[str, Any]) -> str:
         "",
         "Do not edit manually.",
         "",
-        "## At A Glance",
+        "## Purpose",
         "",
-        f"- System state: `{payload.get('closure_state', 'unknown')}`",
-        f"- Attention level: `{payload.get('intervention_label', 'unknown')}`",
-        f"- Needs you: `{payload.get('needs_you', False)}`",
-        f"- Why: {payload.get('intervention_summary', 'unknown')}",
+        "- This tracked document is the durable operator contract for steady-state monitoring and reopen handling.",
+        "- Live claim rotation, provider routing, queue posture, and recent activity belong in the ignored live feed and machine JSON, not in repo-tracked markdown.",
+        "- Read the live feed first when you need to know what Athanor is doing right now.",
         f"- Live operator feed: `{artifacts.get('steady_state_live_md', '')}`",
         f"- Machine proof: `{artifacts.get('steady_state_status_json', '')}`",
         "",
         "## Operating Contract",
         "",
         "- This tracked document is durable by design.",
-        "- Live claim rotation, provider routing, queue posture, and recent activity move through the ignored live operator feed and machine JSON, not this repo-tracked markdown surface.",
-        f"- Strategic workstream family: `{_pick_string(payload.get('selected_workstream_title'), payload.get('selected_workstream_id')) or 'unknown'}`",
-        f"- Repo-safe debt gates: cash_now=`{payload.get('cash_now_remaining_count', 'unknown')}` | bounded_follow_on=`{payload.get('bounded_follow_on_remaining_count', 'unknown')}` | program_slice=`{payload.get('program_slice_remaining_count', 'unknown')}` | runtime_packets=`{payload.get('runtime_packet_count', 'unknown')}`",
+        "- `docs/operations/STEADY-STATE-STATUS.md` should only change when the operator contract or proof paths change.",
+        "- `reports/truth-inventory/steady-state-live.md` is the volatile front door for current work, next up, queue posture, and recent activity.",
+        "- `reports/truth-inventory/steady-state-status.json` is the machine-readable source for intervention level, reopen state, and queue counts.",
+        "- `reports/ralph-loop/latest.json` remains the deeper live dispatch proof when operator surfaces need forensic confirmation.",
         "",
         "## Operator Action",
         "",
-        f"- {payload.get('next_operator_action', 'unknown')}",
+        "- Start with the live operator feed to see the current lane, provider, and next handoff.",
+        "- If the JSON or live feed raises attention above `No action needed`, re-enter through `python scripts/session_restart_brief.py --refresh`.",
+        "- Use the finish scoreboard and runtime packet inbox before making closure or reopen claims.",
         "",
         "## Reopen Triggers",
         "",
@@ -262,10 +264,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
         "## Active Reopen Reasons",
         "",
     ])
-    if payload.get("reopen_reasons"):
-        lines.extend(f"- {item}" for item in payload.get("reopen_reasons", []))
-    else:
-        lines.append("- None.")
+    lines.append("- Read `reports/truth-inventory/steady-state-status.json` for the current reopen reasons.")
 
     lines.extend([
         "",
@@ -287,6 +286,7 @@ def render_live_markdown(payload: dict[str, Any]) -> str:
     current_work = dict(payload.get("current_work") or {})
     next_up = dict(payload.get("next_up") or {})
     recent_activity = payload.get("recent_activity") if isinstance(payload.get("recent_activity"), list) else []
+    reopen_reasons = payload.get("reopen_reasons") if isinstance(payload.get("reopen_reasons"), list) else []
     lines = [
         "# Steady-State Live Operator Feed",
         "",
@@ -302,6 +302,8 @@ def render_live_markdown(payload: dict[str, Any]) -> str:
         f"- Dispatch status: `{_pick_string(current_work.get('dispatch_status')) or 'unknown'}`",
         f"- Next up: `{_pick_string(next_up.get('task_title'), next_up.get('task_id')) or 'unknown'}`",
         f"- Queue posture: total=`{payload.get('queue_total', 'unknown')}` | dispatchable=`{payload.get('queue_dispatchable', 'unknown')}` | blocked=`{payload.get('queue_blocked', 'unknown')}` | suppressed=`{payload.get('suppressed_task_count', 'unknown')}`",
+        f"- Needs you: `{payload.get('needs_you', 'unknown')}`",
+        f"- Why: `{_pick_string(payload.get('intervention_summary')) or 'unknown'}`",
         "",
         "## Current Work",
         "",
@@ -310,9 +312,18 @@ def render_live_markdown(payload: dict[str, Any]) -> str:
         f"- Proof surface: `{_pick_string(current_work.get('proof_surface')) or 'unknown'}`",
         f"- Max concurrency: `{current_work.get('max_concurrency', 'unknown')}`",
         "",
-        "## Recent Activity",
+        "## Reopen State",
         "",
     ]
+    if reopen_reasons:
+        lines.extend(f"- {item}" for item in reopen_reasons)
+    else:
+        lines.append("- None.")
+    lines.extend([
+        "",
+        "## Recent Activity",
+        "",
+    ])
     if recent_activity:
         seen: set[tuple[str, str, str]] = set()
         for item in recent_activity:

@@ -110,45 +110,7 @@ def test_render_markdown_surfaces_operator_sections() -> None:
 
     rendered = module.render_markdown(
         {
-            "closure_state": "repo_safe_complete",
-            "intervention_label": "No action needed",
-            "needs_you": False,
-            "intervention_summary": "Core closure is complete and the live lane is running.",
-            "queue_total": 12,
-            "queue_dispatchable": 6,
-            "queue_blocked": 0,
-            "suppressed_task_count": 7,
-            "selected_workstream_title": "Dispatch and Work-Economy Closure",
-            "cash_now_remaining_count": 0,
-            "bounded_follow_on_remaining_count": 0,
-            "program_slice_remaining_count": 0,
-            "runtime_packet_count": 0,
-            "current_work": {
-                "task_title": "Overnight Harvest",
-                "task_id": "burn_class:overnight_harvest",
-                "provider_label": "Athanor Local",
-                "lane_family": "capacity_truth_repair",
-                "dispatch_status": "already_dispatched",
-                "mutation_class": "auto_harvest",
-                "value_class": "capacity_truth_drift",
-                "proof_surface": "reports/truth-inventory/capacity-telemetry.json",
-                "max_concurrency": 8,
-            },
-            "next_up": {
-                "task_title": "Cheap Bulk Cloud",
-                "provider_label": "DeepSeek API",
-            },
-            "next_operator_action": "Run `python scripts/run_steady_state_control_plane.py` for a fresh pass.",
             "reopen_triggers": ["finish-scoreboard reports non-zero repo-safe debt"],
-            "reopen_reasons": [],
-            "recent_activity": [
-                {
-                    "at": "2026-04-16 21:06 UTC",
-                    "task_title": "Overnight Harvest",
-                    "dispatch_outcome": "claimed",
-                    "summary": "Ralph loop selected Overnight Harvest.",
-                }
-            ],
             "artifacts": {
                 "ralph_latest": "reports/ralph-loop/latest.json",
                 "finish_scoreboard": "reports/truth-inventory/finish-scoreboard.json",
@@ -160,12 +122,57 @@ def test_render_markdown_surfaces_operator_sections() -> None:
     )
 
     assert "# Steady-State Status" in rendered
-    assert "## At A Glance" in rendered
     assert "## Operating Contract" in rendered
     assert "This tracked document is durable by design." in rendered
     assert "steady-state-live.md" in rendered
     assert "No action needed" in rendered
-    assert "None." in rendered
+    assert "Read `reports/truth-inventory/steady-state-status.json` for the current reopen reasons." in rendered
+
+
+def test_render_markdown_is_stable_across_live_state_changes() -> None:
+    module = _load_module(
+        f"write_steady_state_status_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "write_steady_state_status.py",
+    )
+
+    shared_artifacts = {
+        "ralph_latest": "reports/ralph-loop/latest.json",
+        "finish_scoreboard": "reports/truth-inventory/finish-scoreboard.json",
+        "runtime_packet_inbox": "reports/truth-inventory/runtime-packet-inbox.json",
+        "steady_state_status_json": "reports/truth-inventory/steady-state-status.json",
+        "steady_state_live_md": "reports/truth-inventory/steady-state-live.md",
+    }
+
+    quiet = {
+        "closure_state": "repo_safe_complete",
+        "intervention_label": "No action needed",
+        "needs_you": False,
+        "intervention_summary": "Core closure is complete and the live lane is running.",
+        "queue_total": 12,
+        "queue_dispatchable": 6,
+        "queue_blocked": 0,
+        "suppressed_task_count": 7,
+        "selected_workstream_title": "Dispatch and Work-Economy Closure",
+        "reopen_triggers": ["finish-scoreboard reports non-zero repo-safe debt"],
+        "reopen_reasons": [],
+        "artifacts": shared_artifacts,
+    }
+    noisy = {
+        "closure_state": "closure_in_progress",
+        "intervention_label": "Review recommended",
+        "needs_you": True,
+        "intervention_summary": "Closure debt or reopen conditions are active.",
+        "queue_total": 99,
+        "queue_dispatchable": 1,
+        "queue_blocked": 10,
+        "suppressed_task_count": 42,
+        "selected_workstream_title": "Reference and Archive Prune",
+        "reopen_triggers": ["finish-scoreboard reports non-zero repo-safe debt"],
+        "reopen_reasons": ["program-slice debt remains (`1`)"],
+        "artifacts": shared_artifacts,
+    }
+
+    assert module.render_markdown(quiet) == module.render_markdown(noisy)
 
 
 def test_render_live_markdown_surfaces_volatile_operator_feed() -> None:
@@ -178,6 +185,8 @@ def test_render_live_markdown_surfaces_volatile_operator_feed() -> None:
         {
             "closure_state": "repo_safe_complete",
             "intervention_label": "No action needed",
+            "needs_you": False,
+            "intervention_summary": "Core closure is complete and the live lane is running.",
             "queue_total": 12,
             "queue_dispatchable": 6,
             "queue_blocked": 0,
@@ -198,6 +207,7 @@ def test_render_live_markdown_surfaces_volatile_operator_feed() -> None:
                 "task_title": "Cheap Bulk Cloud",
                 "provider_label": "DeepSeek API",
             },
+            "reopen_reasons": [],
             "recent_activity": [
                 {
                     "at": "2026-04-16 21:06 UTC",
@@ -211,9 +221,12 @@ def test_render_live_markdown_surfaces_volatile_operator_feed() -> None:
 
     assert "# Steady-State Live Operator Feed" in rendered
     assert "## Current Work" in rendered
+    assert "## Reopen State" in rendered
     assert "## Recent Activity" in rendered
     assert "Overnight Harvest" in rendered
     assert "Cheap Bulk Cloud" in rendered
+    assert "No action needed" in rendered
+    assert "None." in rendered
 
 
 def test_normalized_payload_ignores_generated_at() -> None:

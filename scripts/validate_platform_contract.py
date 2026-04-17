@@ -64,6 +64,7 @@ MCP_CONFIG_PATH = REPO_ROOT / ".mcp.json"
 LITELLM_TEMPLATE_PATH = REPO_ROOT / "ansible" / "roles" / "vault-litellm" / "templates" / "litellm_config.yaml.j2"
 VAULT_LITELLM_TASKS_PATH = REPO_ROOT / "ansible" / "roles" / "vault-litellm" / "tasks" / "main.yml"
 VAULT_HOST_VARS_PATH = REPO_ROOT / "ansible" / "host_vars" / "vault.yml"
+GENERATED_DOC_CHECK_TIMEOUT_SECONDS = 30
 
 PROMETHEUS_INFRA_ONLY_PROBE_IDS = {
     "node1-node-exporter",
@@ -1681,12 +1682,25 @@ def _load_yaml(path: Path) -> dict[str, Any]:
 
 def _run_generator_check(command_parts: list[str]) -> subprocess.CompletedProcess[str]:
     script_path = REPO_ROOT / command_parts[0]
-    return subprocess.run(
-        [sys.executable, str(script_path), *command_parts[1:], "--check"],
-        capture_output=True,
-        text=True,
-        cwd=str(REPO_ROOT),
-    )
+    try:
+        return subprocess.run(
+            [sys.executable, str(script_path), *command_parts[1:], "--check"],
+            capture_output=True,
+            text=True,
+            cwd=str(REPO_ROOT),
+            timeout=GENERATED_DOC_CHECK_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired as exc:
+        detail = (
+            f"Generated doc freshness check timed out after {GENERATED_DOC_CHECK_TIMEOUT_SECONDS}s: "
+            + " ".join(command_parts)
+        )
+        return subprocess.CompletedProcess(
+            args=exc.cmd,
+            returncode=124,
+            stdout=(exc.stdout or ""),
+            stderr=((exc.stderr or "") + detail).strip(),
+        )
 
 
 def _parse_registry_generator_command(command: str) -> list[str]:
