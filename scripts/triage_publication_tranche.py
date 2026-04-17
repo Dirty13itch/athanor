@@ -99,18 +99,49 @@ def _git_command(repo_root: Path, *args: str) -> list[str]:
     return ['git', '-C', str(repo_root), *args]
 
 
+def _git_command_candidates(repo_root: Path, *args: str) -> list[list[str]]:
+    candidates: list[list[str]] = []
+    windows_repo = _to_windows_path(repo_root)
+    if windows_repo and WINDOWS_GIT_EXE.exists():
+        candidates.append([str(WINDOWS_GIT_EXE), '-C', windows_repo, *args])
+    candidates.append(['git', '-C', str(repo_root), *args])
+
+    deduped: list[list[str]] = []
+    seen: set[tuple[str, ...]] = set()
+    for candidate in candidates:
+        key = tuple(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(candidate)
+    return deduped
+
+
 def _git_status_entries(repo_root: Path) -> list[dict[str, str]]:
-    completed = subprocess.run(
-        _git_command(repo_root, 'status', '--short', '--untracked-files=normal', '--no-renames'),
-        capture_output=True,
-        text=True,
-        timeout=GIT_STATUS_TIMEOUT_SECONDS,
-        check=False,
-    )
-    if completed.returncode != 0:
-        raise RuntimeError(
-            f"git status failed with code {completed.returncode}: {(completed.stderr or completed.stdout).strip()}"
+    completed = None
+    failures: list[str] = []
+    for command in _git_command_candidates(repo_root, 'status', '--short', '--untracked-files=normal', '--no-renames'):
+        try:
+            attempt = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                timeout=GIT_STATUS_TIMEOUT_SECONDS,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            failures.append(f"{' '.join(command)} -> {exc}")
+            continue
+        if attempt.returncode == 0:
+            completed = attempt
+            break
+        failures.append(
+            f"{' '.join(command)} -> code {attempt.returncode}: {(attempt.stderr or attempt.stdout).strip()}"
         )
+
+    if completed is None:
+        raise RuntimeError('git status failed: ' + ' | '.join(failures))
+
     entries: list[dict[str, str]] = []
     for raw_line in completed.stdout.splitlines():
         if not raw_line:

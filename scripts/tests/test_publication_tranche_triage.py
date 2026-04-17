@@ -257,3 +257,46 @@ def test_main_does_not_rewrite_markdown_output_when_only_generated_timestamp_cha
 
     assert module.main() == 0
     assert output_path.read_text(encoding='utf-8') == initial_text
+
+
+def test_git_status_entries_falls_back_to_native_git_when_windows_git_fails(tmp_path: Path) -> None:
+    module = _load_module(
+        f"publication_tranche_triage_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / 'triage_publication_tranche.py',
+    )
+
+    repo_root = tmp_path / 'repo'
+    repo_root.mkdir()
+
+    commands: list[list[str]] = []
+
+    class _Result:
+        def __init__(self, returncode: int, stdout: str = '', stderr: str = '') -> None:
+            self.returncode = returncode
+            self.stdout = stdout
+            self.stderr = stderr
+
+    def _fake_run(command, **kwargs):
+        commands.append(list(command))
+        if len(commands) == 1:
+            return _Result(returncode=1, stderr='vsock failure')
+        return _Result(returncode=0, stdout=' M scripts/example.py\n')
+
+    original_windows_git = module.WINDOWS_GIT_EXE
+    original_to_windows_path = module._to_windows_path
+    original_run = module.subprocess.run
+    module.WINDOWS_GIT_EXE = tmp_path / 'git.exe'
+    module.WINDOWS_GIT_EXE.write_text('', encoding='utf-8')
+    module._to_windows_path = lambda _path: 'C:\\repo'
+    module.subprocess.run = _fake_run
+    try:
+        entries = module._git_status_entries(repo_root)
+    finally:
+        module.WINDOWS_GIT_EXE = original_windows_git
+        module._to_windows_path = original_to_windows_path
+        module.subprocess.run = original_run
+
+    assert len(commands) == 2
+    assert commands[0][0].endswith('git.exe')
+    assert commands[1][0] == 'git'
+    assert entries == [{'status': ' M', 'path': 'scripts/example.py'}]
