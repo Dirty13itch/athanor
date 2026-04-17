@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -128,28 +129,15 @@ def _to_windows_path(path: Path) -> str | None:
 
 
 def _git_command(repo_root: Path, *args: str) -> list[str]:
-    windows_repo = _to_windows_path(repo_root)
-    if windows_repo and WINDOWS_GIT_EXE.exists():
-        return [str(WINDOWS_GIT_EXE), '-C', windows_repo, *args]
     return ['git', '-C', str(repo_root), *args]
 
 
 def _git_command_candidates(repo_root: Path, *args: str) -> list[list[str]]:
-    candidates: list[list[str]] = []
-    windows_repo = _to_windows_path(repo_root)
-    if windows_repo and WINDOWS_GIT_EXE.exists():
-        candidates.append([str(WINDOWS_GIT_EXE), '-C', windows_repo, *args])
-    candidates.append(['git', '-C', str(repo_root), *args])
-
-    deduped: list[list[str]] = []
-    seen: set[tuple[str, ...]] = set()
-    for candidate in candidates:
-        key = tuple(candidate)
-        if key in seen:
-            continue
-        seen.add(key)
-        deduped.append(candidate)
-    return deduped
+    if os.name == 'nt':
+        windows_repo = _to_windows_path(repo_root)
+        if windows_repo and WINDOWS_GIT_EXE.exists():
+            return [[str(WINDOWS_GIT_EXE), '-C', windows_repo, *args], ['git', '-C', str(repo_root), *args]]
+    return [['git', '-C', str(repo_root), *args]]
 
 
 def _git_status_entries(repo_root: Path) -> list[dict[str, str]]:

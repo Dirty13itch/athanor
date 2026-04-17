@@ -68,11 +68,6 @@ def _repo_runtime_prefixes() -> list[str]:
 
 def _git_probe_context(path: Path) -> tuple[list[str], str]:
     normalized = path.as_posix()
-    if normalized.startswith('/mnt/c/'):
-        windows_path = 'C:\\' + normalized.removeprefix('/mnt/c/').replace('/', '\\')
-        for candidate in WINDOWS_GIT_CANDIDATES:
-            if candidate.exists():
-                return [str(candidate)], windows_path
     return ['git'], normalized
 
 

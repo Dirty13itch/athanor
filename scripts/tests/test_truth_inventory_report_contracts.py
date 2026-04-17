@@ -168,6 +168,18 @@ def test_generated_local_git_ignore_paths_include_publication_loop_outputs() -> 
     assert "docs/architecture/ATHANOR-ECOSYSTEM-SYSTEM-BIBLE.md" in module.GENERATED_LOCAL_GIT_IGNORE_PATHS
 
 
+def test_git_probe_context_prefers_native_git_on_wsl_paths() -> None:
+    module = _load_module(
+        f"truth_inventory_report_contracts_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "generate_truth_inventory_reports.py",
+    )
+
+    command, probe_path = module._windows_git_probe_context("/mnt/c/Athanor")
+
+    assert command == ["git"]
+    assert probe_path == "/mnt/c/Athanor"
+
+
 def test_docs_lifecycle_registry_generated_reports_have_generators() -> None:
     registry = json.loads((REPO_ROOT / 'config' / 'automation-backbone' / 'docs-lifecycle-registry.json').read_text(encoding='utf-8'))
     docs_by_path = {doc['path']: doc for doc in registry['documents']}

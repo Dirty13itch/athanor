@@ -99,29 +99,7 @@ def _status_line_paths(line: str) -> list[str]:
 
 def _windows_git_probe_context(path: str) -> tuple[list[str], str]:
     normalized = _slash_path(path)
-    if os.name == "nt":
-        return ["git"], normalized
-    if re.match(r"^[A-Za-z]:/", normalized):
-        probe_path = normalized
-    elif normalized.startswith("/mnt/"):
-        match = PurePosixPath(normalized).parts
-        if len(match) < 4:
-            return ["git"], path
-        drive = match[2]
-        if len(drive) != 1 or not drive.isalpha():
-            return ["git"], path
-        remainder = "/".join(match[3:])
-        probe_path = f"{drive.upper()}:/{remainder}"
-    else:
-        return ["git"], path
-    for candidate in (
-        "/mnt/c/Program Files/Git/cmd/git.exe",
-        "/mnt/c/Program Files/Git/bin/git.exe",
-        "/mnt/c/Program Files/Git/mingw64/bin/git.exe",
-    ):
-        if Path(candidate).exists():
-            return [candidate], probe_path
-    return ["git"], path
+    return ["git"], normalized
 
 
 def _local_git_probe(path: str) -> dict[str, Any]:

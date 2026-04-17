@@ -1908,6 +1908,49 @@ def test_automation_feedback_summary_treats_already_dispatched_claims_as_non_fai
     assert summary["dispatch_last_outcome"] == "claimed"
 
 
+def test_automation_feedback_summary_treats_null_validation_idle_runs_as_neutral() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+    recent_records = [
+        {
+            "timestamp": "2026-04-13T18:08:00+00:00",
+            "automation_id": "ralph-loop",
+            "lane": "ralph_loop",
+            "action_class": "autonomous_planning",
+            "result": {
+                "dispatch_outcome": "idle",
+                "dispatch_execution_status": "no_claim",
+                "claimed_task_id": None,
+                "validation_passed": None,
+            },
+            "operator_visible_summary": "Ralph loop correctly stayed idle because no claim was available.",
+        },
+        {
+            "timestamp": "2026-04-13T18:05:00+00:00",
+            "automation_id": "ralph-loop",
+            "lane": "ralph_loop",
+            "action_class": "autonomous_planning",
+            "result": {
+                "dispatch_outcome": "claimed",
+                "dispatch_execution_status": "already_dispatched",
+                "claimed_task_id": "workstream:capacity-and-harvest-truth",
+                "claimed_task_title": "Capacity and Harvest Truth",
+            },
+            "operator_visible_summary": "Ralph loop retained the current claim without issuing a duplicate dispatch.",
+        },
+    ]
+
+    summary = module._build_automation_feedback_summary(recent_records)
+
+    assert summary["success_count"] == 1
+    assert summary["failure_count"] == 0
+    assert summary["unknown_count"] == 1
+    assert summary["last_outcome"] == "unknown"
+    assert summary["feedback_state"] == "healthy"
+
+
 def test_capture_automation_feedback_and_emit_includes_same_pass_claim_record() -> None:
     module = _load_module(
         f"run_ralph_loop_pass_{uuid.uuid4().hex}",

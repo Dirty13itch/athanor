@@ -6,7 +6,7 @@ Do not edit manually.
 ## Summary
 
 - Registry version: `2026-04-16.2`
-- Cached truth snapshot: `2026-04-17T20:13:43.334406+00:00`
+- Cached truth snapshot: `2026-04-17T21:01:43.967613+00:00`
 - Promotion gate: `runtime_ownership_maturity`
 - Goal: Make runtime ownership explicit enough that host-level maintenance no longer depends on undocumented operator memory.
 - Implementation authority: `desk-main` -> `C:/Athanor`
@@ -21,7 +21,7 @@ Do not edit manually.
 
 ## Repo Evidence
 
-- Implementation dirty file count: `0`
+- Implementation dirty file count: `7`
 - DEV runtime probe: `unable to reach DEV via ssh`
 - DEV SSH targets attempted: `dev`, `shaun@192.168.1.189`
 - DEV SSH failure samples: `dev` -> `Traceback (most recent call last):`, `shaun@192.168.1.189` -> `shaun@192.168.1.189: Permission denied (publickey,password).`
@@ -112,7 +112,7 @@ Do not edit manually.
 - Active root: `/opt/athanor/dashboard`
 - Runtime repo compose controls container: `True`
 - Container running: `True`
-- Container status: `Up 18 minutes`
+- Container status: `Up About an hour`
 - Compose working dir: `/opt/athanor/dashboard`
 - Legacy service state: `inactive` / `dead`
 - Legacy unit file state: `masked`

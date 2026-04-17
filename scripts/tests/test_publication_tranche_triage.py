@@ -315,25 +315,15 @@ def test_git_status_entries_falls_back_to_native_git_when_windows_git_fails(tmp_
 
     def _fake_run(command, **kwargs):
         commands.append(list(command))
-        if len(commands) == 1:
-            return _Result(returncode=1, stderr='vsock failure')
         return _Result(returncode=0, stdout=' M scripts/example.py\n')
 
-    original_windows_git = module.WINDOWS_GIT_EXE
-    original_to_windows_path = module._to_windows_path
     original_run = module.subprocess.run
-    module.WINDOWS_GIT_EXE = tmp_path / 'git.exe'
-    module.WINDOWS_GIT_EXE.write_text('', encoding='utf-8')
-    module._to_windows_path = lambda _path: 'C:\\repo'
     module.subprocess.run = _fake_run
     try:
         entries = module._git_status_entries(repo_root)
     finally:
-        module.WINDOWS_GIT_EXE = original_windows_git
-        module._to_windows_path = original_to_windows_path
         module.subprocess.run = original_run
 
-    assert len(commands) == 2
-    assert commands[0][0].endswith('git.exe')
-    assert commands[1][0] == 'git'
+    assert len(commands) == 1
+    assert commands[0][0] == 'git'
     assert entries == [{'status': ' M', 'path': 'scripts/example.py'}]

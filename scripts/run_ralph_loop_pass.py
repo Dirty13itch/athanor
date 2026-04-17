@@ -1476,8 +1476,21 @@ def _automation_run_outcome(record: dict[str, Any]) -> str:
         return "success"
 
     for field in ("validation_passed", "all_passed", "success", "passed"):
-        if field in result:
-            return "success" if bool(result.get(field)) else "failure"
+        if field not in result:
+            continue
+        value = result.get(field)
+        if value is None:
+            continue
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if not normalized:
+                continue
+            if normalized in {"true", "1", "yes", "passed", "success", "healthy", "ok"}:
+                return "success"
+            if normalized in {"false", "0", "no", "failed", "failure", "degraded", "blocked", "error"}:
+                return "failure"
+            continue
+        return "success" if bool(value) else "failure"
 
     if "returncode" in result:
         try:
@@ -2068,11 +2081,6 @@ def _build_publication_deferred_family_items(publication_queue: dict[str, Any]) 
 
 def _repo_git_probe_context(path: Path) -> tuple[list[str], str]:
     normalized = path.as_posix()
-    if normalized.startswith('/mnt/c/'):
-        windows_path = 'C:\\' + normalized.removeprefix('/mnt/c/').replace('/', '\\')
-        for candidate in WINDOWS_GIT_CANDIDATES:
-            if candidate.exists():
-                return [str(candidate)], windows_path
     return ['git'], normalized
 def _repo_has_material_worktree_delta(continuity_policy: dict[str, Any]) -> bool:
     return bool(_repo_material_worktree_delta_paths(continuity_policy))
