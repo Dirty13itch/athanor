@@ -1,9 +1,9 @@
 # Publication Triage Summary
 
 - Active sequence: `2026-04-15-publication-triage-governance`
-- Dirty entries: `4`
-- Slice-matched entries: `1`
-- Deferred-family entries: `3`
+- Dirty entries: `0`
+- Slice-matched entries: `0`
+- Deferred-family entries: `0`
 - Ambiguous entries: `0`
 - Unclassified entries: `0`
 - Local-noise entries: `0`
@@ -12,7 +12,7 @@
 
 | Slice | Status | Dirty matches | Missing publication refs | Missing generated artifacts |
 | --- | --- | --- | --- | --- |
-| `backbone-contracts-and-truth-writers` | `published` | `1` | `0` | `0` |
+| `backbone-contracts-and-truth-writers` | `published` | `0` | `0` | `0` |
 | `runtime-ownership-provider-truth-and-reconciliation` | `published` | `0` | `0` | `0` |
 | `pilot-eval-substrate-and-operator-test-machinery` | `published` | `0` | `0` | `0` |
 | `graphrag-promotion-wave` | `published` | `0` | `0` | `0` |
@@ -21,14 +21,11 @@
 
 ## Backbone Contracts and Truth Writers (`backbone-contracts-and-truth-writers`)
 
-- Dirty matches: `1`
+- Dirty matches: `0`
 - Publication refs: `20`
 - Working-tree hints: `25`
 - Missing publication refs: `0`
 - Missing generated artifacts: `0`
-
-Sample dirty paths:
-- `M` scripts/validate_platform_contract.py
 
 ## Runtime Ownership, Provider Truth, and Reconciliation (`runtime-ownership-provider-truth-and-reconciliation`)
 
@@ -79,7 +76,7 @@ Sample dirty paths:
 | `audit-and-eval-artifacts` | `audit_artifact` | `0` |
 | `deployment-authority-follow-on` | `deferred_out_of_sequence` | `0` |
 | `runtime-service-follow-on` | `runtime_follow_on` | `0` |
-| `control-plane-follow-on` | `deferred_out_of_sequence` | `3` |
+| `control-plane-follow-on` | `deferred_out_of_sequence` | `0` |
 | `tenant-product-lanes` | `tenant_surface` | `0` |
 
 ## Deferred: Reference and Archive Prune (`reference-and-archive-prune`)
@@ -140,18 +137,13 @@ Sample dirty paths:
 ## Deferred: Control-Plane Follow-on (`control-plane-follow-on`)
 
 - Disposition: `deferred_out_of_sequence`
-- Dirty matches: `3`
+- Dirty matches: `0`
 - Path hints: `4`
 - Scope: Implementation-authority control-plane, agent-runtime, and operations packet work that is real but intentionally outside the six ready checkpoint slices.
 - Execution class: `program_slice`
 - Next action: Break the broad control-plane tail into explicit follow-on publication slices before any wider checkpoint publish.
 - Success condition: Control-plane residue is no longer one deferred mass; it is decomposed into explicit publication-ready tranches.
 - Owner workstreams: `authority-and-mainline`, `validation-and-publication`
-
-Sample dirty paths:
-- `M` scripts/generate_full_system_audit.py
-- `M` scripts/tests/test_generate_full_system_audit.py
-- `M` scripts/tests/test_validate_platform_contract_monitoring_contracts.py
 
 ## Deferred: Tenant Product Lanes (`tenant-product-lanes`)
 
