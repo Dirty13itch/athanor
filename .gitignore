@@ -56,6 +56,7 @@ tmp/
 output/
 .letta/
 evals/.letta/
+/.data/builder-runs/
 /var/bootstrap/
 /var/foundry/
 /projects/agents/var/
