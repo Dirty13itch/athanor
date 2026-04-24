@@ -28,6 +28,17 @@ SELF_GENERATED_DOC_PATHS = (
     'docs/operations/AUDIT-REMEDIATION-BACKLOG.md',
 )
 
+COUNT_IGNORED_PARTS = {
+    '.git',
+    '.next',
+    '.next-playwright',
+    '.venv',
+    '__pycache__',
+    'node_modules',
+    'playwright-report',
+    'test-results',
+}
+
 SOURCE_LAYERS = {
     'athanor_backlog': REPO_ROOT / 'docs' / 'operations' / 'CONTINUOUS-COMPLETION-BACKLOG.md',
     'athanor_layered_plan': REPO_ROOT / 'docs' / 'operations' / 'ATHANOR-LAYERED-MASTER-PLAN.md',
@@ -315,7 +326,20 @@ def _top_level_counts(repo: Path, folders: list[str]) -> dict[str, int]:
         if rg_files:
             counts[folder] = len(rg_files)
             continue
-        counts[folder] = sum(1 for p in root.rglob('*') if p.is_file())
+        total = 0
+        for path in root.rglob('*'):
+            try:
+                rel_parts = path.relative_to(repo).parts
+            except ValueError:
+                rel_parts = path.parts
+            if any(part in COUNT_IGNORED_PARTS for part in rel_parts):
+                continue
+            try:
+                if path.is_file():
+                    total += 1
+            except OSError:
+                continue
+        counts[folder] = total
     return counts
 
 

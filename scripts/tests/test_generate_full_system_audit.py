@@ -168,6 +168,26 @@ def test_with_ignored_generated_docs_appends_audit_targets() -> None:
     ]
 
 
+def test_top_level_counts_skips_dependency_and_build_dirs(tmp_path: Path) -> None:
+    module = _load_module(
+        f'generate_full_system_audit_{uuid.uuid4().hex}',
+        SCRIPTS_DIR / 'generate_full_system_audit.py',
+    )
+    repo = tmp_path / 'repo'
+    source_file = repo / 'projects' / 'eoq' / 'src' / 'index.ts'
+    dependency_file = repo / 'projects' / 'eoq' / 'node_modules' / '.bin' / 'acorn'
+    build_file = repo / 'projects' / 'dashboard' / '.next' / 'server.js'
+    source_file.parent.mkdir(parents=True)
+    dependency_file.parent.mkdir(parents=True)
+    build_file.parent.mkdir(parents=True)
+    source_file.write_text('export {};\n', encoding='utf-8')
+    dependency_file.write_text('ignored\n', encoding='utf-8')
+    build_file.write_text('ignored\n', encoding='utf-8')
+    module._rg_files = lambda repo, scope=None: []
+
+    assert module._top_level_counts(repo, ['projects']) == {'projects': 1}
+
+
 def test_build_audit_ignores_non_ralph_failures_when_feedback_state_is_healthy() -> None:
     module = _load_module(
         f'generate_full_system_audit_{uuid.uuid4().hex}',
