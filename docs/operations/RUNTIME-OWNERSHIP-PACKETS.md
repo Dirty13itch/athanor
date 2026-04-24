@@ -845,7 +845,7 @@ Do not edit manually.
 - Backup root: `/home/shaun/.openclaw/openclaw.json.bak plus systemd unit backups created by OpenClaw install`
 - Evidence: `reports/truth-inventory/openclaw-sidecar-status.json`, `docs/operations/OPENCLAW-SIDECAR-RUNTIME-PACKET.md`, `scripts/configure_openclaw_telegram.py`, `config/automation-backbone/platform-topology.json`, `config/automation-backbone/operator-surface-registry.json`, `config/automation-backbone/runtime-ownership-contract.json`
 
-- Target units: `openclaw-gateway.service`, `/home/shaun/.openclaw`, `DESK OpenClaw dev profile`, `DESK SSH tunnel to DEV 127.0.0.1:18789`
+- Target units: `openclaw-gateway.service`, `/home/shaun/.openclaw`, `DESK OpenClaw dev profile`, `DESK SSH tunnel to DEV 127.0.0.1:18789`, `FOUNDRY openclaw-dev-tunnel.service`, `FOUNDRY openclaw-node.service`, `WORKSHOP openclaw-dev-tunnel.service`, `WORKSHOP openclaw-node.service`
 
 ### Preflight Commands
 
@@ -862,6 +862,7 @@ Do not edit manually.
 - Create isolated OpenClaw agents for operator, coder, cluster, creative, research, and home-media with separate workspaces under /home/shaun/.openclaw/workspaces.
 - Apply the cautious exec policy so command execution is allowlist-based with ask-on-miss and deny fallback.
 - Configure DESK profile `openclaw --profile dev` to use ws://127.0.0.1:18789 through the SSH tunnel.
+- Install OpenClaw user-local on FOUNDRY and WORKSHOP, create restricted SSH forwarding keys limited to DEV 127.0.0.1:18789, and run node hosts behind per-node localhost tunnels.
 - Keep Telegram delivery and inline approvals blocked until the BotFather token plus numeric allowlist/approver IDs are installed in OpenClaw channel state and verified.
 
 ### Verification Commands
@@ -871,6 +872,9 @@ Do not edit manually.
 - ssh dev "export PATH=\"$HOME/.local/npm-global/bin:$PATH\"; openclaw models status --check --probe --json"
 - ssh dev "export PATH=\"$HOME/.local/npm-global/bin:$PATH\"; openclaw channels status --probe --json"
 - ssh dev "export PATH=\"$HOME/.local/npm-global/bin:$PATH\"; openclaw agents list --bindings --json"
+- ssh dev "export PATH=\"$HOME/.local/npm-global/bin:$PATH\"; openclaw nodes status --json"
+- ssh dev "export PATH=\"$HOME/.local/npm-global/bin:$PATH\"; openclaw nodes invoke --node FOUNDRY --command system.which --params '{\"bins\":[\"bash\"]}' --json"
+- ssh dev "export PATH=\"$HOME/.local/npm-global/bin:$PATH\"; openclaw nodes invoke --node WORKSHOP --command system.which --params '{\"bins\":[\"bash\"]}' --json"
 - ssh dev "export PATH=\"$HOME/.local/npm-global/bin:$PATH\"; openclaw exec-policy show"
 - python scripts/write_openclaw_sidecar_status.py --write
 - python scripts/validate_platform_contract.py
