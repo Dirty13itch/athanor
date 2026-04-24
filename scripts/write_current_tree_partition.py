@@ -64,6 +64,8 @@ RUNTIME_GATED_PATH_PREFIXES = (
 SOURCE_PREFIXES = (
     "projects/agents/",
     "projects/dashboard/",
+    "projects/eoq/scripts/",
+    "evals/",
     "scripts/",
 )
 
