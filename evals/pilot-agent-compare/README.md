@@ -39,11 +39,12 @@ Supported argument placeholders:
 - `{task_id}`
 - `{provider_id}`
 
-Example PowerShell wiring shape for the remaining env-driven lane:
+The OpenHands lane is still env-driven because the package currently does not expose a stable CLI executable in this environment. Treat the command contract as unpinned until a one-shot worker wrapper is verified.
 
-```powershell
-$env:PROMPTFOO_OPENHANDS_CMD = "openhands"
-$env:PROMPTFOO_OPENHANDS_ARGS_JSON = "[\"run\", \"{prompt}\"]"
+Current substrate probe:
+
+```bash
+python scripts/probe_openhands_bounded_worker.py
 ```
 
 Run from repo root:
