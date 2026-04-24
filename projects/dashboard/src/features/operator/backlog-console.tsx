@@ -22,6 +22,14 @@ interface BacklogItem {
   prompt: string;
   owner_agent: string;
   work_class: string;
+  family?: string;
+  project_id?: string;
+  routing_class?: string;
+  source_type?: string;
+  verification_contract?: string;
+  materialization_reason?: string;
+  result_id?: string;
+  review_id?: string;
   priority: number;
   status: Exclude<BacklogStatus, "all">;
   approval_mode: string;
@@ -222,10 +230,24 @@ export function BacklogConsole({ initialStatus = "ready" }: { initialStatus?: st
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="outline">{item.status}</Badge>
                     <Badge variant="secondary">{item.owner_agent}</Badge>
+                    {item.family ? <Badge variant="secondary">{item.family}</Badge> : null}
                     <span className="text-xs text-muted-foreground">{`${item.work_class} · P${item.priority}`}</span>
                   </div>
                   <p className="mt-3 font-medium">{item.title}</p>
                   <p className="mt-2 text-sm text-muted-foreground">{item.prompt}</p>
+                  <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                    {item.project_id ? <span>{`project ${item.project_id}`}</span> : null}
+                    {item.routing_class ? <span>{item.routing_class}</span> : null}
+                    {item.source_type ? <span>{item.source_type}</span> : null}
+                    {item.verification_contract ? <span>{item.verification_contract}</span> : null}
+                  </div>
+                  {item.materialization_reason ? (
+                    <p className="mt-2 text-xs text-muted-foreground">{item.materialization_reason}</p>
+                  ) : null}
+                  <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                    {item.review_id ? <span>{`review ${item.review_id}`}</span> : null}
+                    {item.result_id ? <span>{`result ${item.result_id}`}</span> : null}
+                  </div>
                   {item.blocking_reason ? <p className="mt-3 text-xs text-amber-600">{item.blocking_reason}</p> : null}
                   <p className="mt-3 text-xs text-muted-foreground">{formatRelativeTime(new Date(item.updated_at * 1000).toISOString())}</p>
                   {item.status !== "archived" && item.status !== "completed" ? (

@@ -33,10 +33,10 @@ describe("config helpers", () => {
     expect(resolveChatModel("foundry-coordinator", "custom-model")).toBe("/models/custom-model");
   });
 
-  it("keeps the fallback project registry aligned with active and scaffolded tenants", () => {
+  it("keeps the fallback project registry aligned with active tenants and excludes retired lineage", () => {
     expect(getProjectById("athanor")?.firstClass).toBe(true);
     expect(getProjectById("eoq")?.firstClass).toBe(true);
-    expect(getProjectById("ulrich-energy")?.kind).toBe("scaffold");
+    expect(getProjectById("ulrich-energy")).toBeNull();
   });
 
   it("uses registry-backed canonical front-door and launchpad URLs", () => {
@@ -48,7 +48,6 @@ describe("config helpers", () => {
     expect(workshopOpenWebUi?.runtimeUrl).toBe("http://192.168.1.225:3000/");
     expect(workshopOpenWebUi?.runtimeState).toMatch(/reachable|unreachable|http_error|not_probed/);
     expect(getProjectById("eoq")?.externalUrl).toMatch(/^http:\/\/interface\.athanor\.local:3002\/?$/);
-    expect(getProjectById("ulrich-energy")?.externalUrl).toMatch(/^http:\/\/interface\.athanor\.local:3003\/?$/);
     expect(getProjectById("media")?.externalUrl).toBe("http://vault.athanor.local:32400/web");
   });
 });

@@ -42,7 +42,11 @@
     ".next-playwright-39144/types/**/*.ts",
     ".next-playwright-39144/dev/types/**/*.ts",
     ".next-playwright-39624/types/**/*.ts",
-    ".next-playwright-39624/dev/types/**/*.ts"
+    ".next-playwright-39624/dev/types/**/*.ts",
+    ".next-playwright-39269/types/**/*.ts",
+    ".next-playwright-39269/dev/types/**/*.ts",
+    ".next-playwright-39123/types/**/*.ts",
+    ".next-playwright-39123/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

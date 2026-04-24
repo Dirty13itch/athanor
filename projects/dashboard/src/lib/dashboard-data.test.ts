@@ -8,6 +8,269 @@ afterEach(() => {
 });
 
 describe("dashboard service health normalization", () => {
+  it("summarizes scheduled queue pressure from queue-backed vs direct jobs", () => {
+    const summary = __testing.summarizeScheduledJobPressure([
+      {
+        id: "agent-schedule:coding-agent",
+        last_execution_mode: "materialized_to_backlog",
+        last_execution_plane: "queue",
+        last_admission_classification: "queue",
+        last_backlog_id: "backlog-coding-1",
+      },
+      {
+        id: "research:daily-audit",
+        last_execution_mode: "materialized_to_backlog",
+        last_execution_plane: "queue",
+        last_admission_classification: "queue",
+        last_backlog_id: null,
+      },
+      {
+        id: "daily-digest",
+        last_execution_mode: "executed_directly",
+        last_execution_plane: "direct_control",
+        last_admission_classification: "direct_control",
+        last_backlog_id: null,
+      },
+    ]);
+
+    expect(summary).toEqual({
+      totalJobs: 3,
+      queueBackedJobs: 2,
+      directJobs: 1,
+      proposalOnlyJobs: 0,
+      blockedJobs: 0,
+      needsSyncJobs: 1,
+    });
+  });
+
+  it("counts approval and failure posture from explicit review/result evidence", () => {
+    const tasks = [
+      {
+        id: "task-approval-real",
+        agentId: "coding-agent",
+        status: "pending_approval" as const,
+        reviewId: "approval:task-approval-real",
+        resultId: null,
+      },
+      {
+        id: "task-approval-stale",
+        agentId: "coding-agent",
+        status: "pending_approval" as const,
+        reviewId: null,
+        resultId: null,
+      },
+      {
+        id: "task-failed-real",
+        agentId: "research-agent",
+        status: "failed" as const,
+        reviewId: null,
+        resultId: "builder-result:task-failed-real",
+      },
+      {
+        id: "task-failed-stale",
+        agentId: "research-agent",
+        status: "failed" as const,
+        reviewId: null,
+        resultId: null,
+      },
+      {
+        id: "task-pending",
+        agentId: "coding-agent",
+        status: "pending" as const,
+        reviewId: null,
+        resultId: null,
+      },
+    ];
+
+    expect(__testing.hasPendingApprovalEvidence(tasks[0]!)).toBe(true);
+    expect(__testing.hasPendingApprovalEvidence(tasks[1]!)).toBe(false);
+    expect(__testing.hasFailedResultEvidence(tasks[2]!)).toBe(true);
+    expect(__testing.hasFailedResultEvidence(tasks[3]!)).toBe(false);
+    expect(__testing.countPendingApprovalEvidence(tasks)).toBe(1);
+    expect(__testing.countFailedResultEvidence(tasks)).toBe(1);
+  });
+
+  it("uses explicit review/result evidence in project and agent posture rollups", () => {
+    const tasks = [
+      {
+        id: "task-approval-real",
+        agentId: "coding-agent",
+        prompt: "Approval-backed task",
+        priority: "high" as const,
+        status: "pending_approval" as const,
+        createdAt: "2026-03-09T15:00:00.000Z",
+        startedAt: null,
+        completedAt: null,
+        durationMs: null,
+        requiresApproval: true,
+        reviewId: "approval:task-approval-real",
+        resultId: null,
+        source: "work_planner",
+        projectId: "athanor",
+        planId: null,
+        rationale: null,
+        parentTaskId: null,
+        result: null,
+        error: null,
+        stepCount: 0,
+      },
+      {
+        id: "task-approval-stale",
+        agentId: "coding-agent",
+        prompt: "Status-only approval task",
+        priority: "normal" as const,
+        status: "pending_approval" as const,
+        createdAt: "2026-03-09T15:01:00.000Z",
+        startedAt: null,
+        completedAt: null,
+        durationMs: null,
+        requiresApproval: true,
+        reviewId: null,
+        resultId: null,
+        source: "work_planner",
+        projectId: "athanor",
+        planId: null,
+        rationale: null,
+        parentTaskId: null,
+        result: null,
+        error: null,
+        stepCount: 0,
+      },
+      {
+        id: "task-failed-real",
+        agentId: "research-agent",
+        prompt: "Result-backed failure",
+        priority: "normal" as const,
+        status: "failed" as const,
+        createdAt: "2026-03-09T15:02:00.000Z",
+        startedAt: null,
+        completedAt: "2026-03-09T15:03:00.000Z",
+        durationMs: 60_000,
+        requiresApproval: false,
+        reviewId: null,
+        resultId: "builder-result:task-failed-real",
+        source: "work_planner",
+        projectId: "athanor",
+        planId: null,
+        rationale: null,
+        parentTaskId: null,
+        result: null,
+        error: "failed",
+        stepCount: 1,
+      },
+      {
+        id: "task-failed-stale",
+        agentId: "research-agent",
+        prompt: "Status-only failure",
+        priority: "normal" as const,
+        status: "failed" as const,
+        createdAt: "2026-03-09T15:04:00.000Z",
+        startedAt: null,
+        completedAt: "2026-03-09T15:05:00.000Z",
+        durationMs: 60_000,
+        requiresApproval: false,
+        reviewId: null,
+        resultId: null,
+        source: "work_planner",
+        projectId: "athanor",
+        planId: null,
+        rationale: null,
+        parentTaskId: null,
+        result: null,
+        error: "failed",
+        stepCount: 1,
+      },
+      {
+        id: "task-pending",
+        agentId: "coding-agent",
+        prompt: "Queued task",
+        priority: "normal" as const,
+        status: "pending" as const,
+        createdAt: "2026-03-09T15:06:00.000Z",
+        startedAt: null,
+        completedAt: null,
+        durationMs: null,
+        requiresApproval: false,
+        reviewId: null,
+        resultId: null,
+        source: "work_planner",
+        projectId: "athanor",
+        planId: null,
+        rationale: null,
+        parentTaskId: null,
+        result: null,
+        error: null,
+        stepCount: 0,
+      },
+    ];
+
+    const projects = __testing.buildProjectPostures(
+      [
+        {
+          id: "athanor",
+          name: "Athanor",
+          description: "Core control plane",
+          headline: "Athanor",
+          status: "active",
+          kind: "core" as const,
+          firstClass: true,
+          lens: "operator",
+          primaryRoute: "/",
+          externalUrl: null,
+          agents: ["coding-agent", "research-agent"],
+          needsCount: 1,
+          constraints: [],
+          operatorChain: ["builder"],
+        },
+      ],
+      tasks,
+      null,
+    );
+    const agentRollup = __testing.buildWorkforceAgents(
+      [
+        {
+          id: "coding-agent",
+          name: "Coding Agent",
+          description: "Implements code changes",
+          icon: "code",
+          tools: [],
+          status: "ready" as const,
+          type: "proactive",
+        },
+        {
+          id: "research-agent",
+          name: "Research Agent",
+          description: "Runs analysis",
+          icon: "search",
+          tools: [],
+          status: "ready" as const,
+          type: "reactive",
+        },
+      ],
+      tasks,
+      {},
+    );
+
+    expect(projects[0]?.pendingApprovals).toBe(1);
+    expect(projects[0]?.failedTasks).toBe(1);
+    expect(agentRollup.find((agent) => agent.id === "coding-agent")?.pendingTasks).toBe(2);
+    expect(agentRollup.find((agent) => agent.id === "research-agent")?.pendingTasks).toBe(0);
+  });
+
+  it("maps explicit execution results onto task ids", () => {
+    const resultIds = __testing.buildExecutionResultIdMap([
+      { id: "builder-result:task-1", owner_id: "task-1", status: "failed" },
+      { id: "builder-result:task-2", owner_id: "task-2", status: "completed" },
+      { id: "builder-result:task-3", owner_id: "task-3", status: "running" },
+      { id: "builder-result:task-4", owner_id: "", status: "failed" },
+    ]);
+
+    expect(resultIds.get("task-1")).toBe("builder-result:task-1");
+    expect(resultIds.get("task-2")).toBe("builder-result:task-2");
+    expect(resultIds.has("task-3")).toBe(false);
+    expect(resultIds.has("")).toBe(false);
+  });
+
   it("treats model catalog responses as healthy service probes", async () => {
     vi.stubGlobal(
       "fetch",

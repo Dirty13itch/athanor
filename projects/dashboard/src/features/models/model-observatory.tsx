@@ -16,7 +16,7 @@ import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { StatusDot } from "@/components/status-dot";
-import { getGpuSnapshot } from "@/lib/api";
+import { getGpuSnapshot, getModelGovernance } from "@/lib/api";
 import { type GpuSnapshotResponse } from "@/lib/contracts";
 import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 import { queryKeys } from "@/lib/query-client";
@@ -136,6 +136,10 @@ function policyClass(entry: RoutingLogEntry): string {
   return entry.policy_class ?? "local_only";
 }
 
+function capabilityLabel(value: string | null | undefined): string {
+  return String(value ?? "unknown").replace(/[_-]/g, " ");
+}
+
 // Main component
 
 export function ModelObservatory({ localModels }: ModelObservatoryProps) {
@@ -161,10 +165,19 @@ export function ModelObservatory({ localModels }: ModelObservatoryProps) {
     refetchIntervalInBackground: false,
   });
 
+  const capabilityQuery = useQuery({
+    queryKey: queryKeys.modelGovernance,
+    queryFn: getModelGovernance,
+    enabled: routingReadEnabled,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
+  });
+
   const snapshot = gpuQuery.data;
   const routingEntries = routingQuery.data ?? [];
+  const capabilityIntelligence = capabilityQuery.data?.capability_intelligence ?? null;
 
-  const isFetching = gpuQuery.isFetching || routingQuery.isFetching;
+  const isFetching = gpuQuery.isFetching || routingQuery.isFetching || capabilityQuery.isFetching;
 
   // Routing split
   const total = routingEntries.length;
@@ -313,6 +326,56 @@ export function ModelObservatory({ localModels }: ModelObservatoryProps) {
               );
             })}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="surface-panel">
+        <CardHeader>
+          <CardTitle className="text-lg">Capability leaders</CardTitle>
+          <CardDescription>
+            Live routing leaders from model governance. Spend still lives in Subscriptions.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {capabilityIntelligence ? (
+            <div className="grid gap-3 lg:grid-cols-4">
+              <div className="surface-instrument rounded-2xl border px-4 py-4">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Implementation</p>
+                <p className="mt-2 text-sm font-semibold">
+                  {capabilityIntelligence.implementation
+                    ? `${capabilityLabel(capabilityIntelligence.implementation.subject_id)} (${capabilityIntelligence.implementation.capability_score})`
+                    : "none"}
+                </p>
+              </div>
+              <div className="surface-instrument rounded-2xl border px-4 py-4">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Audit</p>
+                <p className="mt-2 text-sm font-semibold">
+                  {capabilityIntelligence.audit
+                    ? `${capabilityLabel(capabilityIntelligence.audit.subject_id)} (${capabilityIntelligence.audit.capability_score})`
+                    : "none"}
+                </p>
+              </div>
+              <div className="surface-instrument rounded-2xl border px-4 py-4">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Local endpoint</p>
+                <p className="mt-2 text-sm font-semibold">
+                  {capabilityIntelligence.local_endpoint
+                    ? `${capabilityLabel(capabilityIntelligence.local_endpoint.subject_id)} (${capabilityIntelligence.local_endpoint.capability_score})`
+                    : "none"}
+                </p>
+              </div>
+              <div className="surface-instrument rounded-2xl border px-4 py-4">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Degraded</p>
+                <p className="mt-2 text-sm font-semibold">{capabilityIntelligence.degraded_subject_count}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{capabilityIntelligence.source_of_truth}</p>
+              </div>
+            </div>
+          ) : (
+            <EmptyState
+              title="No capability snapshot yet"
+              description="Capability leaders will appear here once model governance exposes the shared capability posture."
+              className="py-8"
+            />
+          )}
         </CardContent>
       </Card>
 

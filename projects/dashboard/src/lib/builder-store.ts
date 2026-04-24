@@ -15,12 +15,15 @@ import {
   type BuilderSessionPreview,
   type BuilderTaskEnvelope,
 } from "@/lib/contracts";
+import { getBuilderKernelSharedPressure } from "@/lib/builder-kernel-pressure";
 
 interface BuilderStoreFile {
-  version: 1;
+  version: 2;
   updated_at: string;
   sessions: Record<string, BuilderExecutionSession>;
   events: Record<string, BuilderProgressEvent[]>;
+  inbox_states: Record<string, BuilderSyntheticInboxState>;
+  todos: Record<string, BuilderSyntheticTodo>;
 }
 
 type BuilderControlResult = {
@@ -76,8 +79,58 @@ type BuilderSyntheticApproval = {
   metadata: Record<string, unknown>;
 };
 
+type BuilderSyntheticInboxStatus = "new" | "acknowledged" | "snoozed" | "resolved" | "converted";
+type BuilderSyntheticTodoStatus = "open" | "ready" | "blocked" | "waiting" | "done" | "cancelled" | "someday";
+
+type BuilderSyntheticInboxState = {
+  id: string;
+  status: BuilderSyntheticInboxStatus;
+  snooze_until: number;
+  updated_at: number;
+  resolved_at: number;
+  converted_todo_id: string | null;
+};
+
+type BuilderSyntheticInboxItem = {
+  id: string;
+  kind: string;
+  severity: number;
+  status: BuilderSyntheticInboxStatus;
+  source: string;
+  title: string;
+  description: string;
+  requires_decision: boolean;
+  decision_type: string;
+  related_run_id: string;
+  related_task_id: string;
+  snooze_until: number;
+  created_at: number;
+  updated_at: number;
+  resolved_at: number;
+  metadata: Record<string, unknown>;
+};
+
+type BuilderSyntheticTodo = {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  scope_type: string;
+  scope_id: string;
+  priority: number;
+  status: BuilderSyntheticTodoStatus;
+  energy_class: string;
+  created_at: number;
+  updated_at: number;
+  completed_at: number;
+  metadata: Record<string, unknown>;
+};
+
 const STORE_FILENAME = "builder-sessions.json";
 const DEFAULT_STORE_PATH = path.join(process.cwd(), ".data", STORE_FILENAME);
+const BUILDER_INBOX_PREFIX = "builder-inbox-";
+const BUILDER_TODO_PREFIX = "builder-todo-";
+const DEFAULT_INBOX_SNOOZE_SECONDS = 4 * 60 * 60;
 
 let writeQueue: Promise<void> = Promise.resolve();
 
@@ -97,17 +150,27 @@ function resolveStorePath(): string {
   return process.env.DASHBOARD_BUILDER_STORE_PATH?.trim() || DEFAULT_STORE_PATH;
 }
 
+export function resolveBuilderStorePath(): string {
+  return resolveStorePath();
+}
+
 function defaultStore(): BuilderStoreFile {
   return {
-    version: 1,
+    version: 2,
     updated_at: nowIso(),
     sessions: {},
     events: {},
+    inbox_states: {},
+    todos: {},
   };
 }
 
 function sortByUpdatedAtDesc<T extends { updated_at: string }>(items: T[]): T[] {
   return [...items].sort((left, right) => right.updated_at.localeCompare(left.updated_at));
+}
+
+function sortByUnixTimestampDesc<T extends { updated_at: number }>(items: T[]): T[] {
+  return [...items].sort((left, right) => right.updated_at - left.updated_at);
 }
 
 function parseSessions(value: unknown): Record<string, BuilderExecutionSession> {
@@ -142,24 +205,205 @@ function parseEvents(value: unknown): Record<string, BuilderProgressEvent[]> {
   return events;
 }
 
-async function readStoreFile(): Promise<BuilderStoreFile> {
-  const storePath = resolveStorePath();
+function parseInboxStates(value: unknown): Record<string, BuilderSyntheticInboxState> {
+  if (!value || typeof value !== "object") {
+    return {};
+  }
+
+  const states: Record<string, BuilderSyntheticInboxState> = {};
+  for (const [id, rawState] of Object.entries(value as Record<string, unknown>)) {
+    if (!rawState || typeof rawState !== "object") {
+      continue;
+    }
+    const state = rawState as Record<string, unknown>;
+    const status = String(state.status ?? "new");
+    if (!["new", "acknowledged", "snoozed", "resolved", "converted"].includes(status)) {
+      continue;
+    }
+    states[id] = {
+      id,
+      status: status as BuilderSyntheticInboxStatus,
+      snooze_until: Number(state.snooze_until ?? 0) || 0,
+      updated_at: Number(state.updated_at ?? 0) || 0,
+      resolved_at: Number(state.resolved_at ?? 0) || 0,
+      converted_todo_id: typeof state.converted_todo_id === "string" ? state.converted_todo_id : null,
+    };
+  }
+  return states;
+}
+
+function parseTodos(value: unknown): Record<string, BuilderSyntheticTodo> {
+  if (!value || typeof value !== "object") {
+    return {};
+  }
+
+  const todos: Record<string, BuilderSyntheticTodo> = {};
+  for (const [id, rawTodo] of Object.entries(value as Record<string, unknown>)) {
+    if (!rawTodo || typeof rawTodo !== "object") {
+      continue;
+    }
+    const todo = rawTodo as Record<string, unknown>;
+    const status = String(todo.status ?? "open");
+    if (!["open", "ready", "blocked", "waiting", "done", "cancelled", "someday"].includes(status)) {
+      continue;
+    }
+    todos[id] = {
+      id,
+      title: String(todo.title ?? ""),
+      description: String(todo.description ?? ""),
+      category: String(todo.category ?? "ops"),
+      scope_type: String(todo.scope_type ?? "builder_session"),
+      scope_id: String(todo.scope_id ?? ""),
+      priority: Number(todo.priority ?? 3) || 3,
+      status: status as BuilderSyntheticTodoStatus,
+      energy_class: String(todo.energy_class ?? "focused"),
+      created_at: Number(todo.created_at ?? 0) || 0,
+      updated_at: Number(todo.updated_at ?? 0) || 0,
+      completed_at: Number(todo.completed_at ?? 0) || 0,
+      metadata: todo.metadata && typeof todo.metadata === "object" ? (todo.metadata as Record<string, unknown>) : {},
+    };
+  }
+  return todos;
+}
+
+function toSnoozeUnixSeconds(value: unknown, fallbackFrom: number): number {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return value > 10_000_000_000 ? Math.floor(value / 1000) : Math.floor(value);
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    const numeric = Number(value);
+    if (Number.isFinite(numeric) && numeric > 0) {
+      return numeric > 10_000_000_000 ? Math.floor(numeric / 1000) : Math.floor(numeric);
+    }
+
+    const parsed = Date.parse(value);
+    if (Number.isFinite(parsed)) {
+      return Math.floor(parsed / 1000);
+    }
+  }
+
+  return fallbackFrom + DEFAULT_INBOX_SNOOZE_SECONDS;
+}
+
+function isBuilderRecoverySession(session: BuilderExecutionSession): boolean {
+  return (
+    ["failed", "blocked", "cancelled"].includes(session.status) ||
+    ["failed", "blocked"].includes(session.verification_state.status)
+  );
+}
+
+function withOverlayState(
+  item: Omit<BuilderSyntheticInboxItem, "status" | "snooze_until" | "resolved_at">,
+  state: BuilderSyntheticInboxState | undefined,
+): BuilderSyntheticInboxItem {
+  const now = Math.floor(Date.now() / 1000);
+  const effectiveStatus =
+    state?.status === "snoozed" && state.snooze_until > 0 && state.snooze_until <= now
+      ? "new"
+      : state?.status ?? "new";
+
+  return {
+    ...item,
+    status: effectiveStatus,
+    snooze_until: effectiveStatus === "snoozed" ? state?.snooze_until ?? 0 : 0,
+    updated_at: Math.max(item.updated_at, state?.updated_at ?? 0),
+    resolved_at: state?.resolved_at ?? 0,
+    metadata: {
+      ...item.metadata,
+      ...(state?.converted_todo_id ? { converted_todo_id: state.converted_todo_id } : {}),
+    },
+  };
+}
+
+function buildBuilderSyntheticInboxItems(store: BuilderStoreFile): BuilderSyntheticInboxItem[] {
+  const approvalItems = sortByUpdatedAtDesc(Object.values(store.sessions)).flatMap((session) =>
+    session.approvals
+      .filter((approval) => approval.status === "pending")
+      .map((approval) =>
+        withOverlayState(
+          {
+            id: `${BUILDER_INBOX_PREFIX}approval-${approval.id}`,
+            kind: "approval_request",
+            severity: 3,
+            source: "builder",
+            title: `Approve builder session: ${session.title}`,
+            description: approval.reason,
+            requires_decision: true,
+            decision_type: "approve",
+            related_run_id: `builder-run-${session.id}`,
+            related_task_id: session.id,
+            created_at: toUnixSeconds(approval.created_at),
+            updated_at: Math.max(toUnixSeconds(approval.created_at), toUnixSeconds(session.updated_at)),
+            metadata: {
+              builder_session_id: session.id,
+              builder_approval_id: approval.id,
+              builder_route: session.current_route ?? session.route_decision.route_label,
+              shadow_mode: session.shadow_mode,
+              linked_surfaces: session.linked_surfaces,
+            },
+          },
+          store.inbox_states[`${BUILDER_INBOX_PREFIX}approval-${approval.id}`],
+        ),
+      ),
+  );
+
+  const recoveryItems = sortByUpdatedAtDesc(Object.values(store.sessions))
+    .filter(isBuilderRecoverySession)
+    .map((session) =>
+      withOverlayState(
+        {
+          id: `${BUILDER_INBOX_PREFIX}session-${session.id}`,
+          kind: "builder_recovery",
+          severity: session.status === "failed" ? 3 : 2,
+          source: "builder",
+          title:
+            session.status === "failed"
+              ? `Builder session failed: ${session.title}`
+              : session.status === "cancelled"
+                ? `Builder session cancelled: ${session.title}`
+                : `Builder session needs recovery: ${session.title}`,
+          description:
+            session.latest_result_packet?.summary || session.verification_state.summary || "Builder recovery attention is required.",
+          requires_decision: false,
+          decision_type: "",
+          related_run_id: `builder-run-${session.id}`,
+          related_task_id: session.id,
+          created_at: toUnixSeconds(session.created_at),
+          updated_at: toUnixSeconds(session.updated_at),
+          metadata: {
+            builder_session_id: session.id,
+            builder_route: session.current_route ?? session.route_decision.route_label,
+            builder_recovery_gate: session.latest_result_packet?.recovery_gate ?? null,
+            verification_status: session.verification_state.status,
+            linked_surfaces: session.linked_surfaces,
+          },
+        },
+        store.inbox_states[`${BUILDER_INBOX_PREFIX}session-${session.id}`],
+      ),
+    );
+
+  return sortByUnixTimestampDesc([...approvalItems, ...recoveryItems]);
+}
+
+async function readStoreFile(storePath = resolveStorePath()): Promise<BuilderStoreFile> {
   try {
     const raw = await readFile(storePath, "utf8");
     const parsed = JSON.parse(raw) as Partial<BuilderStoreFile>;
     return {
-      version: 1,
+      version: 2,
       updated_at: typeof parsed.updated_at === "string" ? parsed.updated_at : nowIso(),
       sessions: parseSessions(parsed.sessions),
       events: parseEvents(parsed.events),
+      inbox_states: parseInboxStates(parsed.inbox_states),
+      todos: parseTodos(parsed.todos),
     };
   } catch {
     return defaultStore();
   }
 }
 
-async function writeStoreFile(store: BuilderStoreFile): Promise<void> {
-  const storePath = resolveStorePath();
+async function writeStoreFile(store: BuilderStoreFile, storePath = resolveStorePath()): Promise<void> {
   await mkdir(path.dirname(storePath), { recursive: true });
   const tempPath = `${storePath}.${randomUUID()}.tmp`;
   await writeFile(tempPath, `${JSON.stringify(store, null, 2)}\n`, "utf8");
@@ -374,7 +618,7 @@ function pickCurrentSession(previews: BuilderSessionPreview[]): BuilderSessionPr
 function toSummary(store: BuilderStoreFile): BuilderFrontDoorSummary {
   const sessions = sortByUpdatedAtDesc(Object.values(store.sessions)).map(toPreview);
   const current_session = pickCurrentSession(sessions);
-  return {
+  const summary = {
     available: true,
     degraded: false,
     detail: null,
@@ -388,16 +632,21 @@ function toSummary(store: BuilderStoreFile): BuilderFrontDoorSummary {
     current_session,
     sessions: sessions.slice(0, 8),
   };
+  return {
+    ...summary,
+    shared_pressure: getBuilderKernelSharedPressure(summary),
+  };
 }
 
 async function mutateStore<T>(
   updater: (store: BuilderStoreFile) => T | Promise<T>,
+  storePath = resolveStorePath(),
 ): Promise<T> {
   const next = writeQueue.then(async () => {
-    const current = await readStoreFile();
+    const current = await readStoreFile(storePath);
     const result = await updater(current);
     current.updated_at = nowIso();
-    await writeStoreFile(current);
+    await writeStoreFile(current, storePath);
     return result;
   });
 
@@ -409,8 +658,11 @@ export async function readBuilderSummary(): Promise<BuilderFrontDoorSummary> {
   return toSummary(await readStoreFile());
 }
 
-export async function readBuilderSession(sessionId: string): Promise<BuilderExecutionSession | null> {
-  const store = await readStoreFile();
+export async function readBuilderSession(
+  sessionId: string,
+  storePath?: string,
+): Promise<BuilderExecutionSession | null> {
+  const store = await readStoreFile(storePath);
   return store.sessions[sessionId] ?? null;
 }
 
@@ -430,6 +682,7 @@ export async function readBuilderSessionEvents(sessionId: string): Promise<Build
 export async function mutateBuilderSession(
   sessionId: string,
   mutate: BuilderSessionMutation,
+  storePath?: string,
 ): Promise<BuilderExecutionSession> {
   return mutateStore((store) => {
     const session = store.sessions[sessionId];
@@ -444,7 +697,7 @@ export async function mutateBuilderSession(
     store.sessions[sessionId] = builderExecutionSessionSchema.parse(session);
     store.events[sessionId] = events.map((event) => builderProgressEventSchema.parse(event));
     return store.sessions[sessionId];
-  });
+  }, storePath);
 }
 
 export async function createBuilderSession(taskEnvelope: BuilderTaskEnvelope): Promise<BuilderExecutionSession> {
@@ -832,6 +1085,146 @@ export async function listBuilderSyntheticApprovals(status?: string | null): Pro
         },
       })),
   );
+}
+
+export function isBuilderSyntheticInboxId(value: string): boolean {
+  return value.startsWith(BUILDER_INBOX_PREFIX);
+}
+
+export function isBuilderSyntheticTodoId(value: string): boolean {
+  return value.startsWith(BUILDER_TODO_PREFIX);
+}
+
+export async function listBuilderSyntheticInboxItems(
+  status?: string | null,
+): Promise<BuilderSyntheticInboxItem[]> {
+  const store = await readStoreFile();
+  return buildBuilderSyntheticInboxItems(store).filter((item) => !status || item.status === status);
+}
+
+export async function listBuilderSyntheticTodos(status?: string | null): Promise<BuilderSyntheticTodo[]> {
+  const store = await readStoreFile();
+  return sortByUnixTimestampDesc(Object.values(store.todos)).filter((todo) => !status || todo.status === status);
+}
+
+export async function applyBuilderSyntheticInboxAction(
+  inboxId: string,
+  action: "ack" | "snooze" | "resolve" | "convert",
+  options?: {
+    until?: unknown;
+    category?: unknown;
+    priority?: unknown;
+    energy_class?: unknown;
+  },
+): Promise<BuilderSyntheticInboxItem> {
+  return mutateStore((store) => {
+    const item = buildBuilderSyntheticInboxItems(store).find((candidate) => candidate.id === inboxId);
+    if (!item) {
+      throw new Error(`Unknown builder inbox item: ${inboxId}`);
+    }
+
+    const timestamp = nowIso();
+    const updatedAt = toUnixSeconds(timestamp);
+    const state: BuilderSyntheticInboxState = {
+      id: inboxId,
+      status: store.inbox_states[inboxId]?.status ?? "new",
+      snooze_until: store.inbox_states[inboxId]?.snooze_until ?? 0,
+      updated_at: updatedAt,
+      resolved_at: store.inbox_states[inboxId]?.resolved_at ?? 0,
+      converted_todo_id: store.inbox_states[inboxId]?.converted_todo_id ?? null,
+    };
+
+    switch (action) {
+      case "ack":
+        state.status = "acknowledged";
+        state.snooze_until = 0;
+        break;
+      case "snooze":
+        state.status = "snoozed";
+        state.snooze_until = toSnoozeUnixSeconds(options?.until, updatedAt);
+        break;
+      case "resolve":
+        state.status = "resolved";
+        state.snooze_until = 0;
+        state.resolved_at = updatedAt;
+        break;
+      case "convert": {
+        state.status = "converted";
+        state.snooze_until = 0;
+
+        if (!state.converted_todo_id || !store.todos[state.converted_todo_id]) {
+          const todoId = `${BUILDER_TODO_PREFIX}${randomUUID()}`;
+          state.converted_todo_id = todoId;
+          store.todos[todoId] = {
+            id: todoId,
+            title: item.title,
+            description: item.description,
+            category:
+              typeof options?.category === "string" && options.category.trim()
+                ? options.category.trim()
+                : item.kind === "approval_request"
+                  ? "approval"
+                  : "builder",
+            scope_type: "builder_session",
+            scope_id: item.related_task_id,
+            priority:
+              typeof options?.priority === "number" && Number.isFinite(options.priority)
+                ? Math.max(1, Math.floor(options.priority))
+                : item.severity >= 3
+                  ? 4
+                  : 3,
+            status: "open",
+            energy_class:
+              typeof options?.energy_class === "string" && options.energy_class.trim()
+                ? options.energy_class.trim()
+                : "focused",
+            created_at: updatedAt,
+            updated_at: updatedAt,
+            completed_at: 0,
+            metadata: {
+              linked_inbox_id: item.id,
+              builder_session_id: item.related_task_id,
+              related_run_id: item.related_run_id,
+              builder_inbox_kind: item.kind,
+            },
+          };
+        }
+        break;
+      }
+    }
+
+    store.inbox_states[inboxId] = state;
+    const updated = buildBuilderSyntheticInboxItems(store).find((candidate) => candidate.id === inboxId);
+    if (!updated) {
+      throw new Error(`Builder inbox item disappeared during update: ${inboxId}`);
+    }
+    return updated;
+  });
+}
+
+export async function applyBuilderSyntheticTodoTransition(
+  todoId: string,
+  status: BuilderSyntheticTodoStatus,
+  note?: string,
+): Promise<BuilderSyntheticTodo> {
+  return mutateStore((store) => {
+    const todo = store.todos[todoId];
+    if (!todo) {
+      throw new Error(`Unknown builder todo: ${todoId}`);
+    }
+
+    const updatedAt = toUnixSeconds(nowIso());
+    todo.status = status;
+    todo.updated_at = updatedAt;
+    todo.completed_at = ["done", "cancelled"].includes(status) ? updatedAt : 0;
+    todo.metadata = {
+      ...todo.metadata,
+      ...(note && note.trim() ? { last_note: note.trim() } : {}),
+    };
+
+    store.todos[todoId] = todo;
+    return todo;
+  });
 }
 
 export async function __resetBuilderStoreForTests(): Promise<void> {

@@ -18,33 +18,18 @@ import { getWorkforce } from "@/lib/api";
 import { type WorkforceSnapshot, type WorkforceTask } from "@/lib/contracts";
 import { compactText, formatRelativeTime, formatTimestamp } from "@/lib/format";
 import { queryKeys } from "@/lib/query-client";
+import {
+  getSharedTaskPresentation,
+  type SharedTaskFilter,
+  matchesSharedTaskFilter,
+} from "@/lib/task-filter-evidence";
 import { useUrlState } from "@/lib/url-state";
 import {
   getAgentName,
   getProjectName,
-  getTaskLabel,
   postJson,
   postWithoutBody,
 } from "@/features/workforce/helpers";
-
-type TaskFilter = "all" | "queued" | "approval" | "running" | "completed" | "failed";
-
-function matchesStatus(task: WorkforceTask, filter: TaskFilter) {
-  switch (filter) {
-    case "approval":
-      return task.status === "pending_approval";
-    case "running":
-      return task.status === "running";
-    case "completed":
-      return task.status === "completed";
-    case "failed":
-      return task.status === "failed";
-    case "queued":
-      return ["pending", "pending_approval", "running"].includes(task.status);
-    default:
-      return true;
-  }
-}
 
 function formatDuration(durationMs: number | null) {
   if (!durationMs || durationMs <= 0) {
@@ -59,9 +44,9 @@ function formatDuration(durationMs: number | null) {
   return `${(durationMs / 60_000).toFixed(1)}m`;
 }
 
-function taskSurfaceClass(status: WorkforceTask["status"]) {
-  switch (status) {
-    case "pending_approval":
+function taskSurfaceClass(task: WorkforceTask) {
+  switch (getSharedTaskPresentation(task).state) {
+    case "approval":
       return "surface-hero";
     case "running":
       return "surface-instrument";
@@ -69,6 +54,8 @@ function taskSurfaceClass(status: WorkforceTask["status"]) {
       return "border-red-500/30 bg-red-500/10";
     case "completed":
       return "surface-tile";
+    case "needs_sync":
+      return "border-[color:var(--signal-warning)]/30 bg-[color:var(--signal-warning)]/10";
     default:
       return "surface-panel";
   }
@@ -85,7 +72,7 @@ export function TasksConsole({ initialSnapshot }: { initialSnapshot: WorkforceSn
   const [newPrompt, setNewPrompt] = useState("");
 
   const search = getSearchValue("search", "");
-  const status = getSearchValue("status", "queued") as TaskFilter;
+  const status = getSearchValue("status", "queued") as SharedTaskFilter;
   const agent = getSearchValue("agent", "all");
   const deferredSearch = useDeferredValue(search.trim().toLowerCase());
 
@@ -117,7 +104,7 @@ export function TasksConsole({ initialSnapshot }: { initialSnapshot: WorkforceSn
         if (agent !== "all" && task.agentId !== agent) {
           return false;
         }
-        if (!matchesStatus(task, status)) {
+        if (!matchesSharedTaskFilter(task, status)) {
           return false;
         }
         if (!deferredSearch) {
@@ -281,7 +268,7 @@ export function TasksConsole({ initialSnapshot }: { initialSnapshot: WorkforceSn
         <CardContent className="space-y-4">
           <Input value={search} onChange={(event) => setSearchValue("search", event.target.value || null)} placeholder="Search prompts, agents, or projects" />
           <div className="flex flex-wrap gap-2">
-            {(["queued", "approval", "running", "completed", "failed", "all"] as TaskFilter[]).map((value) => (
+            {(["queued", "approval", "running", "completed", "failed", "all"] as SharedTaskFilter[]).map((value) => (
               <button
                 key={value}
                 type="button"
@@ -335,15 +322,16 @@ export function TasksConsole({ initialSnapshot }: { initialSnapshot: WorkforceSn
           {visibleTasks.length > 0 ? (
             visibleTasks.map((task) => {
               const expanded = expandedTaskId === task.id;
+              const presentation = getSharedTaskPresentation(task);
               return (
-                <div key={task.id} className={`${taskSurfaceClass(task.status)} rounded-2xl border p-4`}>
+                <div key={task.id} className={`${taskSurfaceClass(task)} rounded-2xl border p-4`}>
                   <button
                     type="button"
                     onClick={() => setExpandedTaskId(expanded ? null : task.id)}
                     className="w-full text-left"
                   >
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline">{getTaskLabel(task.status)}</Badge>
+                      <Badge variant="outline">{presentation.label}</Badge>
                       <Badge variant="secondary">{getAgentName(snapshot, task.agentId)}</Badge>
                       {task.projectId ? <Badge variant="outline">{getProjectName(snapshot, task.projectId)}</Badge> : null}
                       <Badge variant="outline">{task.priority}</Badge>
@@ -381,20 +369,24 @@ export function TasksConsole({ initialSnapshot }: { initialSnapshot: WorkforceSn
                       {task.error ? (
                         <div>
                           <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Error</p>
-                          <p className="mt-2 whitespace-pre-wrap rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-100">
+                          <p
+                            className={`mt-2 whitespace-pre-wrap rounded-xl border p-3 text-sm ${
+                              presentation.state === "failed"
+                                ? "border-red-500/30 bg-red-500/10 text-red-100"
+                                : "border-[color:var(--signal-warning)]/30 bg-[color:var(--signal-warning)]/10 text-[color:var(--signal-warning)]"
+                            }`}
+                          >
                             {task.error}
                           </p>
                         </div>
                       ) : null}
                       <div className="flex flex-wrap gap-2">
-                        {task.status === "pending_approval" ? (
+                        {task.status === "pending_approval" && task.reviewId ? (
                           <Button
                             size="sm"
                             onClick={() =>
                               void handleAction(`approve:${task.id}`, () =>
-                                postWithoutBody(
-                                  `/api/operator/approvals/${encodeURIComponent(`approval:${task.id}`)}/approve`
-                                )
+                                postWithoutBody(`/api/execution/reviews/${encodeURIComponent(task.reviewId!)}/approve`)
                               )
                             }
                           >

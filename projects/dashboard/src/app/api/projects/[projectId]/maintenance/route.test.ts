@@ -36,7 +36,7 @@ describe("project maintenance api route", () => {
     const response = await POST(
       new NextRequest("http://localhost/api/projects/athanor/maintenance", {
         method: "POST",
-        body: JSON.stringify({ kind: "smoke" }),
+        body: JSON.stringify({ kind: "smoke", trigger: "manual" }),
       }),
       { params: Promise.resolve({ projectId: "athanor" }) }
     );
@@ -48,6 +48,33 @@ describe("project maintenance api route", () => {
     expect(options).toMatchObject({
       privilegeClass: "operator",
       defaultReason: "Recorded maintenance run for athanor from dashboard",
+      bodyOverride: expect.objectContaining({
+        materialize_backlog: true,
+        source_ref: "maintenance:athanor:kind:smoke:trigger:manual",
+      }),
+    });
+  });
+
+  it("prefers recurrence program identity when building the maintenance backlog source ref", async () => {
+    const response = await POST(
+      new NextRequest("http://localhost/api/projects/athanor/maintenance", {
+        method: "POST",
+        body: JSON.stringify({
+          kind: "smoke",
+          trigger: "manual",
+          recurrence_program_id: "weekly-athanor-maintenance",
+        }),
+      }),
+      { params: Promise.resolve({ projectId: "athanor" }) }
+    );
+
+    expect(response.status).toBe(200);
+    const [, , , options] = vi.mocked(proxyAgentOperatorJson).mock.calls[0]!;
+    expect(options).toMatchObject({
+      bodyOverride: expect.objectContaining({
+        materialize_backlog: true,
+        source_ref: "maintenance:athanor:program:weekly-athanor-maintenance",
+      }),
     });
   });
 });

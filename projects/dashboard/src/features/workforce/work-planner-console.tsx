@@ -18,26 +18,13 @@ import { getWorkforce } from "@/lib/api";
 import { type WorkforceSnapshot, type WorkforceTask } from "@/lib/contracts";
 import { compactText, formatRelativeTime, formatTimestamp } from "@/lib/format";
 import { queryKeys } from "@/lib/query-client";
+import {
+  getSharedTaskPresentation,
+  hasApprovalReviewEvidence,
+  matchesSharedTaskFilter,
+  type SharedTaskFilter,
+} from "@/lib/task-filter-evidence";
 import { useUrlState } from "@/lib/url-state";
-
-type TaskFilter = "all" | "queued" | "approval" | "running" | "completed" | "failed";
-
-function getTaskLabel(status: WorkforceTask["status"]) {
-  switch (status) {
-    case "pending_approval":
-      return "Needs approval";
-    case "running":
-      return "Running";
-    case "completed":
-      return "Completed";
-    case "failed":
-      return "Failed";
-    case "cancelled":
-      return "Cancelled";
-    default:
-      return "Queued";
-  }
-}
 
 function getProjectName(snapshot: WorkforceSnapshot, projectId: string | null) {
   if (!projectId) {
@@ -89,7 +76,7 @@ export function WorkPlannerConsole({ initialSnapshot }: { initialSnapshot: Workf
   const [busy, setBusy] = useState<string | null>(null);
   const search = getSearchValue("search", "");
   const project = getSearchValue("project", "all");
-  const status = getSearchValue("status", "queued") as TaskFilter;
+  const status = getSearchValue("status", "queued") as SharedTaskFilter;
   const deferredSearch = useDeferredValue(search.trim().toLowerCase());
 
   const workforceQuery = useQuery({
@@ -138,19 +125,7 @@ export function WorkPlannerConsole({ initialSnapshot }: { initialSnapshot: Workf
     if (project !== "all" && task.projectId !== project) {
       return false;
     }
-    if (status === "approval" && task.status !== "pending_approval") {
-      return false;
-    }
-    if (status === "running" && task.status !== "running") {
-      return false;
-    }
-    if (status === "completed" && task.status !== "completed") {
-      return false;
-    }
-    if (status === "failed" && task.status !== "failed") {
-      return false;
-    }
-    if (status === "queued" && !["pending", "pending_approval", "running"].includes(task.status)) {
+    if (!matchesSharedTaskFilter(task, status)) {
       return false;
     }
     if (!deferredSearch) {
@@ -162,7 +137,7 @@ export function WorkPlannerConsole({ initialSnapshot }: { initialSnapshot: Workf
       getProjectName(snapshot, task.projectId).toLowerCase().includes(deferredSearch)
     );
   });
-  const approvalQueue = snapshot.tasks.filter((task) => task.status === "pending_approval");
+  const approvalQueue = snapshot.tasks.filter((task) => hasApprovalReviewEvidence(task));
 
   return (
     <div className="space-y-8">
@@ -294,9 +269,7 @@ export function WorkPlannerConsole({ initialSnapshot }: { initialSnapshot: Workf
                       size="sm"
                       onClick={() =>
                         void handleAction(`approve:${task.id}`, () =>
-                          postWithoutBody(
-                            `/api/operator/approvals/${encodeURIComponent(`approval:${task.id}`)}/approve`
-                          )
+                          postWithoutBody(`/api/execution/reviews/${encodeURIComponent(task.reviewId!)}/approve`)
                         )
                       }
                     >
@@ -333,9 +306,16 @@ export function WorkPlannerConsole({ initialSnapshot }: { initialSnapshot: Workf
             {visibleTasks.length > 0 ? (
               <div className="space-y-3">
                 {visibleTasks.map((task) => (
-                  <div key={task.id} className="surface-panel rounded-2xl border p-4">
+                  <div
+                    key={task.id}
+                    className={`rounded-2xl border p-4 ${
+                      getSharedTaskPresentation(task).state === "needs_sync"
+                        ? "border-[color:var(--signal-warning)]/30 bg-[color:var(--signal-warning)]/10"
+                        : "surface-panel"
+                    }`}
+                  >
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline">{getTaskLabel(task.status)}</Badge>
+                      <Badge variant="outline">{getSharedTaskPresentation(task).label}</Badge>
                       <Badge variant="secondary">{getAgentName(snapshot, task.agentId)}</Badge>
                       {task.projectId ? <Badge variant="outline">{getProjectName(snapshot, task.projectId)}</Badge> : null}
                     </div>
@@ -344,7 +324,17 @@ export function WorkPlannerConsole({ initialSnapshot }: { initialSnapshot: Workf
                       Created {formatRelativeTime(task.createdAt)}
                       {task.planId ? ` · ${task.planId}` : ""}
                     </p>
-                    {task.error ? <p className="mt-2 text-xs text-red-200">{task.error}</p> : null}
+                    {task.error ? (
+                      <p
+                        className={`mt-2 text-xs ${
+                          getSharedTaskPresentation(task).state === "failed"
+                            ? "text-red-200"
+                            : "text-[color:var(--signal-warning)]"
+                        }`}
+                      >
+                        {task.error}
+                      </p>
+                    ) : null}
                   </div>
                 ))}
               </div>

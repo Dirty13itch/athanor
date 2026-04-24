@@ -2,47 +2,25 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeftRight, CalendarClock, RefreshCcw, Rocket, ShieldAlert } from "lucide-react";
+import { CalendarClock, RefreshCcw, Rocket, ShieldAlert } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getBootstrapProgramsData, getOperatorSummaryData } from "@/lib/api";
+import { getScheduledJobs } from "@/lib/api";
+import type { ScheduledJobRecord, ScheduledJobsResponse } from "@/lib/contracts";
 import { formatRelativeTime } from "@/lib/format";
 import { queryKeys } from "@/lib/query-client";
-
-interface BootstrapProgram {
-  id: string;
-  label: string;
-  objective: string;
-  phase_scope: string;
-  status: string;
-  current_family: string;
-  next_slice_id: string;
-  recommended_host_id: string;
-  pending_integrations: number;
-  slice_counts: {
-    total: number;
-    queued: number;
-    active: number;
-    blocked: number;
-    completed: number;
-  };
-  updated_at?: string;
-}
-
-interface BootstrapProgramsResponse {
-  programs: BootstrapProgram[];
-  count: number;
-  status?: {
-    open_blockers?: number;
-    pending_integrations?: number;
-    active_family?: string;
-    recommended_host_id?: string;
-    takeover?: { ready?: boolean };
-  };
-}
+import {
+  classifyScheduledJobAdmission,
+  classifyScheduledJobExecutionMode,
+  classifyScheduledJobExecutionPlane,
+  isScheduledJobBlocked,
+  isScheduledJobQueueBacked,
+  isScheduledJobProposalOnly,
+  scheduledJobNeedsSync,
+} from "@/lib/scheduled-job-posture";
 
 function formatLabel(value: string) {
   return value.replace(/_/g, " ");
@@ -52,87 +30,97 @@ function toneForStatus(value: string) {
   if (value === "blocked") {
     return "destructive" as const;
   }
-  if (value === "ready_for_takeover_check" || value === "active") {
+  if (value === "running" || value === "active" || value === "materialized_to_backlog") {
     return "secondary" as const;
   }
   return "outline" as const;
 }
 
+function summarizeRunResult(payload: Record<string, unknown>, jobId: string) {
+  const status = String(payload.status ?? "").trim();
+  const backlogId = String(payload.backlog_id ?? "").trim();
+  const materializationStatus = String(payload.materialization_status ?? "").trim();
+  const admissionReason = String(payload.admission_reason ?? "").trim();
+  const summary = String(payload.summary ?? "").trim();
+
+  if (status === "materialized_to_backlog") {
+    const backlogDetail = backlogId ? `backlog ${backlogId}` : "the canonical backlog";
+    return `Scheduled job ${jobId} materialized to ${backlogDetail}${materializationStatus ? ` (${materializationStatus})` : ""}.`;
+  }
+  if (status.startsWith("blocked_by_")) {
+    return summary || admissionReason || `Scheduled job ${jobId} is blocked (${status}).`;
+  }
+  if (status === "deferred") {
+    return summary || `Scheduled job ${jobId} was deferred.`;
+  }
+  if (status === "queued" || status === "pending_approval") {
+    return summary || `Scheduled job ${jobId} executed directly as ${status}.`;
+  }
+  return summary || `Scheduled job ${jobId} triggered.`;
+}
+
 export function ScheduledJobsCard({
-  title = "Bootstrap loops",
-  description = "Recursive builder families, serial integration posture, and manual supervisor nudges for the external bootstrap stack.",
+  title = "Autonomy schedule",
+  description = "Recurring queue-backed product work and direct system loops, with explicit backlog materialization posture.",
 }: {
   title?: string;
   description?: string;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const limit = 8;
 
-  const programsQuery = useQuery({
-    queryKey: queryKeys.bootstrapPrograms,
-    queryFn: async () => (await getBootstrapProgramsData()) as unknown as BootstrapProgramsResponse,
+  const jobsQuery = useQuery({
+    queryKey: queryKeys.scheduledJobs(limit),
+    queryFn: async () => getScheduledJobs(limit),
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
 
-  const summaryQuery = useQuery({
-    queryKey: queryKeys.operatorSummary,
-    queryFn: getOperatorSummaryData,
-    refetchInterval: 30_000,
-    refetchIntervalInBackground: false,
-  });
-
-  async function runSupervisor(programId: string, execute = true) {
-    setBusy(programId);
+  async function runJob(jobId: string, force = false) {
+    setBusy(`${jobId}:${force ? "force" : "run"}`);
     setFeedback(null);
     try {
-      const response = await fetch(`/api/bootstrap/programs/${encodeURIComponent(programId)}/nudge`, {
+      const response = await fetch(`/api/workforce/scheduled/${encodeURIComponent(jobId)}/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          execute,
-          reason: "Triggered from bootstrap loops card",
+          force,
         }),
       });
       if (!response.ok) {
-        throw new Error(`Bootstrap nudge failed (${response.status})`);
+        throw new Error(`Scheduled job run failed (${response.status})`);
       }
-      const payload = (await response.json()) as {
-        active_family?: string;
-        recommendation?: { slice_id?: string; host_id?: string };
-        actions?: Array<{ kind?: string }>;
-      };
-      const actionCount = Array.isArray(payload.actions) ? payload.actions.length : 0;
-      setFeedback(
-        payload.recommendation?.slice_id
-          ? `Cycle ran for ${programId}. Next slice ${payload.recommendation.slice_id} on ${payload.recommendation.host_id || "unassigned"} (${actionCount} actions).`
-          : `Cycle ran for ${programId}${payload.active_family ? ` in ${formatLabel(payload.active_family)}` : ""}.`
-      );
-      await Promise.all([programsQuery.refetch(), summaryQuery.refetch()]);
+      const payload = ((await response.json()) ?? {}) as Record<string, unknown>;
+      setFeedback(summarizeRunResult(payload, jobId));
+      await jobsQuery.refetch();
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : "Failed to nudge bootstrap supervisor.");
+      setFeedback(error instanceof Error ? error.message : "Failed to run scheduled job.");
     } finally {
       setBusy(null);
     }
   }
 
-  if (programsQuery.isError && !programsQuery.data) {
+  if (jobsQuery.isError && !jobsQuery.data) {
     return (
       <ErrorPanel
         title={title}
         description={
-          programsQuery.error instanceof Error
-            ? programsQuery.error.message
-            : "Failed to load bootstrap-loop records."
+          jobsQuery.error instanceof Error
+            ? jobsQuery.error.message
+            : "Failed to load scheduled job records."
         }
       />
     );
   }
 
-  const programs = programsQuery.data?.programs ?? [];
-  const status = programsQuery.data?.status;
-  const governance = (summaryQuery.data?.governance as Record<string, unknown> | undefined) ?? {};
-  const bootstrap = (summaryQuery.data?.bootstrap as Record<string, unknown> | undefined) ?? {};
+  const payload: ScheduledJobsResponse = jobsQuery.data ?? { jobs: [] };
+  const jobs = payload.jobs ?? [];
+  const queueBackedCount = jobs.filter((job) => isScheduledJobQueueBacked(job)).length;
+  const directCount = jobs.filter((job) => classifyScheduledJobExecutionPlane(job) === "direct_control").length;
+  const proposalOnlyCount = jobs.filter((job) => isScheduledJobProposalOnly(job)).length;
+  const blockedCount = jobs.filter((job) => isScheduledJobBlocked(job)).length;
+  const needsSyncCount = jobs.filter((job) => scheduledJobNeedsSync(job)).length;
 
   return (
     <Card className="border-border/70 bg-card/70">
@@ -150,88 +138,116 @@ export function ScheduledJobsCard({
           </div>
         ) : null}
 
-        <div className="grid gap-3 sm:grid-cols-4">
-          <Metric label="Programs" value={`${programs.length}`} />
-          <Metric label="Blockers" value={`${status?.open_blockers ?? 0}`} />
-          <Metric label="Pending replay" value={`${status?.pending_integrations ?? 0}`} />
-          <Metric label="Takeover" value={status?.takeover?.ready ? "Ready" : "Blocked"} />
+        <div className="grid gap-3 sm:grid-cols-5">
+          <Metric label="Jobs" value={`${jobs.length}`} />
+          <Metric label="Queue-backed" value={`${queueBackedCount}`} />
+          <Metric label="Proposal-only" value={`${proposalOnlyCount}`} />
+          <Metric label="Direct loops" value={`${directCount}`} />
+          <Metric label="Blocked" value={`${blockedCount}`} />
+          <Metric label="Needs sync" value={`${needsSyncCount}`} />
         </div>
 
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
-            onClick={() => void Promise.all([programsQuery.refetch(), summaryQuery.refetch()])}
-            disabled={programsQuery.isFetching || summaryQuery.isFetching}
+            onClick={() => void jobsQuery.refetch()}
+            disabled={jobsQuery.isFetching}
           >
-            <RefreshCcw className={`mr-2 h-4 w-4 ${(programsQuery.isFetching || summaryQuery.isFetching) ? "animate-spin" : ""}`} />
+            <RefreshCcw className={`mr-2 h-4 w-4 ${jobsQuery.isFetching ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Badge variant="outline">
-            active family {formatLabel(String(status?.active_family || bootstrap.active_family || "unknown"))}
-          </Badge>
-          {governance && Object.keys(governance).length > 0 ? (
-            <Badge variant="outline">
-              mode {formatLabel(String((governance.current_mode as string | undefined) || (governance.mode as string | undefined) || "unknown"))}
-            </Badge>
-          ) : null}
+          <Badge variant="outline">queue-backed {queueBackedCount}</Badge>
+          <Badge variant="outline">proposal-only {proposalOnlyCount}</Badge>
+          <Badge variant="outline">direct {directCount}</Badge>
+          {blockedCount > 0 ? <Badge variant="outline">blocked {blockedCount}</Badge> : null}
+          {needsSyncCount > 0 ? <Badge variant="destructive">needs sync {needsSyncCount}</Badge> : null}
         </div>
 
-        {programs.length > 0 ? (
+        {jobs.length > 0 ? (
           <div className="space-y-3">
-            {programs.map((program) => (
-              <div
-                key={program.id}
-                className="block rounded-2xl border border-border/70 bg-background/20 p-4"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={toneForStatus(program.status)}>{formatLabel(program.status)}</Badge>
-                  <Badge variant="secondary">{formatLabel(program.current_family || "queued")}</Badge>
-                  <Badge variant="outline">{program.phase_scope}</Badge>
-                  {program.recommended_host_id ? (
-                    <Badge variant="outline">
-                      <ArrowLeftRight className="mr-1 h-3 w-3" />
-                      {program.recommended_host_id}
+            {jobs.map((job: ScheduledJobRecord) => {
+              const executionMode = classifyScheduledJobExecutionMode(job);
+              const queueBacked = executionMode === "materialized_to_backlog";
+              const executionPlane = classifyScheduledJobExecutionPlane(job);
+              const admission = classifyScheduledJobAdmission(job);
+              const blocked = isScheduledJobBlocked(job);
+              const needsSync = scheduledJobNeedsSync(job);
+              const runDisabled = !(job.can_run_now ?? true) && !(job.can_override_now ?? false);
+              return (
+                <div
+                  key={job.id}
+                  className="block rounded-2xl border border-border/70 bg-background/20 p-4"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={toneForStatus(job.current_state)}>{formatLabel(job.current_state)}</Badge>
+                    <Badge variant={queueBacked ? "secondary" : executionPlane === "proposal_only" ? "secondary" : "outline"}>
+                      {queueBacked ? "queue-backed" : executionPlane === "proposal_only" ? "proposal-only" : "direct"}
                     </Badge>
-                  ) : null}
-                  {program.slice_counts.blocked > 0 ? (
-                    <Badge variant="destructive">
-                      <ShieldAlert className="mr-1 h-3 w-3" />
-                      {program.slice_counts.blocked} blocked
-                    </Badge>
-                  ) : null}
+                    <Badge variant="outline">{formatLabel(job.job_family)}</Badge>
+                    {job.last_materialization_status ? (
+                      <Badge variant="outline">{formatLabel(job.last_materialization_status)}</Badge>
+                    ) : null}
+                    {job.last_backlog_id ? <Badge variant="outline">{job.last_backlog_id}</Badge> : null}
+                    {job.last_execution_plane ? (
+                      <Badge variant="outline">{formatLabel(job.last_execution_plane)}</Badge>
+                    ) : null}
+                    {needsSync ? (
+                      <Badge variant="destructive">
+                        <ShieldAlert className="mr-1 h-3 w-3" />
+                        needs sync
+                      </Badge>
+                    ) : null}
+                    {blocked ? <Badge variant="destructive">{formatLabel(admission)}</Badge> : null}
+                  </div>
+                  <p className="mt-3 text-sm font-medium">{job.title}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {job.last_summary || job.last_admission_reason || job.governor_reason || "No scheduler summary recorded yet."}
+                  </p>
+                  <div className="mt-3 grid gap-2 text-xs text-muted-foreground md:grid-cols-3">
+                    <span>cadence: {job.cadence}</span>
+                    <span>owner: {job.owner_agent}</span>
+                    <span data-volatile="true">
+                      next {job.next_run ? formatRelativeTime(job.next_run) : "unscheduled"}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                    {job.last_run ? <Badge variant="outline">last run {formatRelativeTime(job.last_run)}</Badge> : null}
+                    {job.priority_band ? <Badge variant="outline">{job.priority_band}</Badge> : null}
+                    {job.last_admission_classification ? (
+                      <Badge variant="outline">{formatLabel(job.last_admission_classification)}</Badge>
+                    ) : null}
+                    {job.deferred_by ? <Badge variant="outline">deferred by {formatLabel(job.deferred_by)}</Badge> : null}
+                    {job.last_error ? <Badge variant="destructive">{job.last_error}</Badge> : null}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void runJob(job.id, false)}
+                      disabled={busy !== null || runDisabled}
+                    >
+                      <Rocket className="mr-2 h-4 w-4" />
+                      Run now
+                    </Button>
+                    {!(job.can_run_now ?? true) && (job.can_override_now ?? false) ? (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => void runJob(job.id, true)}
+                        disabled={busy !== null}
+                      >
+                        Force run
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
-                <p className="mt-3 text-sm font-medium">{program.label}</p>
-                <p className="mt-2 text-xs text-muted-foreground">{program.objective}</p>
-                <div className="mt-3 grid gap-2 text-xs text-muted-foreground md:grid-cols-3">
-                  <span>next slice: {program.next_slice_id || "none"}</span>
-                  <span>pending replay: {program.pending_integrations}</span>
-                  <span data-volatile="true">
-                    updated {program.updated_at ? formatRelativeTime(program.updated_at) : "unknown"}
-                  </span>
-                </div>
-                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                  <Badge variant="outline">queued {program.slice_counts.queued}</Badge>
-                  <Badge variant="outline">active {program.slice_counts.active}</Badge>
-                  <Badge variant="outline">completed {program.slice_counts.completed}</Badge>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => void runSupervisor(program.id, true)}
-                    disabled={busy !== null}
-                  >
-                    <Rocket className="mr-2 h-4 w-4" />
-                    Run cycle
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <EmptyState
-            title="No bootstrap loops yet"
-            description="Bootstrap programs will appear here once the recursive builder registry is active."
+            title="No scheduled jobs yet"
+            description="Scheduled jobs will appear here once the scheduler publishes normalized posture records."
             className="py-8"
           />
         )}

@@ -13,7 +13,9 @@ services:
       - "988"  # docker group GID on WORKSHOP — grants socket access
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /opt/athanor/reports:/opt/athanor/reports:ro
     environment:
+      ATHANOR_TRUTH_INVENTORY_DIR: ${ATHANOR_TRUTH_INVENTORY_DIR:-/opt/athanor/reports/truth-inventory}
       NEXT_PUBLIC_PROMETHEUS_URL: ${NEXT_PUBLIC_PROMETHEUS_URL:-http://192.168.1.203:9090}
       NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}

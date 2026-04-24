@@ -182,6 +182,33 @@ export function ProvingGroundCard({
                     label="Proposals generated"
                     value={`${getNumber(latestRun.proposals_generated, 0)}`}
                   />
+                  <MetricRow
+                    label="Backlog materialized"
+                    value={`${getNumber(latestRun.backlog_items_created, 0) + getNumber(latestRun.backlog_items_refreshed, 0)}`}
+                  />
+                  <MetricRow
+                    label="Admission"
+                    value={formatKey(getString(latestRun.admission_classification, getString(latestRun.execution_plane, "proposal_only")))}
+                  />
+                  {getOptionalString(latestRun.admission_reason) ? (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {getString(latestRun.admission_reason)}
+                    </p>
+                  ) : null}
+                  {asArray(latestRun.backlog_ids).length > 0 || asArray(latestRun.review_ids).length > 0 ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {asArray(latestRun.backlog_ids).map((id) => (
+                        <Badge key={`backlog-${getString(id)}`} variant="outline">
+                          {getString(id)}
+                        </Badge>
+                      ))}
+                      {asArray(latestRun.review_ids).map((id) => (
+                        <Badge key={`review-${getString(id)}`} variant="outline">
+                          {getString(id)}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : null}
                   {getOptionalString(latestRun.timestamp) ? (
                     <p className="mt-3 text-xs text-muted-foreground" data-volatile="true">
                       last run {formatRelativeTime(getString(latestRun.timestamp))}

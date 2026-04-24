@@ -1,18 +1,18 @@
-import { proxyAgentJson } from "@/lib/server-agent";
+import { NextRequest } from "next/server";
+import { proxyAgentOperatorJson } from "@/lib/operator-actions";
 
 export async function POST(
-  request: Request,
+  request: NextRequest,
   context: { params: Promise<{ jobId: string }> }
 ) {
   const { jobId } = await context.params;
-  const body = await request.text();
-  return proxyAgentJson(
+  return proxyAgentOperatorJson(
+    request,
     `/v1/tasks/scheduled/${encodeURIComponent(jobId)}/run`,
+    "Failed to run scheduled job",
     {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: body || JSON.stringify({ actor: "dashboard-operator" }),
-    },
-    "Failed to run scheduled job"
+      privilegeClass: "admin",
+      defaultReason: `Triggered scheduled job ${jobId} from dashboard`,
+    }
   );
 }

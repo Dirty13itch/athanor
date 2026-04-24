@@ -14,12 +14,21 @@ import { Button } from "@/components/ui/button";
 import { requestJson } from "@/features/workforce/helpers";
 import { getOverview } from "@/lib/api";
 import type { OverviewSnapshot } from "@/lib/contracts";
+import type { BlockerMap } from "@/lib/blocker-map";
+import type { BlockerExecutionPlan } from "@/lib/blocker-execution-plan";
+import type { ContinuityControllerState } from "@/lib/continuity-controller";
 import { formatPercent, formatRelativeTime } from "@/lib/format";
 import { LIVE_REFRESH_INTERVALS, liveQueryOptions } from "@/lib/live-updates";
 import { PilotReadinessBlock } from "@/components/pilot-readiness-block";
 import type { MasterAtlasRelationshipMap } from "@/lib/master-atlas";
 import { queryKeys } from "@/lib/query-client";
 import { buildSteadyStateDecisionSummary } from "@/lib/steady-state-summary";
+import type { ValueThroughputScorecard } from "@/lib/value-throughput";
+import {
+  getBuilderKernelPressureLabel,
+  getBuilderKernelSharedPressure,
+  getBuilderKernelPressureTone,
+} from "@/lib/builder-kernel-pressure";
 import { cn } from "@/lib/utils";
 
 type SignalTone = "healthy" | "warning" | "danger";
@@ -49,6 +58,10 @@ type ProofDrilldownItem = {
   label: string;
   description: string;
 };
+
+function formatHours(value: number) {
+  return Number.isInteger(value) ? `${value}` : value.toFixed(1).replace(/\.0$/, "");
+}
 
 function toneText(tone: SignalTone): string {
   if (tone === "danger") return "text-[color:var(--signal-danger)]";
@@ -267,6 +280,92 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
     refetchInterval: LIVE_REFRESH_INTERVALS.overview,
     refetchIntervalInBackground: false,
   });
+  const operatorSummaryQuery = useQuery({
+    queryKey: queryKeys.operatorSummary,
+    queryFn: async (): Promise<{
+      blockerMap?: BlockerMap | null;
+      blockerMapStatus?: {
+        available?: boolean;
+        degraded?: boolean;
+        detail?: string | null;
+        sourceKind?: "workspace_report" | "repo_root_fallback" | null;
+        sourcePath?: string | null;
+      } | null;
+      blockerExecutionPlan?: BlockerExecutionPlan | null;
+      blockerExecutionPlanStatus?: {
+        available?: boolean;
+        degraded?: boolean;
+        detail?: string | null;
+        sourceKind?: "workspace_report" | "repo_root_fallback" | null;
+        sourcePath?: string | null;
+      } | null;
+      continuityController?: ContinuityControllerState | null;
+      continuityControllerStatus?: {
+        available?: boolean;
+        degraded?: boolean;
+        detail?: string | null;
+        sourceKind?: "workspace_report" | "repo_root_fallback" | null;
+        sourcePath?: string | null;
+      } | null;
+      valueThroughput?: ValueThroughputScorecard | null;
+      valueThroughputStatus?: {
+        available?: boolean;
+        degraded?: boolean;
+        detail?: string | null;
+        sourceKind?: "workspace_report" | "repo_root_fallback" | null;
+        sourcePath?: string | null;
+      } | null;
+      projectFactory?: {
+        acceptedProjectOutputCount?: number;
+        broadProjectFactoryReady?: boolean;
+        factoryOperatingMode?: string;
+        latestPendingProjectId?: string | null;
+        pendingCandidateCount?: number;
+        pendingHybridAcceptanceCount?: number;
+        projectOutputStageMet?: boolean;
+        topPriorityProjectId?: string | null;
+        topPriorityProjectLabel?: string | null;
+      } | null;
+    }> => {
+      const data = await requestJson("/api/operator/summary");
+      return (data ?? {}) as {
+        blockerMap?: BlockerMap | null;
+        blockerMapStatus?: {
+          available?: boolean;
+          degraded?: boolean;
+          detail?: string | null;
+          sourceKind?: "workspace_report" | "repo_root_fallback" | null;
+          sourcePath?: string | null;
+        } | null;
+        blockerExecutionPlan?: BlockerExecutionPlan | null;
+        blockerExecutionPlanStatus?: {
+          available?: boolean;
+          degraded?: boolean;
+          detail?: string | null;
+          sourceKind?: "workspace_report" | "repo_root_fallback" | null;
+          sourcePath?: string | null;
+        } | null;
+        continuityController?: ContinuityControllerState | null;
+        continuityControllerStatus?: {
+          available?: boolean;
+          degraded?: boolean;
+          detail?: string | null;
+          sourceKind?: "workspace_report" | "repo_root_fallback" | null;
+          sourcePath?: string | null;
+        } | null;
+        valueThroughput?: ValueThroughputScorecard | null;
+        valueThroughputStatus?: {
+          available?: boolean;
+          degraded?: boolean;
+          detail?: string | null;
+          sourceKind?: "workspace_report" | "repo_root_fallback" | null;
+          sourcePath?: string | null;
+        } | null;
+      };
+    },
+    refetchInterval: LIVE_REFRESH_INTERVALS.overview,
+    refetchIntervalInBackground: false,
+  });
 
   if (overviewQuery.isError) {
     return (
@@ -288,6 +387,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
     masterAtlasQuery.data && typeof masterAtlasQuery.data.generated_at === "string"
       ? masterAtlasQuery.data
       : null;
+  const masterAtlasSummary = masterAtlas?.summary ?? null;
   const governedDispatch = masterAtlas?.governed_dispatch_execution ?? null;
   const governedDispatchStatusTone = handoffTone(governedDispatch);
   const governedDispatchRestartInterfering =
@@ -308,11 +408,51 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
     masterAtlas?.summary?.autonomous_top_task_title ??
     governedDispatch?.current_task_title ??
     null;
+  const projectFactorySummary = operatorSummaryQuery.data?.projectFactory ?? null;
+  const projectFactoryMode =
+    projectFactorySummary?.factoryOperatingMode ?? masterAtlasSummary?.project_factory_operating_mode ?? "unknown";
+  const projectFactoryTopProjectId =
+    projectFactorySummary?.topPriorityProjectId ?? masterAtlasSummary?.project_factory_top_priority_project_id ?? "none";
+  const projectFactoryTopProjectLabel =
+    projectFactorySummary?.topPriorityProjectLabel ??
+    masterAtlasSummary?.project_factory_top_priority_project_label ??
+    projectFactoryTopProjectId;
+  const projectFactoryAcceptedCount = Number(
+    projectFactorySummary?.acceptedProjectOutputCount ?? masterAtlasSummary?.accepted_project_output_count ?? 0,
+  );
+  const projectFactoryPendingCandidateCount = Number(
+    projectFactorySummary?.pendingCandidateCount ?? masterAtlasSummary?.pending_project_output_candidate_count ?? 0,
+  );
+  const projectFactoryPendingHybridCount = Number(
+    projectFactorySummary?.pendingHybridAcceptanceCount ?? masterAtlasSummary?.pending_hybrid_project_output_count ?? 0,
+  );
+  const projectFactoryLatestPendingProjectId =
+    projectFactorySummary?.latestPendingProjectId ??
+    masterAtlasSummary?.project_factory_latest_pending_project_id ??
+    "none";
+  const projectFactoryBroadReady = Boolean(
+    projectFactorySummary?.broadProjectFactoryReady ?? masterAtlasSummary?.project_factory_broad_ready,
+  );
+  const projectOutputStageMet = Boolean(
+    projectFactorySummary?.projectOutputStageMet ?? masterAtlasSummary?.project_output_stage_met,
+  );
+  const projectFactoryTone: SignalTone =
+    projectOutputStageMet && projectFactoryBroadReady
+      ? "healthy"
+      : projectFactoryPendingCandidateCount > 0 || projectFactoryPendingHybridCount > 0
+        ? "warning"
+        : "warning";
   const degradedServices = snapshot.summary.degradedServices;
   const warningServices = snapshot.summary.warningServices;
   const pendingApprovals = snapshot.workforce.summary.pendingApprovals;
   const pendingTasks = snapshot.workforce.summary.pendingTasks;
   const runningTasks = snapshot.workforce.summary.runningTasks;
+  const scheduledPressure = snapshot.workforce.summary.scheduled;
+  const scheduledQueueBackedJobs = scheduledPressure.queueBackedJobs ?? 0;
+  const scheduledDirectJobs = scheduledPressure.directJobs ?? 0;
+  const scheduledProposalOnlyJobs = scheduledPressure.proposalOnlyJobs ?? 0;
+  const scheduledBlockedJobs = scheduledPressure.blockedJobs ?? 0;
+  const scheduledNeedsSyncJobs = scheduledPressure.needsSyncJobs ?? 0;
   const activeGoals = snapshot.workforce.summary.activeGoals;
   const activeProjects = snapshot.summary.activeProjects;
   const currentWorkplan = snapshot.workforce.workplan.current;
@@ -320,13 +460,86 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
   const currentWorkplanTasks = currentWorkplan?.tasks.slice(0, 3) ?? [];
   const builderFrontDoor = snapshot.builderFrontDoor;
   const builderCurrent = builderFrontDoor.current_session;
+  const executiveKernel = snapshot.executiveKernel;
   const steadyState = snapshot.steadyState;
   const steadyStateReadStatus = snapshot.steadyStateReadStatus;
+  const blockerMap = operatorSummaryQuery.data?.blockerMap ?? null;
+  const blockerMapStatus = operatorSummaryQuery.data?.blockerMapStatus ?? null;
+  const blockerExecutionPlan = operatorSummaryQuery.data?.blockerExecutionPlan ?? null;
+  const blockerExecutionPlanStatus = operatorSummaryQuery.data?.blockerExecutionPlanStatus ?? null;
+  const continuityController = operatorSummaryQuery.data?.continuityController ?? null;
+  const continuityControllerStatus = operatorSummaryQuery.data?.continuityControllerStatus ?? null;
+  const valueThroughput = operatorSummaryQuery.data?.valueThroughput ?? null;
+  const valueThroughputStatus = operatorSummaryQuery.data?.valueThroughputStatus ?? null;
+  const blockerMapAvailable = Boolean(blockerMap);
+  const remainingBlockerFamilies = Number(blockerMap?.remaining.familyCount ?? 0);
+  const nextTrancheTitle = blockerMap?.nextTranche.title ?? blockerMap?.nextTranche.id ?? "No tranche queued";
+  const nextTranchePaths = Number(blockerMap?.nextTranche.matchCount ?? 0);
+  const proofGateStatus = blockerMap?.proofGate.status ?? "unknown";
+  const autoMutationState = blockerMap?.autoMutation.state ?? "unknown";
+  const stableDayCoveredHours = Number(blockerMap?.stableOperatingDay.coveredWindowHours ?? 0);
+  const stableDayRequiredHours = Number(blockerMap?.stableOperatingDay.requiredWindowHours ?? 24);
+  const stableDayMet = Boolean(blockerMap?.stableOperatingDay.met);
+  const resultEvidenceThresholdProgress = Number(blockerMap?.resultEvidence.thresholdProgress ?? 0);
+  const resultEvidenceThresholdRequired = Number(blockerMap?.resultEvidence.thresholdRequired ?? 5);
+  const resultEvidenceThresholdMet = Boolean(blockerMap?.resultEvidence.thresholdMet);
+  const proofProgressSummary = blockerMapAvailable
+    ? `stable day ${
+        stableDayMet
+          ? `met (${formatHours(stableDayCoveredHours)}/${formatHours(stableDayRequiredHours)}h)`
+          : `${formatHours(stableDayCoveredHours)}/${formatHours(stableDayRequiredHours)}h`
+      } · result evidence ${
+        resultEvidenceThresholdMet
+          ? `met (${resultEvidenceThresholdProgress}/${resultEvidenceThresholdRequired})`
+          : `${resultEvidenceThresholdProgress}/${resultEvidenceThresholdRequired}`
+      }`
+    : "Proof progress unavailable";
+  const continuityStatus = continuityController?.controllerStatus ?? "unknown";
+  const continuityNextTarget =
+    continuityController?.nextTarget?.subtrancheTitle ??
+    continuityController?.nextTarget?.familyTitle ??
+    blockerExecutionPlan?.nextTarget.subtrancheTitle ??
+    blockerExecutionPlan?.nextTarget.familyTitle ??
+    nextTrancheTitle;
+  const continuitySkipReason = continuityController?.lastSkipReason ?? "none";
+  const continuityBackoff = continuityController?.backoffUntil ?? "none";
+  const continuitySummary = continuityController
+    ? `${continuityStatus} · next ${continuityNextTarget} · skip ${continuitySkipReason}`
+    : continuityControllerStatus?.detail ??
+      blockerExecutionPlanStatus?.detail ??
+      "Continuity controller artifacts unavailable";
+  const resultBackedCompletions = Number(valueThroughput?.resultBackedCompletionCount ?? 0);
+  const reviewBackedOutputs = Number(valueThroughput?.reviewBackedOutputCount ?? 0);
+  const staleClaimCount = Number(valueThroughput?.staleClaimCount ?? 0);
+  const reviewDebtCount = Number(valueThroughput?.reviewDebt.count ?? 0);
+  const reconciliationIssueCount = Number(valueThroughput?.reconciliation.issueCount ?? 0);
+  const valueThroughputDegraded = Boolean(valueThroughputStatus?.degraded);
+  const executiveKernelTone: SignalTone = executiveKernel.degraded
+    ? "warning"
+    : executiveKernel.active_session_count > 0 || executiveKernel.running_program_count > 0
+      ? "healthy"
+      : "warning";
+  const executiveKernelModeLabel =
+    executiveKernel.kernel_mode === "hybrid_sessions_plus_programs"
+      ? "Hybrid sessions + programs"
+      : executiveKernel.kernel_mode.replaceAll("_", " ");
+  const implementationCapability = executiveKernel.capability_posture.implementation;
+  const auditCapability = executiveKernel.capability_posture.audit;
+  const localEndpointCapability = executiveKernel.capability_posture.local_endpoint;
+  const capabilityLeadLabel =
+    implementationCapability && localEndpointCapability
+      ? `${implementationCapability.subject_id} (${Math.round(implementationCapability.capability_score)}) / ${localEndpointCapability.subject_id} (${Math.round(localEndpointCapability.capability_score)})`
+      : implementationCapability
+        ? `${implementationCapability.subject_id} (${Math.round(implementationCapability.capability_score)})`
+        : localEndpointCapability
+          ? `${localEndpointCapability.subject_id} (${Math.round(localEndpointCapability.capability_score)})`
+          : "No capability evidence loaded";
+  const capabilityDriftLabel = `${executiveKernel.capability_posture.degraded_subject_count} degraded subject${executiveKernel.capability_posture.degraded_subject_count === 1 ? "" : "s"}`;
   const liveWorkCount = pendingTasks + runningTasks;
   const liveTone: SignalTone =
     governedDispatchRestartInterfering || degradedServices > 0
       ? "danger"
-      : warningServices > 0 || pendingApprovals > 0 || pendingTasks > 0
+      : warningServices > 0 || pendingApprovals > 0 || pendingTasks > 0 || scheduledNeedsSyncJobs > 0
         ? "warning"
         : "healthy";
   const proofDrilldowns: ProofDrilldownItem[] = [
@@ -381,6 +594,18 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
       metric: `${pendingTasks} queued`,
     },
     {
+      href: "/projects",
+      label: "Project factory",
+      description: "Real project outputs, governed acceptance, and the current top product lane.",
+      metric: `${projectFactoryTopProjectLabel} · ${projectFactoryAcceptedCount} accepted · ${projectFactoryPendingCandidateCount} pending`,
+    },
+    {
+      href: "/workforce",
+      label: "Autonomy schedule",
+      description: "Scheduled product-work emitters and direct system loops.",
+      metric: `${scheduledQueueBackedJobs} queue-backed emitters · ${scheduledProposalOnlyJobs} proposal-only loops`,
+    },
+    {
       href: "/routing",
       label: "Routing",
       description: "Lane policy, provider elasticity, and execution selection.",
@@ -395,6 +620,31 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
   ];
 
   const triageItems: TriageItem[] = [
+    ...(projectFactoryPendingCandidateCount > 0 || projectFactoryPendingHybridCount > 0
+      ? [
+          {
+            href: "/projects",
+            kicker: "Project factory",
+            title: "Real project artifacts exist but are still waiting on governed acceptance.",
+            detail: `Top lane ${projectFactoryTopProjectLabel}. Pending candidate${projectFactoryPendingCandidateCount === 1 ? "" : "s"} ${projectFactoryPendingCandidateCount}; hybrid review ${projectFactoryPendingHybridCount}; latest pending ${projectFactoryLatestPendingProjectId}.`,
+            metric: `${projectFactoryAcceptedCount} accepted / ${projectFactoryPendingCandidateCount} pending`,
+            tone: "warning" as const,
+          },
+        ]
+      : []),
+    ...(scheduledNeedsSyncJobs > 0
+      ? [
+          {
+            href: "/workforce",
+            kicker: "Schedule drift",
+            title: "Scheduled queue emitters need resync before recurrence can be trusted.",
+            detail:
+              "One or more scheduled product-work emitters claim backlog materialization without a matching backlog id. Open the workforce schedule surface before assuming recurring queue work is landing cleanly.",
+            metric: `${scheduledNeedsSyncJobs} need sync`,
+            tone: "warning" as const,
+          },
+        ]
+      : []),
     ...(governedDispatchRestartInterfering
       ? [
           {
@@ -468,7 +718,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
     currentWorkDetail: "Current plan is standing in until the steady-state front door republishes current work.",
     nextUpTitle: topAction.title,
     nextUpDetail: "Open the operator desk when approvals or runtime packets appear.",
-    queuePosture: `${pendingTasks} queued / ${runningTasks} running / ${pendingApprovals} approvals`,
+    queuePosture: `${pendingTasks} queued / ${runningTasks} running / ${pendingApprovals} approvals / ${scheduledQueueBackedJobs} queue-backed / ${scheduledProposalOnlyJobs} proposal-only`,
     needsYou: topAction.tone === "danger",
   });
   const operatorAttentionTone: SignalTone = steadyStateSummary.attentionTone;
@@ -507,18 +757,18 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                 : service.lastError ?? "Service is warning and worth watching.",
             tone: service.state === "degraded" ? ("danger" as const) : ("warning" as const),
           }));
-  const builderTone: SignalTone =
-    builderFrontDoor.degraded
+  const builderTone: SignalTone = getBuilderKernelPressureTone(builderFrontDoor);
+  const builderSharedPressure = getBuilderKernelSharedPressure(builderFrontDoor);
+  const builderStatusLabel = getBuilderKernelPressureLabel(builderFrontDoor);
+  const builderNeedsSync = builderSharedPressure.current_session_needs_sync;
+  const builderSharedReviewCount = builderSharedPressure.current_session_pending_review_count;
+  const builderSharedResultCount = builderSharedPressure.current_session_actionable_result_count;
+  const builderKernelPressureTone: SignalTone =
+    builderSharedPressure.actionable_result_count > 0
       ? "danger"
-      : builderCurrent?.status === "failed" || builderCurrent?.verification_status === "failed"
-        ? "danger"
-      : (builderCurrent?.pending_approval_count ?? 0) > 0 ||
-          builderCurrent?.status === "waiting_approval" ||
-          builderCurrent?.fallback_state
+      : builderSharedPressure.pending_review_count > 0 || builderNeedsSync
         ? "warning"
-        : builderCurrent
-          ? "healthy"
-          : "warning";
+        : "healthy";
 
   return (
     <div className="space-y-6 lg:space-y-7">
@@ -588,6 +838,12 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
               <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
                 <span className="rounded-full border border-border/70 px-2.5 py-1">{liveWorkCount} live items</span>
                 <span className="rounded-full border border-border/70 px-2.5 py-1">{pendingApprovals} approvals</span>
+                <span className="rounded-full border border-border/70 px-2.5 py-1">
+                  {scheduledQueueBackedJobs} queue-backed scheduled emitters
+                </span>
+                <span className="rounded-full border border-border/70 px-2.5 py-1">
+                  {resultBackedCompletions} result-backed completions
+                </span>
                 <span className="rounded-full border border-border/70 px-2.5 py-1">{activeGoals} active goals</span>
                 <span className="rounded-full border border-border/70 px-2.5 py-1">
                   {currentWorkplanApprovalCount} plan approvals
@@ -607,7 +863,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
               </Button>
             </div>
 
-            <div className="overflow-hidden border-y border-border/70 bg-border/20 sm:grid sm:grid-cols-4">
+            <div className="overflow-hidden border-y border-border/70 bg-border/20 sm:grid sm:grid-cols-6">
               <MetricCell
                 label="Services"
                 value={`${snapshot.summary.healthyServices}/${snapshot.summary.totalServices}`}
@@ -627,12 +883,46 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                 tone={pendingTasks > 0 ? "warning" : "healthy"}
               />
               <MetricCell
-                label="GPU Avg"
-                value={formatPercent(snapshot.summary.averageGpuUtilization, 0)}
-                detail={`${snapshot.nodes.length} nodes reporting`}
+                label="Scheduled queue"
+                value={`${scheduledQueueBackedJobs}`}
+                detail={`${scheduledProposalOnlyJobs} proposal-only, ${scheduledDirectJobs} direct loop, ${scheduledBlockedJobs} blocked, ${scheduledNeedsSyncJobs} need sync`}
+                tone={scheduledNeedsSyncJobs > 0 || scheduledBlockedJobs > 0 ? "warning" : "healthy"}
+              />
+              <MetricCell
+                label="Value throughput"
+                value={`${resultBackedCompletions}`}
+                detail={
+                  valueThroughputDegraded && valueThroughputStatus?.detail
+                    ? `${reviewBackedOutputs} review-backed, ${staleClaimCount} stale claim, ${reviewDebtCount} review debt · degraded`
+                    : `${reviewBackedOutputs} review-backed, ${staleClaimCount} stale claim, ${reviewDebtCount} review debt`
+                }
+                tone={valueThroughputDegraded || staleClaimCount > 0 || reconciliationIssueCount > 0 ? "warning" : "healthy"}
+              />
+              <MetricCell
+                label="Closure debt"
+                value={blockerMapAvailable ? `${remainingBlockerFamilies}` : "offline"}
+                detail={
+                  blockerMapAvailable
+                    ? `${nextTrancheTitle} · proof gate ${proofGateStatus} · ${proofProgressSummary}`
+                    : blockerMapStatus?.detail ?? "Canonical blocker map unavailable"
+                }
+                tone={!blockerMapAvailable || remainingBlockerFamilies > 0 ? "warning" : "healthy"}
+              />
+              <MetricCell
+                label="Continuity"
+                value={continuityController ? continuityStatus : "offline"}
+                detail={
+                  continuityController
+                    ? `${continuityNextTarget} · skip ${continuitySkipReason} · backoff ${continuityBackoff}`
+                    : continuityControllerStatus?.detail ??
+                      blockerExecutionPlanStatus?.detail ??
+                      "Continuity controller artifacts unavailable"
+                }
                 tone={
-                  snapshot.summary.averageGpuUtilization !== null &&
-                  snapshot.summary.averageGpuUtilization >= 80
+                  !continuityController ||
+                  continuityControllerStatus?.degraded ||
+                  continuityStatus === "blocked" ||
+                  continuityStatus === "skipped"
                     ? "warning"
                     : "healthy"
                 }
@@ -661,7 +951,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
 
           <div className="space-y-4">
             <div className="surface-panel border border-primary/20 p-4">
-              <p className="page-eyebrow">Next Move</p>
+              <p className="page-eyebrow">Next governed move</p>
               <h2 className="mt-2 font-sans text-2xl font-semibold tracking-[-0.04em] text-foreground">
                 {topAction.title}
               </h2>
@@ -682,11 +972,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
               <p className="page-eyebrow">Builder front door</p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <Badge variant={builderTone === "danger" ? "destructive" : builderTone === "healthy" ? "secondary" : "outline"}>
-                  {builderFrontDoor.degraded
-                    ? "feed degraded"
-                    : builderCurrent
-                      ? builderCurrent.status.replaceAll("_", " ")
-                      : "ready for intake"}
+                  {builderStatusLabel}
                 </Badge>
                 {builderCurrent ? <Badge variant="outline">{builderCurrent.primary_adapter}</Badge> : null}
                 {builderCurrent?.resumable_handle ? <Badge variant="outline">resumable</Badge> : null}
@@ -698,7 +984,9 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                 {builderFrontDoor.degraded
                   ? builderFrontDoor.detail ?? "Builder summary is currently degraded."
                   : builderCurrent
-                    ? `${builderCurrent.current_route} is active on ${builderCurrent.primary_adapter}, with ${builderCurrent.pending_approval_count} approval holds, ${builderCurrent.artifact_count} recorded artifacts, and ${builderCurrent.resumable_handle ? "a live resumable handle" : "no attached resumable handle yet"}.`
+                    ? builderNeedsSync
+                      ? `${builderCurrent.current_route} is still reporting ${builderCurrent.status.replaceAll("_", " ")}, but the shared execution kernel has no matching review or result packet for this session yet. Open Builder or Review to resync the session state.`
+                      : `${builderCurrent.current_route} is active on ${builderCurrent.primary_adapter}, with ${builderSharedReviewCount} shared review hold(s), ${builderSharedResultCount} shared result alert(s), ${builderCurrent.artifact_count} recorded artifacts, and ${builderCurrent.resumable_handle ? "a live resumable handle" : "no attached resumable handle yet"}.`
                     : "Builder intake, route selection, approvals, artifacts, and recovery now live on a dedicated surface instead of the compatibility workspace shells."}
               </p>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -708,9 +996,9 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                   tone={builderTone}
                 />
                 <LiveReadoutRow
-                  label="Session count"
-                  value={`${builderFrontDoor.session_count} sessions / ${builderFrontDoor.pending_approval_count} approvals`}
-                  tone={builderFrontDoor.pending_approval_count > 0 ? "warning" : "healthy"}
+                  label="Kernel pressure"
+                  value={`${builderSharedPressure.pending_review_count} shared reviews / ${builderSharedPressure.actionable_result_count} result alerts`}
+                  tone={builderKernelPressureTone}
                 />
               </div>
               {builderCurrent?.fallback_state ? (
@@ -726,6 +1014,74 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
               <Button asChild variant="outline" size="sm" className="mt-4 w-full justify-between">
                 <Link href={builderCurrent ? `/builder?session=${builderCurrent.id}` : "/builder"}>
                   Open builder desk
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+
+            <div className="surface-panel border border-border/70 p-4">
+              <p className="page-eyebrow">Executive kernel</p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Badge
+                  variant={
+                    executiveKernelTone === "healthy"
+                      ? "secondary"
+                      : "outline"
+                  }
+                >
+                  kernel live
+                </Badge>
+                <Badge variant="outline">{executiveKernel.active_family}</Badge>
+                <Badge variant="outline">{executiveKernel.provider_reserve_posture}</Badge>
+              </div>
+              <h2 className="mt-2 font-sans text-2xl font-semibold tracking-[-0.04em] text-foreground">
+                {executiveKernelModeLabel}
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-[color:var(--text-secondary)]">
+                {executiveKernel.dispatch.recommendation}
+                {implementationCapability
+                  ? ` Capability lead is ${implementationCapability.subject_id} for ${implementationCapability.task_class.replaceAll("_", " ")}${auditCapability ? `, while ${auditCapability.subject_id} leads ${auditCapability.task_class.replaceAll("_", " ")}` : ""}.`
+                  : ""}
+              </p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <LiveReadoutRow
+                  label="Local reserves"
+                  value={`${executiveKernel.local_protected_reserve_count} protected / ${executiveKernel.local_harvestable_slot_count} harvestable`}
+                  tone={executiveKernelTone}
+                />
+                <LiveReadoutRow
+                  label="Programs"
+                  value={`${executiveKernel.active_program_count} active / ${executiveKernel.running_program_count} running`}
+                  tone={executiveKernel.running_program_count > 0 ? "healthy" : "warning"}
+                />
+              </div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <LiveReadoutRow
+                  label="Capability lead"
+                  value={capabilityLeadLabel}
+                  tone="healthy"
+                />
+                <LiveReadoutRow
+                  label="Capability drift"
+                  value={capabilityDriftLabel}
+                  tone={executiveKernel.capability_posture.degraded_subject_count > 0 ? "warning" : "healthy"}
+                />
+              </div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <LiveReadoutRow
+                  label="Dispatch default"
+                  value={`${executiveKernel.dispatch.implementation_lane} / ${executiveKernel.dispatch.bulk_lane}`}
+                  tone="healthy"
+                />
+                <LiveReadoutRow
+                  label="Provider posture"
+                  value={`${executiveKernel.constrained_provider_count} constrained`}
+                  tone={executiveKernel.constrained_provider_count > 0 ? "warning" : "healthy"}
+                />
+              </div>
+              <Button asChild variant="outline" size="sm" className="mt-4 w-full justify-between">
+                <Link href="/routing">
+                  Open routing index
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
@@ -752,12 +1108,38 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                 />
                 <LiveReadoutRow
                   label="Decision queue"
-                  value={`${pendingApprovals} approvals / ${steadyState?.runtimePacketCount ?? 0} runtime packets`}
-                  tone={pendingApprovals > 0 || (steadyState?.runtimePacketCount ?? 0) > 0 ? 'warning' : 'healthy'}
+                  value={`${pendingApprovals} approvals / ${steadyState?.runtimePacketCount ?? 0} runtime packets / ${scheduledQueueBackedJobs} queue-backed / ${scheduledProposalOnlyJobs} proposal-only`}
+                  tone={
+                    pendingApprovals > 0 ||
+                    (steadyState?.runtimePacketCount ?? 0) > 0 ||
+                    scheduledNeedsSyncJobs > 0
+                      ? 'warning'
+                      : 'healthy'
+                  }
+                />
+                <LiveReadoutRow
+                  label="Continuity"
+                  value={continuitySummary}
+                  tone={
+                    !continuityController ||
+                    continuityControllerStatus?.degraded ||
+                    continuityStatus === "blocked" ||
+                    continuityStatus === "skipped"
+                      ? "warning"
+                      : "healthy"
+                  }
+                />
+                <LiveReadoutRow
+                  label="Project factory"
+                  value={`${projectFactoryTopProjectLabel} · ${projectFactoryAcceptedCount} accepted · ${projectFactoryPendingCandidateCount} pending · ${projectFactoryMode}`}
+                  tone={projectFactoryTone}
                 />
               </div>
               <p className="mt-4 text-xs leading-5 text-muted-foreground">
                 {steadyStateSummary.nextUpDetail}
+              </p>
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                Closure map: {blockerMapAvailable ? `${remainingBlockerFamilies} tranche${remainingBlockerFamilies === 1 ? "" : "s"} remain; next is ${nextTrancheTitle} (${nextTranchePaths} path${nextTranchePaths === 1 ? "" : "s"}). Proof gate is ${proofGateStatus}; ${proofProgressSummary}; auto-mutation stays ${autoMutationState}. Continuity is ${continuityStatus}, targeting ${continuityNextTarget}.` : blockerMapStatus?.detail ?? "Canonical blocker map unavailable from this dashboard runtime."}
               </p>
               <Button asChild variant="outline" size="sm" className="mt-4 w-full justify-between">
                 <Link href="/operator">

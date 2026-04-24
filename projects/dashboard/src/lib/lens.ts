@@ -1,4 +1,4 @@
-export type LensId = "default" | "system" | "media" | "creative" | "eoq" | "ulrich";
+export type LensId = "default" | "system" | "media" | "creative" | "eoq";
 
 export type SectionId = "pulse" | "crew" | "briefing" | "gpus" | "workloads" | "stream" | "watches" | "links" | "digest" | "smartstack" | "workplan" | "eoq-content";
 
@@ -69,17 +69,6 @@ export const LENS_CONFIG: Record<LensId, LensConfig> = {
     sections: ["pulse", "eoq-content", "crew", "smartstack", "workplan", "stream", "workloads", "gpus", "links", "digest"],
     streamFilter: ["task", "agent"],
     navHighlight: ["/chat", "/gallery", "/backlog"],
-  },
-  ulrich: {
-    id: "ulrich",
-    label: "Ulrich Energy",
-    icon: "U",
-    accent: "oklch(0.7 0.12 145)",
-    accentHue: 145,
-    agents: ["general-assistant"],
-    sections: ["pulse", "crew", "stream", "workloads", "links", "digest"],
-    streamFilter: ["task"],
-    navHighlight: ["/backlog"],
   },
 };
 

@@ -3,6 +3,7 @@ import { IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Condensed } from "next/font
 import { AppProviders } from "@/components/app-providers";
 import { AppShell } from "@/components/app-shell";
 import { RegisterSW } from "@/components/register-sw";
+import { getOverviewSnapshot } from "@/lib/dashboard-data";
 import "./globals.css";
 
 const plexSans = IBM_Plex_Sans({
@@ -31,11 +32,18 @@ export const metadata: Metadata = {
   description: "Homelab command center for services, GPU telemetry, models, and agents.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let initialOverview = null;
+  try {
+    initialOverview = await getOverviewSnapshot();
+  } catch {
+    initialOverview = null;
+  }
+
   return (
     <html lang="en" className="dark">
       <body
@@ -43,7 +51,7 @@ export default function RootLayout({
       >
         <AppProviders>
           <RegisterSW />
-          <AppShell>{children}</AppShell>
+          <AppShell initialOverview={initialOverview}>{children}</AppShell>
         </AppProviders>
       </body>
     </html>

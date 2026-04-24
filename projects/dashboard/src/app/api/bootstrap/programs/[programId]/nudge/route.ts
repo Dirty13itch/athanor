@@ -17,6 +17,9 @@ export async function POST(request: NextRequest, context: Context) {
         execute: (body as { execute?: unknown }).execute ?? false,
         retry_blockers: (body as { retry_blockers?: unknown }).retry_blockers ?? true,
         process_integrations: (body as { process_integrations?: unknown }).process_integrations ?? true,
+        materialize_backlog: (body as { materialize_backlog?: unknown }).materialize_backlog ?? true,
+        project_id: (body as { project_id?: unknown }).project_id ?? "",
+        owner_agent: (body as { owner_agent?: unknown }).owner_agent ?? "",
         reason: (body as { reason?: unknown }).reason ?? "Nudged bootstrap supervisor from dashboard",
       },
     }

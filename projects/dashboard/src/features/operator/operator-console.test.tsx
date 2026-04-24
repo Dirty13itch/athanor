@@ -208,20 +208,31 @@ function buildWrapper() {
 describe("OperatorConsole", () => {
   it("renders the operator route as a decision desk with governance posture and explicit links to the owning routes", async () => {
     requestJson.mockImplementation(async (url: string) => {
-      if (url === "/api/operator/approvals?status=pending") {
+      if (url === "/api/execution/reviews?status=pending") {
         return {
-          approvals: [
+          reviews: [
             {
               id: "approval-1",
+              family: "bootstrap_takeover",
+              source: "bootstrap_program",
+              owner_kind: "program",
+              owner_id: "launch-readiness-bootstrap",
+              related_run_id: "bootstrap-program:launch-readiness-bootstrap",
+              related_task_id: "gpu-scheduler-promotion",
               requested_action: "promote",
               privilege_class: "release-tier",
               reason: "Advance GPU scheduler packet.",
+              status: "pending",
               task_prompt: "Advance GPU scheduler packet after verifying the rollout evidence.",
               task_agent_id: "scheduler",
               task_priority: "high",
+              task_status: "waiting_approval",
               requested_at: 1_710_000_000,
+              deep_link: "/bootstrap?program=launch-readiness-bootstrap&slice=gpu-scheduler-promotion",
+              metadata: {},
             },
           ],
+          count: 1,
         };
       }
 
@@ -243,6 +254,141 @@ describe("OperatorConsole", () => {
 
       if (url === "/api/operator/summary") {
         return {
+          blockerMap: {
+            generatedAt: "2026-04-18T19:00:00.000Z",
+            objective: "closure_debt",
+            activeWorkstream: {
+              id: "dispatch-and-work-economy-closure",
+              title: "Dispatch and Work-Economy Closure",
+              claimTaskId: "workstream:validation-and-publication",
+              claimTaskTitle: "Validation and Publication",
+              claimLaneFamily: "validation_and_checkpoint",
+              dispatchStatus: "dispatched",
+            },
+            remaining: {
+              cashNow: 0,
+              boundedFollowOn: 0,
+              programSlice: 4,
+              familyCount: 4,
+              pathCount: 63,
+              familyIds: [
+                "control-plane-registry-and-routing",
+                "agent-execution-kernel-follow-on",
+                "agent-route-contract-follow-on",
+                "control-plane-proof-and-ops-follow-on",
+              ],
+            },
+            nextTranche: {
+              id: "control-plane-registry-and-routing",
+              title: "Control-Plane Registry and Routing",
+              executionClass: "program_slice",
+              matchCount: 10,
+              nextAction: "Isolate registry and routing residue.",
+              decompositionRequired: false,
+              decompositionReasons: [],
+              categories: ["registry/policy", "agent runtime"],
+            },
+            queue: {
+              total: 12,
+              dispatchable: 8,
+              blocked: 2,
+              suppressed: 2,
+            },
+            stableOperatingDay: {
+              met: false,
+              coveredWindowHours: 12,
+              requiredWindowHours: 24,
+              includedPassCount: 4,
+              consecutiveHealthyPassCount: 4,
+              detail: "Stable-day proof needs 12 more hour(s) of consecutive healthy passes.",
+            },
+            resultEvidence: {
+              thresholdRequired: 5,
+              thresholdProgress: 3,
+              thresholdMet: false,
+              resultBackedCompletionCount: 3,
+              reviewBackedOutputCount: 2,
+            },
+            proofGate: {
+              open: false,
+              status: "closed",
+              blockingCheckIds: ["stable_operating_day", "result_backed_threshold"],
+            },
+            autoMutation: {
+              state: "repo_safe_only_runtime_and_provider_mutations_gated",
+              proofGateOpen: false,
+              detail: "Repo-safe work can continue autonomously, but runtime and provider mutations remain gated.",
+            },
+            sourceKind: "workspace_report",
+            sourcePath: "/mnt/c/Athanor/reports/truth-inventory/blocker-map.json",
+          },
+          blockerExecutionPlan: {
+            generatedAt: "2026-04-18T19:00:00.000Z",
+            selectionMode: "closure_debt",
+            nextFamilyId: "control-plane-registry-and-routing",
+            nextTarget: {
+              kind: "subtranche",
+              familyId: "control-plane-registry-and-routing",
+              familyTitle: "Control-Plane Registry and Routing",
+              subtrancheId: "registry-ledgers-and-matrices",
+              subtrancheTitle: "Registry Ledgers and Matrices",
+              executionClass: "program_slice",
+              approvalGated: false,
+              externalBlocked: false,
+            },
+            families: [],
+            sourceKind: "workspace_report",
+            sourcePath: "/mnt/c/Athanor/reports/truth-inventory/blocker-execution-plan.json",
+          },
+          continuityController: {
+            generatedAt: "2026-04-18T19:05:00.000Z",
+            controllerStatus: "running",
+            activePassId: "continuity-pass-123",
+            activeFamilyId: "control-plane-registry-and-routing",
+            activeSubtrancheId: "registry-ledgers-and-matrices",
+            startedAt: "2026-04-18T19:05:00.000Z",
+            finishedAt: null,
+            lastSuccessfulPassAt: "2026-04-18T18:55:00.000Z",
+            lastMeaningfulDeltaAt: "2026-04-18T18:55:00.000Z",
+            lastSkipReason: null,
+            backoffUntil: null,
+            consecutiveNoDeltaPasses: 0,
+            nextTarget: {
+              kind: "subtranche",
+              familyId: "control-plane-registry-and-routing",
+              familyTitle: "Control-Plane Registry and Routing",
+              subtrancheId: "registry-ledgers-and-matrices",
+              subtrancheTitle: "Registry Ledgers and Matrices",
+            },
+          },
+          scheduled: {
+            totalJobs: 3,
+            queueBackedJobs: 2,
+            directJobs: 1,
+            proposalOnlyJobs: 0,
+            blockedJobs: 0,
+            needsSyncJobs: 0,
+          },
+          valueThroughput: {
+            resultBackedCompletionCount: 3,
+            reviewBackedOutputCount: 2,
+            staleClaimCount: 1,
+            reviewDebt: {
+              count: 2,
+              oldestAgeHours: 6,
+            },
+            scheduledExecution: {
+              queueBackedJobs: 2,
+              directControlJobs: 1,
+              proposalOnlyJobs: 0,
+              blockedJobs: 0,
+              needsSyncJobs: 0,
+            },
+            reconciliation: {
+              issueCount: 1,
+              repairableCount: 1,
+            },
+          },
           tasks: {
             pending_approval: 1,
             failed_actionable: 2,
@@ -260,6 +406,14 @@ describe("OperatorConsole", () => {
             active_count: 1,
             pending_approval_count: 1,
             recent_artifact_count: 0,
+            shared_pressure: {
+              pending_review_count: 1,
+              actionable_result_count: 0,
+              current_session_pending_review_count: 1,
+              current_session_actionable_result_count: 0,
+              current_session_status: "review_required",
+              current_session_needs_sync: false,
+            },
             current_session: {
               id: "builder-1",
               title: "Implement the first builder route",
@@ -396,6 +550,16 @@ describe("OperatorConsole", () => {
     expect(screen.getByText(/workspace report/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Cheap Bulk Cloud/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Builder front door/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/1 shared review\(s\) · 0 result alert\(s\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Scheduled queue/i)).toBeInTheDocument();
+    expect(screen.getByText(/Closure blockers/i)).toBeInTheDocument();
+    expect(screen.getByText(/Continuity controller/i)).toBeInTheDocument();
+    expect(screen.getByText(/0 proposal-only · 1 direct loop · 0 blocked · 0 need sync/i)).toBeInTheDocument();
+    expect(screen.getByText(/registry-ledgers-and-matrices active\/selected · next Registry Ledgers and Matrices/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Control-Plane Registry and Routing/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Value throughput/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/3 result-backed · 2 review-backed · 1 stale claim/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/stable day 12\/24h · result evidence 3\/5/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("link", { name: /Open Builder/i })).toBeInTheDocument();
     expect(await screen.findByText(/Pilot readiness/i)).toBeInTheDocument();
     expect((await screen.findAllByText(/Letta Memory Plane/i)).length).toBeGreaterThan(0);
@@ -410,11 +574,11 @@ describe("OperatorConsole", () => {
 
   it("shows a degraded operator-feed notice instead of implying the queue is clear", async () => {
     requestJson.mockImplementation(async (url: string) => {
-      if (url === "/api/operator/approvals?status=pending") {
+      if (url === "/api/execution/reviews?status=pending") {
         return {
           available: false,
           degraded: true,
-          approvals: [],
+          reviews: [],
           count: 0,
         };
       }
@@ -469,8 +633,8 @@ describe("OperatorConsole", () => {
 
   it("shows a degraded context notice when the master atlas feed is degraded", async () => {
     requestJson.mockImplementation(async (url: string) => {
-      if (url === "/api/operator/approvals?status=pending") {
-        return { approvals: [], count: 0 };
+      if (url === "/api/execution/reviews?status=pending") {
+        return { reviews: [], count: 0 };
       }
 
       if (url === "/api/operator/governance") {
@@ -545,8 +709,8 @@ describe("OperatorConsole", () => {
 
   it("shows a dedicated steady-state front door degraded notice when operator feeds are otherwise available", async () => {
     requestJson.mockImplementation(async (url: string) => {
-      if (url === "/api/operator/approvals?status=pending") {
-        return { approvals: [] };
+      if (url === "/api/execution/reviews?status=pending") {
+        return { reviews: [], count: 0 };
       }
 
       if (url === "/api/operator/governance") {

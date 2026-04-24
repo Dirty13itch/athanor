@@ -246,6 +246,7 @@ export const navAttentionSourceSchema = z.enum([
   "agent_degraded",
   "builder_feed_degraded",
   "builder_pending_approval",
+  "builder_needs_sync",
   "builder_failed",
   "builder_active",
 ]);
@@ -433,6 +434,13 @@ export const provingGroundSnapshotSchema = z.object({
       pass_rate: z.number(),
       patterns_consumed: z.number().int().nonnegative().optional(),
       proposals_generated: z.number().int().nonnegative().optional(),
+      backlog_items_created: z.number().int().nonnegative().optional(),
+      backlog_items_refreshed: z.number().int().nonnegative().optional(),
+      backlog_ids: z.array(z.string()).optional(),
+      review_ids: z.array(z.string()).optional(),
+      execution_plane: z.string().nullable().optional(),
+      admission_classification: z.string().nullable().optional(),
+      admission_reason: z.string().nullable().optional(),
       errors: z.array(z.string()).optional(),
       source: z.string().optional(),
     })
@@ -633,6 +641,29 @@ export const governanceLayersSchema = z.object({
   }),
 });
 
+export const modelGovernanceCapabilityLeaderSchema = z.object({
+  subject_id: z.string(),
+  task_class: z.string(),
+  capability_score: z.number(),
+  demotion_state: z.string(),
+  reserve_class: z.string().nullable().optional(),
+});
+
+export const modelGovernanceCapabilityIntelligenceSchema = z.object({
+  generated_at: z.string(),
+  version: z.string(),
+  status: z.string(),
+  source_of_truth: z.string(),
+  provider_count: z.number().int().nonnegative(),
+  local_endpoint_count: z.number().int().nonnegative(),
+  degraded_subject_count: z.number().int().nonnegative(),
+  implementation: modelGovernanceCapabilityLeaderSchema.nullable(),
+  audit: modelGovernanceCapabilityLeaderSchema.nullable(),
+  local_endpoint: modelGovernanceCapabilityLeaderSchema.nullable(),
+  dispatch_reference: z.string().optional(),
+  next_actions: z.array(z.string()).optional(),
+});
+
 export const modelGovernanceSnapshotSchema = z.object({
   generated_at: z.string(),
   role_registry_version: z.string(),
@@ -648,6 +679,7 @@ export const modelGovernanceSnapshotSchema = z.object({
   promotion_controls: promotionControlsSchema.optional(),
   retirement_controls: retirementControlsSchema.optional(),
   model_intelligence: modelIntelligenceLaneSchema,
+  capability_intelligence: modelGovernanceCapabilityIntelligenceSchema,
   governance_layers: governanceLayersSchema,
 });
 
@@ -779,6 +811,12 @@ export const scheduledJobRecordSchema = z.object({
   last_actor: z.string().nullable().optional(),
   last_force_override: z.boolean().optional(),
   last_task_id: z.string().nullable().optional(),
+  last_backlog_id: z.string().nullable().optional(),
+  last_execution_mode: z.string().nullable().optional(),
+  last_execution_plane: z.string().nullable().optional(),
+  last_admission_classification: z.string().nullable().optional(),
+  last_admission_reason: z.string().nullable().optional(),
+  last_materialization_status: z.string().nullable().optional(),
   last_plan_id: z.string().nullable().optional(),
 });
 
@@ -1416,6 +1454,8 @@ export const workforceTaskSchema = z.object({
   completedAt: z.string().nullable(),
   durationMs: z.number().int().nullable(),
   requiresApproval: z.boolean(),
+  reviewId: z.string().nullable(),
+  resultId: z.string().nullable().default(null),
   source: z.string().nullable(),
   projectId: z.string().nullable(),
   planId: z.string().nullable(),
@@ -1547,6 +1587,15 @@ export const workforceScheduleEntrySchema = z.object({
   priority: z.string(),
 });
 
+export const scheduledJobPressureSummarySchema = z.object({
+  totalJobs: z.number().int().nonnegative(),
+  queueBackedJobs: z.number().int().nonnegative(),
+  directJobs: z.number().int().nonnegative(),
+  proposalOnlyJobs: z.number().int().nonnegative(),
+  blockedJobs: z.number().int().nonnegative(),
+  needsSyncJobs: z.number().int().nonnegative(),
+});
+
 export const projectPostureSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -1619,6 +1668,7 @@ export const workforceSnapshotSchema = z.object({
     workspaceUtilization: z.number().nullable(),
     activeProjects: z.number().int().nonnegative(),
     queuedProjects: z.number().int().nonnegative(),
+    scheduled: scheduledJobPressureSummarySchema,
   }),
   workplan: z.object({
     current: workplanSnapshotSchema.nullable(),
@@ -1664,7 +1714,7 @@ export const steadyStateSnapshotSchema = z.object({
   runtimePacketCount: z.number().int().nonnegative(),
   currentWork: steadyStateWorkItemSchema.nullable(),
   nextUp: steadyStateWorkItemSchema.nullable(),
-  sourceKind: z.enum(["workspace_report", "repo_root_fallback"]).nullable().optional(),
+  sourceKind: z.enum(["configured_truth_inventory", "workspace_report", "repo_root_fallback"]).nullable().optional(),
   sourcePath: z.string().nullable().optional(),
 });
 
@@ -1672,7 +1722,7 @@ export const steadyStateReadStatusSchema = z.object({
   available: z.boolean(),
   degraded: z.boolean(),
   detail: z.string().nullable().optional(),
-  sourceKind: z.enum(["workspace_report", "repo_root_fallback"]).nullable().optional(),
+  sourceKind: z.enum(["configured_truth_inventory", "workspace_report", "repo_root_fallback"]).nullable().optional(),
   sourcePath: z.string().nullable().optional(),
 });
 
@@ -1943,6 +1993,24 @@ export const builderSessionPreviewSchema = z.object({
   updated_at: z.string(),
 });
 
+export const builderKernelPressureStatusSchema = z.enum([
+  "ready",
+  "active",
+  "review_required",
+  "result_attention",
+  "needs_sync",
+  "offline",
+]);
+
+export const builderKernelPressureSummarySchema = z.object({
+  pending_review_count: z.number().int().nonnegative(),
+  actionable_result_count: z.number().int().nonnegative(),
+  current_session_pending_review_count: z.number().int().nonnegative(),
+  current_session_actionable_result_count: z.number().int().nonnegative(),
+  current_session_status: builderKernelPressureStatusSchema,
+  current_session_needs_sync: z.boolean(),
+});
+
 export const builderFrontDoorSummarySchema = z.object({
   available: z.boolean(),
   degraded: z.boolean(),
@@ -1952,8 +2020,212 @@ export const builderFrontDoorSummarySchema = z.object({
   active_count: z.number().int().nonnegative(),
   pending_approval_count: z.number().int().nonnegative(),
   recent_artifact_count: z.number().int().nonnegative(),
+  shared_pressure: builderKernelPressureSummarySchema.default({
+    pending_review_count: 0,
+    actionable_result_count: 0,
+    current_session_pending_review_count: 0,
+    current_session_actionable_result_count: 0,
+    current_session_status: "ready",
+    current_session_needs_sync: false,
+  }),
   current_session: builderSessionPreviewSchema.nullable(),
   sessions: z.array(builderSessionPreviewSchema),
+});
+
+export const executiveKernelCurrentSessionSchema = z.object({
+  family: z.string(),
+  id: z.string(),
+  title: z.string(),
+  status: builderSessionStatusSchema,
+  primary_adapter: z.string(),
+  current_route: z.string(),
+  verification_status: builderVerificationStatusSchema,
+  pending_approval_count: z.number().int().nonnegative(),
+  artifact_count: z.number().int().nonnegative(),
+  resumable_handle: z.string().nullable(),
+  shadow_mode: z.boolean(),
+  fallback_state: z.string().nullable(),
+  updated_at: z.string(),
+});
+
+export const executiveKernelProgramSchema = z.object({
+  id: z.string(),
+  family: z.string(),
+  title: z.string(),
+  current_state: z.string(),
+  last_outcome: z.string(),
+  deep_link: z.string(),
+});
+
+export const executionSessionProjectionSchema = z.object({
+  id: z.string(),
+  family: z.string(),
+  source: z.string(),
+  title: z.string(),
+  status: builderSessionStatusSchema,
+  primary_adapter: z.string(),
+  current_route: z.string(),
+  verification_status: builderVerificationStatusSchema,
+  pending_approval_count: z.number().int().nonnegative(),
+  artifact_count: z.number().int().nonnegative(),
+  resumable_handle: z.string().nullable(),
+  shadow_mode: z.boolean(),
+  fallback_state: z.string().nullable(),
+  updated_at: z.string(),
+});
+
+export const executionProgramProjectionSchema = z.object({
+  id: z.string(),
+  family: z.string(),
+  source: z.string(),
+  title: z.string(),
+  cadence: z.string(),
+  trigger_mode: z.string(),
+  current_state: z.string(),
+  last_outcome: z.string(),
+  owner_agent: z.string(),
+  deep_link: z.string(),
+  last_run: z.string().nullable(),
+  next_run: z.string().nullable(),
+  paused: z.boolean(),
+});
+
+export const executionSessionsResponseSchema = z.object({
+  sessions: z.array(executionSessionProjectionSchema),
+  count: z.number().int().nonnegative(),
+});
+
+export const executionProgramsResponseSchema = z.object({
+  programs: z.array(executionProgramProjectionSchema),
+  count: z.number().int().nonnegative(),
+});
+
+export const executionJobProjectionSchema = z.object({
+  id: z.string(),
+  family: z.string(),
+  source: z.string(),
+  owner_kind: z.string(),
+  owner_id: z.string(),
+  run_id: z.string(),
+  status: z.string(),
+  adapter_id: z.string(),
+  provider_or_endpoint_id: z.string(),
+  runtime_host: z.string(),
+  summary: z.string(),
+  created_at: z.number().int().nonnegative(),
+  updated_at: z.number().int().nonnegative(),
+  completed_at: z.number().int().nonnegative(),
+  heartbeat_at: z.number().int().nonnegative(),
+  approval_pending: z.boolean(),
+  deep_link: z.string(),
+});
+
+export const executionJobsResponseSchema = z.object({
+  jobs: z.array(executionJobProjectionSchema),
+  count: z.number().int().nonnegative(),
+});
+
+export const executionResultProjectionSchema = z.object({
+  id: z.string(),
+  family: z.string(),
+  source: z.string(),
+  owner_kind: z.string(),
+  owner_id: z.string(),
+  related_run_id: z.string(),
+  status: builderSessionStatusSchema,
+  outcome: builderResultOutcomeSchema,
+  summary: z.string(),
+  artifact_count: z.number().int().nonnegative(),
+  artifacts: z.array(builderArtifactSchema),
+  files_changed: z.array(z.string()),
+  validation: z.array(builderValidationRecordSchema),
+  remaining_risks: z.array(z.string()),
+  resumable_handle: z.string().nullable(),
+  recovery_gate: z.string().nullable(),
+  verification_status: builderVerificationStatusSchema,
+  updated_at: z.string(),
+  deep_link: z.string(),
+  metadata: z.record(z.string(), z.unknown()).default({}),
+});
+
+export const executionResultsResponseSchema = z.object({
+  results: z.array(executionResultProjectionSchema),
+  count: z.number().int().nonnegative(),
+});
+
+export const executionReviewProjectionSchema = z.object({
+  id: z.string(),
+  family: z.string(),
+  source: z.string(),
+  owner_kind: z.string(),
+  owner_id: z.string(),
+  related_run_id: z.string(),
+  related_task_id: z.string(),
+  requested_action: z.string(),
+  privilege_class: z.string(),
+  reason: z.string(),
+  status: z.string(),
+  requested_at: z.number().int().nonnegative(),
+  task_prompt: z.string(),
+  task_agent_id: z.string(),
+  task_priority: z.string(),
+  task_status: z.string(),
+  deep_link: z.string(),
+  metadata: z.record(z.string(), z.unknown()).default({}),
+});
+
+export const executionReviewsResponseSchema = z.object({
+  reviews: z.array(executionReviewProjectionSchema),
+  count: z.number().int().nonnegative(),
+});
+
+export const executiveKernelDispatchSchema = z.object({
+  decision_order: z.array(z.string()),
+  implementation_lane: z.string(),
+  audit_lane: z.string(),
+  mechanic_lane: z.string(),
+  github_lane: z.string(),
+  bulk_lane: z.string(),
+  recommendation: z.string(),
+});
+
+export const executiveKernelCapabilityLeaderSchema = z.object({
+  subject_id: z.string(),
+  task_class: z.string(),
+  capability_score: z.number(),
+  demotion_state: z.string(),
+  reserve_class: z.string().nullable(),
+});
+
+export const executiveKernelCapabilityPostureSchema = z.object({
+  implementation: executiveKernelCapabilityLeaderSchema.nullable(),
+  audit: executiveKernelCapabilityLeaderSchema.nullable(),
+  local_endpoint: executiveKernelCapabilityLeaderSchema.nullable(),
+  degraded_subject_count: z.number().int().nonnegative(),
+  source_of_truth: z.string(),
+});
+
+export const executiveKernelSummarySchema = z.object({
+  available: z.boolean(),
+  degraded: z.boolean(),
+  detail: z.string().nullable(),
+  updated_at: z.string(),
+  kernel_mode: z.string(),
+  first_live_family: z.string(),
+  active_family: z.string(),
+  active_session_count: z.number().int().nonnegative(),
+  active_program_count: z.number().int().nonnegative(),
+  running_program_count: z.number().int().nonnegative(),
+  local_protected_reserve_count: z.number().int().nonnegative(),
+  local_harvestable_slot_count: z.number().int().nonnegative(),
+  open_harvest_slot_count: z.number().int().nonnegative(),
+  provider_reserve_posture: z.string(),
+  constrained_provider_count: z.number().int().nonnegative(),
+  current_session: executiveKernelCurrentSessionSchema.nullable(),
+  current_programs: z.array(executiveKernelProgramSchema),
+  dispatch: executiveKernelDispatchSchema,
+  capability_posture: executiveKernelCapabilityPostureSchema,
+  front_door_url: z.string().url(),
 });
 
 export const builderSessionEventsResponseSchema = z.object({
@@ -1963,6 +2235,11 @@ export const builderSessionEventsResponseSchema = z.object({
 });
 
 export const builderSessionControlRequestSchema = z.object({
+  action: builderControlActionSchema,
+  approval_id: z.string().nullable().optional(),
+});
+
+export const executionSessionControlRequestSchema = z.object({
   action: builderControlActionSchema,
   approval_id: z.string().nullable().optional(),
 });
@@ -1996,6 +2273,7 @@ export const overviewSnapshotSchema = z.object({
   navAttention: z.array(navAttentionSignalSchema).default([]),
   workforce: workforceSnapshotSchema,
   builderFrontDoor: builderFrontDoorSummarySchema,
+  executiveKernel: executiveKernelSummarySchema,
   steadyState: steadyStateSnapshotSchema.nullable().default(null),
   steadyStateReadStatus: steadyStateReadStatusSchema.default({
     available: false,
@@ -2223,7 +2501,8 @@ export const historyActivityItemSchema = z.object({
   timestamp: z.string(),
   relatedTaskId: z.string().nullable(),
   relatedThreadId: z.string().nullable(),
-  reviewTaskId: z.string().nullable(),
+  reviewId: z.string().nullable().default(null),
+  resultId: z.string().nullable().default(null),
   status: taskStatusSchema.nullable(),
   href: z.string(),
 });
@@ -2379,6 +2658,44 @@ export const learningSnapshotSchema = z.object({
   }),
 });
 
+export const intelligenceReviewItemSchema = z.object({
+  id: z.string(),
+  kind: z.enum(["approval", "result"]),
+  taskId: z.string(),
+  reviewId: z.string().nullable(),
+  resultId: z.string().nullable(),
+  projectId: z.string().nullable(),
+  agentId: z.string(),
+  prompt: z.string(),
+  priority: taskPrioritySchema,
+  status: taskStatusSchema,
+  createdAt: z.string(),
+  completedAt: z.string().nullable(),
+  requiresApproval: z.boolean(),
+  source: z.string().nullable(),
+  resultSummary: z.string().nullable(),
+  resultOutcome: builderResultOutcomeSchema.nullable(),
+  resultVerificationStatus: builderVerificationStatusSchema.nullable(),
+  resultArtifacts: z.array(builderArtifactSchema).default([]),
+  resultFilesChanged: z.array(z.string()).default([]),
+  resultValidation: z.array(builderValidationRecordSchema).default([]),
+  remainingRisks: z.array(z.string()).default([]),
+  resumableHandle: z.string().nullable(),
+  recoveryGate: z.string().nullable(),
+  error: z.string().nullable(),
+  deepLink: z.string(),
+});
+
+export const reviewItemSchema = intelligenceReviewItemSchema;
+
+export const reviewSnapshotSchema = z.object({
+  generatedAt: z.string(),
+  projects: z.array(projectSnapshotSchema),
+  agents: z.array(workforceAgentSnapshotSchema),
+  reviewItems: z.array(reviewItemSchema),
+  reviewTasks: z.array(workforceTaskSchema),
+});
+
 export const intelligenceSnapshotSchema = z.object({
   generatedAt: z.string(),
   projects: z.array(projectSnapshotSchema),
@@ -2386,7 +2703,6 @@ export const intelligenceSnapshotSchema = z.object({
   report: intelligenceReportSchema.nullable(),
   learning: learningSnapshotSchema.nullable(),
   improvement: workforceImprovementSummarySchema.nullable(),
-  reviewTasks: z.array(workforceTaskSchema),
 });
 
 export const memoryPreferenceSchema = z.object({
@@ -2676,7 +2992,26 @@ export type BuilderLinkedSurfaces = z.infer<typeof builderLinkedSurfacesSchema>;
 export type BuilderProgressEvent = z.infer<typeof builderProgressEventSchema>;
 export type BuilderExecutionSession = z.infer<typeof builderExecutionSessionSchema>;
 export type BuilderSessionPreview = z.infer<typeof builderSessionPreviewSchema>;
+export type BuilderKernelPressureStatus = z.infer<typeof builderKernelPressureStatusSchema>;
+export type BuilderKernelPressureSummary = z.infer<typeof builderKernelPressureSummarySchema>;
 export type BuilderFrontDoorSummary = z.infer<typeof builderFrontDoorSummarySchema>;
+export type ExecutiveKernelCurrentSession = z.infer<typeof executiveKernelCurrentSessionSchema>;
+export type ExecutiveKernelProgram = z.infer<typeof executiveKernelProgramSchema>;
+export type ExecutionSessionProjection = z.infer<typeof executionSessionProjectionSchema>;
+export type ExecutionProgramProjection = z.infer<typeof executionProgramProjectionSchema>;
+export type ExecutionSessionsResponse = z.infer<typeof executionSessionsResponseSchema>;
+export type ExecutionProgramsResponse = z.infer<typeof executionProgramsResponseSchema>;
+export type ExecutionJobProjection = z.infer<typeof executionJobProjectionSchema>;
+export type ExecutionJobsResponse = z.infer<typeof executionJobsResponseSchema>;
+export type ExecutionResultProjection = z.infer<typeof executionResultProjectionSchema>;
+export type ExecutionResultsResponse = z.infer<typeof executionResultsResponseSchema>;
+export type ExecutionReviewProjection = z.infer<typeof executionReviewProjectionSchema>;
+export type ExecutionReviewsResponse = z.infer<typeof executionReviewsResponseSchema>;
+export type ExecutionSessionControlRequest = z.infer<typeof executionSessionControlRequestSchema>;
+export type ExecutiveKernelDispatch = z.infer<typeof executiveKernelDispatchSchema>;
+export type ExecutiveKernelCapabilityLeader = z.infer<typeof executiveKernelCapabilityLeaderSchema>;
+export type ExecutiveKernelCapabilityPosture = z.infer<typeof executiveKernelCapabilityPostureSchema>;
+export type ExecutiveKernelSummary = z.infer<typeof executiveKernelSummarySchema>;
 export type BuilderSessionEventsResponse = z.infer<typeof builderSessionEventsResponseSchema>;
 export type BuilderSessionControlRequest = z.infer<typeof builderSessionControlRequestSchema>;
 export type OverviewSnapshot = z.infer<typeof overviewSnapshotSchema>;
@@ -2774,6 +3109,9 @@ export type HistorySnapshot = z.infer<typeof historySnapshotSchema>;
 export type IntelligencePattern = z.infer<typeof intelligencePatternSchema>;
 export type IntelligenceReport = z.infer<typeof intelligenceReportSchema>;
 export type LearningSnapshot = z.infer<typeof learningSnapshotSchema>;
+export type ReviewItem = z.infer<typeof reviewItemSchema>;
+export type ReviewSnapshot = z.infer<typeof reviewSnapshotSchema>;
+export type IntelligenceReviewItem = z.infer<typeof intelligenceReviewItemSchema>;
 export type IntelligenceSnapshot = z.infer<typeof intelligenceSnapshotSchema>;
 export type GalleryRating = z.infer<typeof galleryRatingSchema>;
 export type GalleryRatingsResponse = z.infer<typeof galleryRatingsResponseSchema>;

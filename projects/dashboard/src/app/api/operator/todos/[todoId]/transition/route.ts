@@ -1,4 +1,5 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { applyBuilderSyntheticTodoTransition, isBuilderSyntheticTodoId } from "@/lib/builder-store";
 import { proxyAgentOperatorJson } from "@/lib/operator-actions";
 
 export async function POST(
@@ -7,6 +8,21 @@ export async function POST(
 ) {
   const { todoId } = await params;
   const body = await request.json().catch(() => ({}));
+  if (isBuilderSyntheticTodoId(todoId)) {
+    const todo = await applyBuilderSyntheticTodoTransition(
+      todoId,
+      String((body as { status?: unknown }).status ?? "open") as
+        | "open"
+        | "ready"
+        | "blocked"
+        | "waiting"
+        | "done"
+        | "cancelled"
+        | "someday",
+      typeof (body as { note?: unknown }).note === "string" ? (body as { note?: string }).note : undefined,
+    );
+    return NextResponse.json({ ok: true, todo });
+  }
   return proxyAgentOperatorJson(
     request,
     `/v1/operator/todos/${encodeURIComponent(todoId)}/transition`,

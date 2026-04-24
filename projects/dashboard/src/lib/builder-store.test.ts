@@ -4,9 +4,13 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   __resetBuilderStoreForTests,
+  applyBuilderSyntheticInboxAction,
+  applyBuilderSyntheticTodoTransition,
   createBuilderSession,
+  listBuilderSyntheticInboxItems,
   listBuilderSyntheticApprovals,
   listBuilderSyntheticRuns,
+  listBuilderSyntheticTodos,
   readBuilderSessionEvents,
   readBuilderSummary,
 } from "@/lib/builder-store";
@@ -87,5 +91,37 @@ describe("builder store", () => {
     expect(session.route_decision.route_id).toBe("builder:claude_code:rescue");
     expect(session.route_decision.activation_state).toBe("planned_future");
     expect(session.status).toBe("blocked");
+  });
+
+  it("projects builder approvals into inbox items and converts them into synthetic todos", async () => {
+    const session = await createBuilderSession({
+      goal: "Approve the live builder session and capture follow-up.",
+      task_class: "multi_file_implementation",
+      sensitivity_class: "private_but_cloud_allowed",
+      workspace_mode: "repo_worktree",
+      needs_background: false,
+      needs_github: false,
+      acceptance_criteria: ["Expose inbox projection", "Convert builder inbox to todo"],
+    });
+
+    const inbox = await listBuilderSyntheticInboxItems("new");
+    const approvalItem = inbox.find((item) => item.related_task_id === session.id);
+
+    expect(approvalItem?.id).toMatch(/^builder-inbox-/);
+    expect(approvalItem?.requires_decision).toBe(true);
+    expect(approvalItem?.decision_type).toBe("approve");
+
+    const converted = await applyBuilderSyntheticInboxAction(approvalItem!.id, "convert");
+    expect(converted.status).toBe("converted");
+
+    const todos = await listBuilderSyntheticTodos("open");
+    expect(todos[0]?.metadata?.linked_inbox_id).toBe(approvalItem?.id);
+    expect(todos[0]?.metadata?.builder_session_id).toBe(session.id);
+
+    const doneTodo = await applyBuilderSyntheticTodoTransition(String(todos[0]?.id), "done");
+    expect(doneTodo.status).toBe("done");
+
+    const convertedInbox = await listBuilderSyntheticInboxItems("converted");
+    expect(convertedInbox.some((item) => item.id === approvalItem?.id)).toBe(true);
   });
 });

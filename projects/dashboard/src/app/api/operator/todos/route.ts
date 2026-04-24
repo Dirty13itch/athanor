@@ -1,11 +1,32 @@
+import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
+import { listBuilderSyntheticTodos } from "@/lib/builder-store";
 import { proxyAgentOperatorJson } from "@/lib/operator-actions";
 import { proxyAgentJson } from "@/lib/server-agent";
 
 export async function GET(request: NextRequest) {
   const params = new URLSearchParams(request.nextUrl.searchParams);
   const query = params.toString();
-  return proxyAgentJson(`/v1/operator/todos${query ? `?${query}` : ""}`, undefined, "Failed to fetch operator todos");
+  const response = await proxyAgentJson(
+    `/v1/operator/todos${query ? `?${query}` : ""}`,
+    undefined,
+    "Failed to fetch operator todos",
+  );
+  const payload = (await response.json().catch(() => ({}))) as {
+    todos?: Array<Record<string, unknown>>;
+    count?: number;
+    [key: string]: unknown;
+  };
+  const todos = [
+    ...(await listBuilderSyntheticTodos(params.get("status"))),
+    ...((Array.isArray(payload.todos) ? payload.todos : []) as Array<Record<string, unknown>>),
+  ].sort((left, right) => Number(right.updated_at ?? 0) - Number(left.updated_at ?? 0));
+
+  return NextResponse.json({
+    ...payload,
+    todos,
+    count: todos.length,
+  });
 }
 
 export async function POST(request: NextRequest) {

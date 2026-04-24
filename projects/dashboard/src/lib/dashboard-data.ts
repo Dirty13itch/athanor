@@ -13,6 +13,7 @@ import {
   type ProjectPosture,
   type ProjectSnapshot,
   type ProjectsSnapshot,
+  scheduledJobsResponseSchema,
   serviceHealthSnapshotSchema,
   type ServiceHistorySeries,
   type ServiceSnapshot,
@@ -38,10 +39,13 @@ import {
   getFixtureWorkforceSnapshot,
   isDashboardFixtureMode,
 } from "@/lib/dashboard-fixtures";
+import { summarizeBuilderKernelPressure } from "@/lib/builder-kernel-pressure";
 import { average, formatTemperatureF } from "@/lib/format";
 import { readBuilderSummary } from "@/lib/builder-store";
+import { loadExecutiveKernelSummary, loadExecutionResults, loadExecutionReviewFeed } from "@/lib/executive-kernel";
 import { buildNavAttentionSignals } from "@/lib/nav-attention";
 import { loadSteadyStateFrontDoor } from "@/lib/operator-frontdoor";
+import { summarizeScheduledJobPressure } from "@/lib/scheduled-job-posture";
 import { agentServerHeaders, config, getNodeNameFromInstance, joinUrl, type MonitoredService } from "@/lib/config";
 import { getRangeStepSeconds, getTimeWindow, type TimeWindowId } from "@/lib/ranges";
 
@@ -426,6 +430,18 @@ const rawOperatorBacklogSchema = z
     dispatch_policy: z.string().optional().default("planner_eligible"),
     preconditions: z.array(z.string()).default([]),
     blocking_reason: z.string().optional().default(""),
+    family: z.string().optional().default(""),
+    project_id: z.string().optional().default(""),
+    source_type: z.string().optional().default(""),
+    source_ref: z.string().optional().default(""),
+    routing_class: z.string().optional().default(""),
+    verification_contract: z.string().optional().default(""),
+    closure_rule: z.string().optional().default(""),
+    materialization_source: z.string().optional().default(""),
+    materialization_reason: z.string().optional().default(""),
+    recurrence_program_id: z.string().optional().default(""),
+    result_id: z.string().optional().default(""),
+    review_id: z.string().optional().default(""),
     created_at: z.coerce.number().default(0),
     updated_at: z.coerce.number().default(0),
     completed_at: z.coerce.number().default(0),
@@ -1153,6 +1169,8 @@ function normalizeTask(rawTask: RawTask): WorkforceTask {
         ? Math.max(0, Math.round((rawTask.completed_at - rawTask.started_at) * 1000))
         : null,
     requiresApproval: Boolean(metadata.requires_approval) || status === "pending_approval",
+    reviewId: null,
+    resultId: null,
     source: normalizeText(metadata.source),
     projectId: normalizeText(metadata.project),
     planId: normalizeText(metadata.plan_id),
@@ -1233,6 +1251,8 @@ function normalizeOperatorRunTask(rawRun: RawOperatorRun): WorkforceTask {
         ? Math.max(0, Math.round((rawRun.completed_at - rawRun.created_at) * 1000))
         : null,
     requiresApproval: Boolean(rawRun.approval_pending) || (rawRun.approvals ?? []).some((approval) => approval.status === "pending"),
+    reviewId: null,
+    resultId: null,
     source: normalizeText(rawRun.provider_lane || rawRun.policy_class),
     projectId: normalizeText((metadata.project_id as string | undefined) ?? (metadata.scope_id as string | undefined)),
     planId: normalizeText(rawRun.backlog_id),
@@ -1246,10 +1266,19 @@ function normalizeOperatorRunTask(rawRun: RawOperatorRun): WorkforceTask {
 
 function normalizeBacklogTask(rawBacklog: RawOperatorBacklog): WorkforceTask {
   const metadata = rawBacklog.metadata ?? {};
+  const reviewId =
+    normalizeText(rawBacklog.review_id) ??
+    normalizeText(metadata.review_id as string | undefined) ??
+    null;
+  const resultId =
+    normalizeText(rawBacklog.result_id) ??
+    normalizeText(metadata.result_id as string | undefined) ??
+    null;
   const scopeProjectId =
-    rawBacklog.scope_type === "project"
+    normalizeText(rawBacklog.project_id) ??
+    (rawBacklog.scope_type === "project"
       ? normalizeText(rawBacklog.scope_id)
-      : normalizeText(metadata.project_id as string | undefined);
+      : normalizeText(metadata.project_id as string | undefined));
   return {
     id: `backlog:${rawBacklog.id}`,
     agentId: rawBacklog.owner_agent || "unknown",
@@ -1260,11 +1289,19 @@ function normalizeBacklogTask(rawBacklog: RawOperatorBacklog): WorkforceTask {
     startedAt: null,
     completedAt: unixToIso(rawBacklog.completed_at),
     durationMs: null,
-    requiresApproval: rawBacklog.approval_mode !== "none",
-    source: normalizeText(rawBacklog.work_class),
+    requiresApproval: Boolean(reviewId) || rawBacklog.approval_mode !== "none",
+    reviewId,
+    resultId,
+    source:
+      normalizeText(rawBacklog.family) ??
+      normalizeText(rawBacklog.source_type) ??
+      normalizeText(rawBacklog.work_class),
     projectId: scopeProjectId,
     planId: rawBacklog.id,
-    rationale: normalizeText(rawBacklog.blocking_reason) ?? normalizeText(rawBacklog.title),
+    rationale:
+      normalizeText(rawBacklog.materialization_reason) ??
+      normalizeText(rawBacklog.blocking_reason) ??
+      normalizeText(rawBacklog.title),
     parentTaskId: null,
     result: null,
     error: normalizeText(rawBacklog.blocking_reason),
@@ -1278,12 +1315,6 @@ function buildSyntheticWorkplan(
 ): WorkplanSnapshot | null {
   const queued = backlogItems
     .filter((item) => !["completed", "cancelled", "archived"].includes(String(item.status ?? "").toLowerCase()))
-    .sort((left, right) => {
-      return (
-        Number(right.priority ?? 0) - Number(left.priority ?? 0) ||
-        (right.updated_at ?? 0) - (left.updated_at ?? 0)
-      );
-    })
     .slice(0, 8);
 
   if (queued.length === 0) {
@@ -1363,6 +1394,64 @@ function normalizeApprovalNotification(approval: RawOperatorApproval): Workforce
   };
 }
 
+function buildApprovalReviewIdMap(approvals: RawOperatorApproval[]) {
+  const byTaskId = new Map<string, { reviewId: string; requestedAt: number; pending: boolean }>();
+
+  for (const approval of approvals) {
+    const taskId = normalizeText(approval.related_task_id);
+    const reviewId = normalizeText(approval.id);
+    if (!taskId || !reviewId) {
+      continue;
+    }
+
+    const requestedAt = Number(approval.requested_at ?? 0);
+    const pending = String(approval.status ?? "pending").toLowerCase() === "pending";
+    const current = byTaskId.get(taskId);
+    if (!current || (pending && !current.pending) || (pending === current.pending && requestedAt >= current.requestedAt)) {
+      byTaskId.set(taskId, { reviewId, requestedAt, pending });
+    }
+  }
+
+  return new Map(Array.from(byTaskId.entries(), ([taskId, value]) => [taskId, value.reviewId]));
+}
+
+function buildExecutionResultIdMap(results: Array<{ id: string; owner_id?: string | null; status?: string | null }>) {
+  return new Map(
+    results
+      .filter((result) => result.status === "failed" || result.status === "completed")
+      .map((result) => [result.owner_id ?? "", result.id] as const)
+      .filter(([taskId]) => Boolean(taskId))
+  );
+}
+
+function hasPendingApprovalEvidence(task: Pick<WorkforceTask, "status" | "reviewId">) {
+  return task.status === "pending_approval" && Boolean(task.reviewId);
+}
+
+function hasFailedResultEvidence(task: Pick<WorkforceTask, "status" | "resultId">) {
+  return task.status === "failed" && Boolean(task.resultId);
+}
+
+function countPendingApprovalEvidence(tasks: Array<Pick<WorkforceTask, "status" | "reviewId">>) {
+  return tasks.filter((task) => hasPendingApprovalEvidence(task)).length;
+}
+
+function countFailedResultEvidence(tasks: Array<Pick<WorkforceTask, "status" | "resultId">>) {
+  return tasks.filter((task) => hasFailedResultEvidence(task)).length;
+}
+
+function normalizeScheduledPressureSummary(
+  jobs: Array<{
+    id: string;
+    last_execution_mode?: string | null;
+    last_execution_plane?: string | null;
+    last_admission_classification?: string | null;
+    last_backlog_id?: string | null;
+  }>,
+) {
+  return summarizeScheduledJobPressure(jobs);
+}
+
 function buildSyntheticSchedules(
   agents: Array<AgentInfo & { type: string; schedule?: string | null }>
 ): WorkforceScheduleEntry[] {
@@ -1439,10 +1528,10 @@ function buildProjectPostures(
       mappedAgents: project.agents.length,
       totalTasks: projectTasks.length,
       pendingTasks: projectTasks.filter((task) => task.status === "pending").length,
-      pendingApprovals: projectTasks.filter((task) => task.status === "pending_approval").length,
+      pendingApprovals: countPendingApprovalEvidence(projectTasks),
       runningTasks: projectTasks.filter((task) => task.status === "running").length,
       completedTasks: projectTasks.filter((task) => task.status === "completed").length,
-      failedTasks: projectTasks.filter((task) => task.status === "failed").length,
+      failedTasks: countFailedResultEvidence(projectTasks),
       plannedTasks,
       operatorChain: project.operatorChain,
       topAgents,
@@ -1470,7 +1559,7 @@ function buildWorkforceAgents(
         tools: agent.tools,
         totalTasks: agentTasks.length,
         runningTasks: agentTasks.filter((task) => task.status === "running").length,
-        pendingTasks: agentTasks.filter((task) => task.status === "pending" || task.status === "pending_approval").length,
+        pendingTasks: agentTasks.filter((task) => task.status === "pending" || hasPendingApprovalEvidence(task)).length,
         trustScore: trust?.score ?? null,
         trustGrade: trust?.grade ?? null,
       };
@@ -1516,6 +1605,8 @@ export async function getWorkforceSnapshot(): Promise<WorkforceSnapshot> {
     proposedConventionsResult,
     confirmedConventionsResult,
     improvementResult,
+    executionResults,
+    scheduledJobsResult,
     agentDescriptors,
     projectsSnapshot,
   ] =
@@ -1594,6 +1685,10 @@ export async function getWorkforceSnapshot(): Promise<WorkforceSnapshot> {
         benchmark_results: 0,
         last_cycle: null,
       }),
+      loadExecutionResults({ limit: 500 }).catch(() => []),
+      fetchAgentJson("/v1/tasks/scheduled?limit=120", scheduledJobsResponseSchema, {
+        jobs: [],
+      }),
       getAgentDescriptors(),
       getProjectsSnapshot(),
     ]);
@@ -1607,19 +1702,27 @@ export async function getWorkforceSnapshot(): Promise<WorkforceSnapshot> {
   const backlogTasks = operatorBacklogResult.backlog
     .filter((item) => !linkedBacklogIds.has(item.id))
     .map(normalizeBacklogTask);
-  const tasks = [...canonicalRunTasks, ...backlogTasks].sort((left, right) => {
-    const statusOrder: Record<WorkforceTask["status"], number> = {
-      pending_approval: 0,
-      running: 1,
-      stale_lease: 2,
-      pending: 3,
-      failed: 4,
-      completed: 5,
-      cancelled: 6,
-    };
-    return (
-      statusOrder[left.status] - statusOrder[right.status] ||
-      right.createdAt.localeCompare(left.createdAt)
+  const approvalReviewIds = buildApprovalReviewIdMap(operatorApprovalsResult.approvals);
+  const executionResultIds = buildExecutionResultIdMap(executionResults);
+  const tasks = [...canonicalRunTasks, ...backlogTasks]
+    .map((task) => ({
+      ...task,
+      reviewId: approvalReviewIds.get(task.id) ?? null,
+      resultId: executionResultIds.get(task.id) ?? task.resultId ?? null,
+    }))
+    .sort((left, right) => {
+      const statusOrder: Record<WorkforceTask["status"], number> = {
+        pending_approval: 0,
+        running: 1,
+        stale_lease: 2,
+        pending: 3,
+        failed: 4,
+        completed: 5,
+        cancelled: 6,
+      };
+      return (
+        statusOrder[left.status] - statusOrder[right.status] ||
+        right.createdAt.localeCompare(left.createdAt)
       );
     });
   const tasksById = new Map(tasks.map((task) => [task.id, task]));
@@ -1690,12 +1793,13 @@ export async function getWorkforceSnapshot(): Promise<WorkforceSnapshot> {
   const pendingApprovals =
     operatorSummary.approvals.total > 0
       ? operatorSummary.approvals.total
-      : tasks.filter((task) => task.status === "pending_approval").length;
+      : countPendingApprovalEvidence(tasks);
   const unreadNotifications =
     operatorSummary.inbox.by_status.new ?? notifications.filter((notification) => !notification.resolved).length;
   const activeGoalCount =
     goals.filter((goal) => goal.active).length || operatorSummary.todos.total || operatorSummary.ideas.total;
   const schedules = buildSyntheticSchedules(agentDescriptors);
+  const scheduled = normalizeScheduledPressureSummary(scheduledJobsResult.jobs);
 
   return {
     generatedAt: nowIso(),
@@ -1705,7 +1809,7 @@ export async function getWorkforceSnapshot(): Promise<WorkforceSnapshot> {
       pendingApprovals,
       runningTasks: tasks.filter((task) => task.status === "running").length,
       completedTasks: tasks.filter((task) => task.status === "completed").length,
-      failedTasks: tasks.filter((task) => task.status === "failed").length,
+      failedTasks: countFailedResultEvidence(tasks),
       activeGoals: activeGoalCount,
       unreadNotifications,
       avgTrustScore: average(trustValues),
@@ -1714,6 +1818,7 @@ export async function getWorkforceSnapshot(): Promise<WorkforceSnapshot> {
       queuedProjects: projectPostures.filter(
         (project) => project.pendingTasks + project.pendingApprovals + project.runningTasks > 0
       ).length,
+      scheduled,
     },
     workplan: {
       current: currentPlan,
@@ -1940,6 +2045,14 @@ export const __testing = {
   tryParseServiceHealthSnapshot,
   isModelCatalogResponse,
   passThroughHealthyServiceIds,
+  buildExecutionResultIdMap,
+  summarizeScheduledJobPressure: normalizeScheduledPressureSummary,
+  hasPendingApprovalEvidence,
+  hasFailedResultEvidence,
+  countPendingApprovalEvidence,
+  countFailedResultEvidence,
+  buildProjectPostures,
+  buildWorkforceAgents,
 };
 
 export async function getGpuSnapshot(): Promise<GpuSnapshotResponse> {
@@ -2341,6 +2454,8 @@ export async function getOverviewSnapshot(window: TimeWindowId = "3h"): Promise<
     workforce,
     judgePlane,
     builderFrontDoor,
+    builderReviewFeed,
+    builderExecutionResults,
     steadyStateFrontDoor,
   ] = await Promise.all([
     getServicesSnapshot(),
@@ -2353,10 +2468,24 @@ export async function getOverviewSnapshot(window: TimeWindowId = "3h"): Promise<
     getWorkforceSnapshot(),
     fetchAgentJson("/v1/review/judges?limit=12", judgePlaneSnapshotSchema, fallbackJudgePlaneSnapshot),
     readBuilderSummary(),
+    loadExecutionReviewFeed({ family: "builder", status: "pending", limit: 500 }),
+    loadExecutionResults({ family: "builder", limit: 500 }),
     loadSteadyStateFrontDoor(),
   ]);
+  const builderFrontDoorWithSharedPressure = {
+    ...builderFrontDoor,
+    shared_pressure: summarizeBuilderKernelPressure(
+      builderFrontDoor,
+      builderReviewFeed.reviews,
+      builderExecutionResults,
+    ),
+  };
   const steadyState = steadyStateFrontDoor.snapshot;
   const steadyStateReadStatus = steadyStateFrontDoor.status;
+  const executiveKernel = await loadExecutiveKernelSummary({
+    builderFrontDoor,
+    steadyState,
+  });
 
   const generatedAt = nowIso();
 
@@ -2388,7 +2517,7 @@ export async function getOverviewSnapshot(window: TimeWindowId = "3h"): Promise<
     services: servicesSnapshot.services,
     agents,
     judge: judgePlane,
-    builder: builderFrontDoor,
+    builder: builderFrontDoorWithSharedPressure,
     updatedAt: generatedAt,
   });
 
@@ -2420,7 +2549,8 @@ export async function getOverviewSnapshot(window: TimeWindowId = "3h"): Promise<
     externalTools: config.externalTools,
     navAttention,
     workforce,
-    builderFrontDoor,
+    builderFrontDoor: builderFrontDoorWithSharedPressure,
+    executiveKernel,
     steadyState,
     steadyStateReadStatus,
   };

@@ -212,6 +212,59 @@ describe("AppShell", () => {
     expect(screen.getByText(/Current:/i)).toBeInTheDocument();
   });
 
+  it("uses shared builder kernel pressure instead of stale failed builder session status", async () => {
+    const snapshot = getFixtureOverviewSnapshot();
+    if (!snapshot.builderFrontDoor?.current_session || !snapshot.builderFrontDoor.shared_pressure) {
+      throw new Error("Fixture overview is missing builder front-door state.");
+    }
+
+    snapshot.builderFrontDoor.current_session.status = "failed";
+    snapshot.builderFrontDoor.current_session.verification_status = "failed";
+    snapshot.builderFrontDoor.current_session.pending_approval_count = 0;
+    snapshot.builderFrontDoor.shared_pressure = {
+      pending_review_count: 0,
+      actionable_result_count: 0,
+      current_session_pending_review_count: 0,
+      current_session_actionable_result_count: 0,
+      current_session_status: "needs_sync",
+      current_session_needs_sync: true,
+    };
+
+    getOverview.mockResolvedValue(snapshot);
+    getCapabilityPilotReadiness.mockResolvedValue({
+      generatedAt: "2026-04-16T15:11:19.861884+00:00",
+      available: true,
+      degraded: false,
+      detail: null,
+      sourceKind: "workspace_generated_atlas",
+      sourcePath: "/mnt/c/Athanor/projects/dashboard/src/generated/master-atlas.json",
+      summary: {
+        total: 0,
+        formalEvalComplete: 0,
+        formalEvalFailed: 0,
+        manualReviewPending: 0,
+        readyForFormalEval: 0,
+        operatorSmokeOnly: 0,
+        scaffoldOnly: 0,
+        blocked: 0,
+      },
+      records: [],
+    });
+    usePathname.mockReturnValue("/");
+
+    render(
+      <AppShell>
+        <div>workspace body</div>
+      </AppShell>,
+      { wrapper: buildWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("needs sync")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Shared review/result evidence missing.")).toBeInTheDocument();
+  });
+
   it("shows a persistent what-changed digest after the front door shifts", async () => {
     const previousSnapshot = getFixtureOverviewSnapshot();
     previousSnapshot.steadyState = {

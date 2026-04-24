@@ -23,6 +23,10 @@ function compactLabel(value: string) {
   return value.replace(/_/g, " ");
 }
 
+function capabilityLabel(value: string | null | undefined) {
+  return String(value ?? "unknown").replace(/[_-]/g, " ");
+}
+
 export function ModelGovernanceCard() {
   const session = useOperatorSessionStatus();
   const locked = isOperatorSessionLocked(session);
@@ -134,6 +138,7 @@ export function ModelGovernanceCard() {
   const lastCycle = snapshot.model_intelligence.last_cycle;
   const promotionControls = snapshot.promotion_controls ?? snapshot.proving_ground.promotion_controls;
   const retirementControls = snapshot.retirement_controls;
+  const capabilityIntelligence = snapshot.capability_intelligence;
   const activePromotions = promotionControls?.active_promotions ?? [];
   const stagedCandidates = new Set(activePromotions.map((record) => `${record.role_id}:${record.candidate}`));
   const governanceLayers = snapshot.governance_layers;
@@ -142,6 +147,15 @@ export function ModelGovernanceCard() {
   const experimentLedger = governanceLayers.experiment_ledger;
   const retirementGovernance = governanceLayers.deprecation_retirement;
   const autonomyActivation = governanceLayers.autonomy_activation;
+  const implementationCapability = capabilityIntelligence.implementation;
+  const auditCapability = capabilityIntelligence.audit;
+  const localEndpointCapability = capabilityIntelligence.local_endpoint;
+  const capabilityLeadLabel = implementationCapability
+    ? `${capabilityLabel(implementationCapability.subject_id)} (${implementationCapability.capability_score})`
+    : "No implementation leader";
+  const capabilityLocalLabel = localEndpointCapability
+    ? `${capabilityLabel(localEndpointCapability.subject_id)} (${localEndpointCapability.capability_score})`
+    : "No local endpoint leader";
 
   return (
     <Card className="surface-panel">
@@ -161,7 +175,7 @@ export function ModelGovernanceCard() {
           </div>
         ) : null}
 
-        <div className="grid gap-3 sm:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <Metric
             icon={<BrainCircuit className="h-4 w-4 text-primary" />}
             label="Role lanes"
@@ -185,6 +199,12 @@ export function ModelGovernanceCard() {
             label="Release ladder"
             value={`${activePromotions.length} active`}
             detail={promotionControls ? compactLabel(promotionControls.status) : "registry backed"}
+          />
+          <Metric
+            icon={<Radar className="h-4 w-4 text-primary" />}
+            label="Capability posture"
+            value={`${capabilityIntelligence.degraded_subject_count} degraded`}
+            detail={`${capabilityLeadLabel} / ${capabilityLocalLabel}`}
           />
         </div>
 
@@ -266,6 +286,39 @@ export function ModelGovernanceCard() {
                   classes
                 </li>
               </ul>
+            </div>
+
+            <div className="surface-metric rounded-xl border px-3 py-3">
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                Capability posture
+              </p>
+              <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                <li>
+                  Implementation:{" "}
+                  {implementationCapability
+                    ? `${capabilityLabel(implementationCapability.subject_id)} (${implementationCapability.capability_score})`
+                    : "none"}
+                </li>
+                <li>
+                  Audit:{" "}
+                  {auditCapability
+                    ? `${capabilityLabel(auditCapability.subject_id)} (${auditCapability.capability_score})`
+                    : "none"}
+                </li>
+                <li>
+                  Local endpoint:{" "}
+                  {localEndpointCapability
+                    ? `${capabilityLabel(localEndpointCapability.subject_id)} (${localEndpointCapability.capability_score})`
+                    : "none"}
+                </li>
+                <li>
+                  Degraded subjects: {capabilityIntelligence.degraded_subject_count} | source{" "}
+                  {capabilityIntelligence.source_of_truth}
+                </li>
+              </ul>
+              <p className="mt-3 text-xs text-muted-foreground">
+                {capabilityIntelligence.next_actions?.[0] ?? "Capability posture is available for routing decisions."}
+              </p>
             </div>
 
             <div className="surface-metric rounded-xl border px-3 py-3">

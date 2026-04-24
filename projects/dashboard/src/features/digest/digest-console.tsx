@@ -20,6 +20,7 @@ import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { requestJson, postWithoutBody, postJson } from "@/features/workforce/helpers";
+import type { ExecutionReviewProjection } from "@/lib/contracts";
 import { formatRelativeTime } from "@/lib/format";
 import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 
@@ -46,19 +47,6 @@ interface OperatorRunRecord {
   started_at?: string;
   completed_at?: string;
   metadata?: Record<string, unknown>;
-}
-
-interface PendingApproval {
-  id: string;
-  related_task_id?: string;
-  requested_action: string;
-  privilege_class: string;
-  reason: string;
-  status: string;
-  requested_at?: number;
-  task_prompt?: string;
-  task_agent_id?: string;
-  task_priority?: string;
 }
 
 interface StalledProject {
@@ -95,9 +83,9 @@ export function DigestConsole() {
 
   const pendingQuery = useQuery({
     queryKey: PENDING_QUERY_KEY,
-    queryFn: async (): Promise<PendingApproval[]> => {
-      const data = await requestJson("/api/operator/approvals?status=pending");
-      return (data?.approvals ?? data ?? []) as PendingApproval[];
+    queryFn: async (): Promise<ExecutionReviewProjection[]> => {
+      const data = await requestJson("/api/execution/reviews?status=pending");
+      return (data?.reviews ?? data ?? []) as ExecutionReviewProjection[];
     },
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
@@ -172,7 +160,7 @@ export function DigestConsole() {
 
   const approveMutation = useMutation({
     mutationFn: async (approvalId: string) => {
-      await postWithoutBody(`/api/operator/approvals/${encodeURIComponent(approvalId)}/approve`);
+      await postWithoutBody(`/api/execution/reviews/${encodeURIComponent(approvalId)}/approve`);
     },
     onSuccess: () => {
       checkRubberStamp();
@@ -182,7 +170,7 @@ export function DigestConsole() {
 
   const rejectMutation = useMutation({
     mutationFn: async ({ approvalId, reason }: { approvalId: string; reason: string }) => {
-      await postJson(`/api/operator/approvals/${encodeURIComponent(approvalId)}/reject`, { reason });
+      await postJson(`/api/execution/reviews/${encodeURIComponent(approvalId)}/reject`, { reason });
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: PENDING_QUERY_KEY });
@@ -192,7 +180,7 @@ export function DigestConsole() {
   const batchApproveMutation = useMutation({
     mutationFn: async (approvalIds: string[]) => {
       for (const id of approvalIds) {
-        await postWithoutBody(`/api/operator/approvals/${encodeURIComponent(id)}/approve`);
+        await postWithoutBody(`/api/execution/reviews/${encodeURIComponent(id)}/approve`);
       }
     },
     onSuccess: () => {

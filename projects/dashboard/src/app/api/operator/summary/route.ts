@@ -1,49 +1,6 @@
 import { NextResponse } from "next/server";
-import { readBuilderSummary } from "@/lib/builder-store";
-import { loadSteadyStateFrontDoor } from "@/lib/operator-frontdoor";
-import { proxyAgentJson } from "@/lib/server-agent";
-
-const TASKS_FALLBACK = {
-  pending_approval: 0,
-  failed_actionable: 0,
-  stale_lease: 0,
-  failed_historical_repaired: 0,
-};
+import { loadOperatorSummaryPayload } from "@/lib/operator-summary";
 
 export async function GET() {
-  const [response, steadyStateFrontDoor, builderFrontDoor] = await Promise.all([
-    proxyAgentJson("/v1/operator/summary", undefined, "Failed to fetch operator work summary", 25_000),
-    loadSteadyStateFrontDoor(),
-    readBuilderSummary(),
-  ]);
-  const steadyState = steadyStateFrontDoor.snapshot;
-  const steadyStateStatus = steadyStateFrontDoor.status;
-
-  const payload = (await response.json()) as Record<string, unknown>;
-  if (response.status >= 500) {
-    return NextResponse.json(
-      {
-        available: false,
-        degraded: true,
-        source: "agent-server",
-        detail: "Failed to fetch operator work summary",
-        tasks: TASKS_FALLBACK,
-        steadyState,
-        steadyStateStatus,
-        builderFrontDoor,
-      },
-      { status: 200 },
-    );
-  }
-
-  return NextResponse.json(
-    {
-      ...payload,
-      source: typeof payload.source === "string" ? payload.source : "agent-server",
-      steadyState,
-      steadyStateStatus,
-      builderFrontDoor,
-    },
-    { status: response.status },
-  );
+  return NextResponse.json(await loadOperatorSummaryPayload(), { status: 200 });
 }

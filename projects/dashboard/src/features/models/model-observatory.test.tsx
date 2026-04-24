@@ -4,8 +4,9 @@ import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { ModelObservatory } from "./model-observatory";
 
-const { getGpuSnapshot, requestJson, useOperatorSessionStatus, isOperatorSessionLocked } = vi.hoisted(() => ({
+const { getGpuSnapshot, getModelGovernance, requestJson, useOperatorSessionStatus, isOperatorSessionLocked } = vi.hoisted(() => ({
   getGpuSnapshot: vi.fn(),
+  getModelGovernance: vi.fn(),
   requestJson: vi.fn(),
   useOperatorSessionStatus: vi.fn(),
   isOperatorSessionLocked: vi.fn(),
@@ -13,6 +14,7 @@ const { getGpuSnapshot, requestJson, useOperatorSessionStatus, isOperatorSession
 
 vi.mock("@/lib/api", () => ({
   getGpuSnapshot,
+  getModelGovernance,
 }));
 
 vi.mock("@/features/workforce/helpers", () => ({
@@ -44,6 +46,14 @@ describe("ModelObservatory", () => {
     useOperatorSessionStatus.mockReturnValue({ isPending: false });
     isOperatorSessionLocked.mockReturnValue(false);
     getGpuSnapshot.mockResolvedValue({ gpus: [] });
+    getModelGovernance.mockResolvedValue({
+      capability_intelligence: {
+        implementation: { subject_id: "openai_codex", capability_score: 91 },
+        audit: { subject_id: "google_gemini", capability_score: 89 },
+        local_endpoint: { subject_id: "foundry-coder-lane", capability_score: 95 },
+        degraded_subject_count: 1,
+      },
+    });
 
     requestJson.mockImplementation(async (url: string) => {
       if (url === "/api/routing/log?limit=20") {
@@ -80,6 +90,8 @@ describe("ModelObservatory", () => {
 
     expect(await screen.findByRole("heading", { name: /Model Observatory/i })).toBeInTheDocument();
     expect(screen.getByText(/Provider economics/i, { selector: "[data-slot='card-title']" })).toBeInTheDocument();
+    expect(screen.getByText(/Capability leaders/i, { selector: "[data-slot='card-title']" })).toBeInTheDocument();
+    expect(await screen.findByText(/openai codex/i)).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /Open Subscriptions/i })).toHaveLength(2);
     expect(screen.queryByText(/Subscription CLIs/i)).not.toBeInTheDocument();
     expect(screen.getByText(/Routing Intelligence/i)).toBeInTheDocument();

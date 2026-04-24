@@ -1,56 +1,101 @@
-import os from "node:os";
-import path from "node:path";
-import { mkdtemp, rm } from "node:fs/promises";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { __resetBuilderStoreForTests, createBuilderSession } from "@/lib/builder-store";
 
-vi.mock("@/lib/server-agent", () => ({
-  proxyAgentJson: vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 })),
+vi.mock("@/lib/executive-kernel", () => ({
+  loadExecutionReviewFeed: vi.fn(async () => ({
+    available: true,
+    degraded: false,
+    source: "shared_execution_kernel",
+    detail: null,
+    reviews: [],
+    count: 0,
+  })),
 }));
 
 import { GET } from "./route";
-import { proxyAgentJson } from "@/lib/server-agent";
+import { loadExecutionReviewFeed } from "@/lib/executive-kernel";
 
 describe("operator approvals api route", () => {
-  const env = process.env as Record<string, string | undefined>;
-  const originalPath = env.DASHBOARD_BUILDER_STORE_PATH;
-  let tempDir = "";
-
-  beforeEach(async () => {
-    tempDir = await mkdtemp(path.join(os.tmpdir(), "athanor-builder-approvals-"));
-    env.DASHBOARD_BUILDER_STORE_PATH = path.join(tempDir, "builder-sessions.json");
-    await __resetBuilderStoreForTests();
+  beforeEach(() => {
+    vi.mocked(loadExecutionReviewFeed).mockReset();
+    vi.mocked(loadExecutionReviewFeed).mockResolvedValue({
+      available: true,
+      degraded: false,
+      source: "shared_execution_kernel",
+      detail: null,
+      reviews: [],
+      count: 0,
+    });
   });
 
   afterEach(() => {
-    if (originalPath === undefined) {
-      delete env.DASHBOARD_BUILDER_STORE_PATH;
-    } else {
-      env.DASHBOARD_BUILDER_STORE_PATH = originalPath;
-    }
-    if (tempDir) {
-      void rm(tempDir, { recursive: true, force: true });
-      tempDir = "";
-    }
     vi.clearAllMocks();
   });
 
-  it("forwards approvals GET requests to the canonical operator approvals path", async () => {
+  it("projects the shared execution review feed into approval-shaped compatibility records", async () => {
+    vi.mocked(loadExecutionReviewFeed).mockResolvedValueOnce({
+      available: true,
+      degraded: false,
+      source: "shared_execution_kernel",
+      detail: null,
+      reviews: [
+        {
+          id: "approval:task-home-1",
+          family: "home_ops",
+          source: "operator_approval",
+          owner_kind: "task",
+          owner_id: "task-home-1",
+          related_run_id: "approval:task-home-1",
+          related_task_id: "task-home-1",
+          requested_action: "approve",
+          privilege_class: "admin",
+          reason: "Approve the home automation adjustment.",
+          status: "pending",
+          requested_at: 1710000000,
+          task_prompt: "Adjust the evening lighting automation after the recent occupancy drift report.",
+          task_agent_id: "home-agent",
+          task_priority: "high",
+          task_status: "pending_approval",
+          deep_link: "/review?selection=task-home-1",
+          metadata: {},
+        },
+      ],
+      count: 1,
+    });
+
     const response = await GET(new NextRequest("http://localhost/api/operator/approvals?status=pending"));
 
     expect(response.status).toBe(200);
-    expect(proxyAgentJson).toHaveBeenCalledWith(
-      "/v1/operator/approvals?status=pending",
-      undefined,
-      "Failed to fetch operator approvals"
-    );
+    expect(loadExecutionReviewFeed).toHaveBeenCalledWith({
+      status: "pending",
+      family: null,
+      limit: 500,
+    });
+    await expect(response.json()).resolves.toMatchObject({
+      available: true,
+      degraded: false,
+      approvals: [
+        expect.objectContaining({
+          id: "approval:task-home-1",
+          related_task_id: "task-home-1",
+          task_agent_id: "home-agent",
+          task_status: "pending_approval",
+          status: "pending",
+        }),
+      ],
+      count: 1,
+    });
   });
 
-  it("fails soft when the operator approvals upstream is unavailable", async () => {
-    vi.mocked(proxyAgentJson).mockResolvedValueOnce(
-      NextResponse.json({ error: "upstream down" }, { status: 502 }),
-    );
+  it("preserves degraded status when the shared execution review feed is incomplete", async () => {
+    vi.mocked(loadExecutionReviewFeed).mockResolvedValueOnce({
+      available: false,
+      degraded: true,
+      source: "shared_execution_kernel",
+      detail: "Operator approval feed unavailable from agent server.",
+      reviews: [],
+      count: 0,
+    });
 
     const response = await GET(new NextRequest("http://localhost/api/operator/approvals?status=pending"));
 
@@ -58,38 +103,86 @@ describe("operator approvals api route", () => {
     await expect(response.json()).resolves.toMatchObject({
       available: false,
       degraded: true,
+      detail: "Operator approval feed unavailable from agent server.",
       approvals: [],
       count: 0,
     });
   });
 
-  it("merges builder approvals into the canonical approvals feed", async () => {
-    await createBuilderSession({
-      goal: "Implement the first builder route.",
-      task_class: "multi_file_implementation",
-      sensitivity_class: "private_but_cloud_allowed",
-      workspace_mode: "repo_worktree",
-      needs_background: false,
-      needs_github: false,
-      acceptance_criteria: ["Persist a builder session"],
+  it("keeps builder and bootstrap reviews visible through the compatibility projection", async () => {
+    vi.mocked(loadExecutionReviewFeed).mockResolvedValueOnce({
+      available: true,
+      degraded: false,
+      source: "shared_execution_kernel",
+      detail: null,
+      reviews: [
+        {
+          id: "builder-approval-1",
+          family: "builder",
+          source: "builder_front_door",
+          owner_kind: "session",
+          owner_id: "builder-1",
+          related_run_id: "builder-run-builder-1",
+          related_task_id: "builder-1",
+          requested_action: "approve",
+          privilege_class: "admin",
+          reason: "Approve the builder session.",
+          status: "pending",
+          requested_at: 1710000000,
+          task_prompt: "Implement the bounded Codex route.",
+          task_agent_id: "codex",
+          task_priority: "normal",
+          task_status: "waiting_approval",
+          deep_link: "/builder?session=builder-1",
+          metadata: { builder_session_id: "builder-1" },
+        },
+        {
+          id: "bootstrap-approval:launch-readiness-bootstrap:persist-04-activation-cutover:db_schema_change",
+          family: "bootstrap_takeover",
+          source: "bootstrap_program",
+          owner_kind: "program",
+          owner_id: "launch-readiness-bootstrap",
+          related_run_id: "bootstrap-program:launch-readiness-bootstrap",
+          related_task_id: "persist-04-activation-cutover",
+          requested_action: "approve",
+          privilege_class: "admin",
+          reason: "Authorize the durable persistence schema and runtime cutover maintenance window.",
+          status: "pending",
+          requested_at: 1710000010,
+          task_prompt: "Drive the external builder lane to takeover readiness.",
+          task_agent_id: "durable_persistence_activation",
+          task_priority: "high",
+          task_status: "waiting_approval",
+          deep_link: "/bootstrap?program=launch-readiness-bootstrap&slice=persist-04-activation-cutover",
+          metadata: {
+            bootstrap_program_id: "launch-readiness-bootstrap",
+            bootstrap_slice_id: "persist-04-activation-cutover",
+            packet_id: "db_schema_change",
+          },
+        },
+      ],
+      count: 2,
     });
-
-    vi.mocked(proxyAgentJson).mockResolvedValueOnce(
-      NextResponse.json({ approvals: [], count: 0 }, { status: 200 }),
-    );
 
     const response = await GET(new NextRequest("http://localhost/api/operator/approvals?status=pending"));
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
-      approvals: [
+      approvals: expect.arrayContaining([
         expect.objectContaining({
-          id: expect.stringMatching(/^builder-approval-/),
+          id: "bootstrap-approval:launch-readiness-bootstrap:persist-04-activation-cutover:db_schema_change",
+          related_task_id: "persist-04-activation-cutover",
+          task_agent_id: "durable_persistence_activation",
+          status: "pending",
+        }),
+        expect.objectContaining({
+          id: "builder-approval-1",
+          related_task_id: "builder-1",
           task_agent_id: "codex",
           status: "pending",
         }),
-      ],
-      count: 1,
+      ]),
+      count: 2,
     });
   });
 });

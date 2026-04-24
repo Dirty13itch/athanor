@@ -1,30 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
-import { proxyOperatorReadJson } from "@/app/api/operator/fail-soft";
-import { listBuilderSyntheticApprovals } from "@/lib/builder-store";
+import { loadExecutionReviewFeed } from "@/lib/executive-kernel";
 
 export async function GET(request: NextRequest) {
   const params = new URLSearchParams(request.nextUrl.searchParams);
-  const query = params.toString();
-  const response = await proxyOperatorReadJson(
-    `/v1/operator/approvals${query ? `?${query}` : ""}`,
-    "Failed to fetch operator approvals",
-    {
-      approvals: [],
-      count: 0,
-    },
-  );
-
-  const payload = (await response.json().catch(() => ({}))) as {
-    approvals?: Array<Record<string, unknown>>;
-    count?: number;
-    [key: string]: unknown;
-  };
-  const builderApprovals = await listBuilderSyntheticApprovals(params.get("status"));
-  const approvals = [...builderApprovals, ...((Array.isArray(payload.approvals) ? payload.approvals : []) as Array<Record<string, unknown>>)]
-    .sort((left, right) => Number(right.requested_at ?? 0) - Number(left.requested_at ?? 0));
+  const feed = await loadExecutionReviewFeed({
+    status: params.get("status"),
+    family: params.get("family"),
+    limit: 500,
+  });
+  const approvals = feed.reviews.map((review) => ({
+    id: review.id,
+    related_run_id: review.related_run_id,
+    related_task_id: review.related_task_id,
+    requested_action: review.requested_action,
+    privilege_class: review.privilege_class,
+    reason: review.reason,
+    status: review.status,
+    requested_at: review.requested_at,
+    decided_at: 0,
+    decided_by: "",
+    task_prompt: review.task_prompt,
+    task_agent_id: review.task_agent_id,
+    task_priority: review.task_priority,
+    task_status: review.task_status,
+    task_created_at: 0,
+    metadata: review.metadata ?? {},
+  }));
 
   return NextResponse.json({
-    ...payload,
+    available: feed.available,
+    degraded: feed.degraded,
+    source: feed.source,
+    detail: feed.detail,
     approvals,
     count: approvals.length,
   });

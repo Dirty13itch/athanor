@@ -3939,7 +3939,41 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
           "Review the current frontier supervisor challenger queue.",
           "Rebaseline sovereign supervisor candidates after the next benchmark cycle.",
         ],
-      }
+      },
+      capability_intelligence: {
+        generated_at: timestamp,
+        version: "2026-04-17.1",
+        status: "live_partial",
+        source_of_truth: "reports/truth-inventory/capability-intelligence.json",
+        provider_count: 48,
+        local_endpoint_count: 19,
+        degraded_subject_count: 1,
+        implementation: {
+          subject_id: "openai_codex",
+          task_class: "multi_file_implementation",
+          capability_score: 91,
+          demotion_state: "healthy",
+          reserve_class: "premium_async",
+        },
+        audit: {
+          subject_id: "google_gemini",
+          task_class: "repo_wide_audit",
+          capability_score: 89,
+          demotion_state: "healthy",
+          reserve_class: "burn_early_audit",
+        },
+        local_endpoint: {
+          subject_id: "foundry-coder-lane",
+          task_class: "multi_file_implementation",
+          capability_score: 95,
+          demotion_state: "healthy",
+          reserve_class: "interactive_local_reserve",
+        },
+        dispatch_reference: "2026-04-17.1",
+        next_actions: [
+          "Repair degraded or demoted capability subjects before widening ordinary auto-routing.",
+        ],
+      },
     };
   }
 
@@ -3980,6 +4014,13 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
         pass_rate: 0.8,
         patterns_consumed: 2,
         proposals_generated: 1,
+        backlog_items_created: 1,
+        backlog_items_refreshed: 0,
+        backlog_ids: ["backlog-fixture-improvement-1"],
+        review_ids: [],
+        execution_plane: "proposal_only",
+        admission_classification: "proposal_only",
+        admission_reason: "Harvest window is open and the improvement loop may emit governed proposals only.",
         errors: [],
         source: "improvement_cycle",
       },
@@ -4019,11 +4060,24 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
           "routing_accuracy:task_classification": 83.0,
           "inference_latency:reasoning_latency": 72.0,
         },
+        last_admission_classification: "proposal_only",
+        last_admission_reason:
+          "Harvest window is open and the improvement loop may emit governed proposals only.",
+        last_backlog_ids: ["backlog-fixture-improvement-1"],
+        last_review_ids: [],
         last_cycle: {
           timestamp: "2026-03-11T18:45:00Z",
           benchmarks: { passed: 4, total: 5, pass_rate: 0.8 },
           patterns_consumed: 2,
           proposals_generated: 1,
+          backlog_items_created: 1,
+          backlog_items_refreshed: 0,
+          backlog_ids: ["backlog-fixture-improvement-1"],
+          review_ids: [],
+          execution_plane: "proposal_only",
+          admission_classification: "proposal_only",
+          admission_reason:
+            "Harvest window is open and the improvement loop may emit governed proposals only.",
           errors: [],
         },
       },
@@ -4146,6 +4200,31 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
     return {
       jobs: [
         {
+          id: "agent-schedule:coding-agent",
+          job_family: "agent_schedule",
+          title: "Coding queue sweep",
+          cadence: "every 30m",
+          trigger_mode: "interval",
+          last_run: "2026-03-11T18:10:00Z",
+          next_run: "2026-03-11T18:40:00Z",
+          current_state: "scheduled",
+          last_outcome: "materialized_to_backlog",
+          owner_agent: "coding-agent",
+          deep_link: "/workforce",
+          control_scope: "scheduler",
+          paused: false,
+          can_run_now: true,
+          can_override_now: true,
+          last_summary: "Latest coding-agent schedule emitted canonical builder queue work.",
+          last_error: null,
+          last_backlog_id: "backlog-fixture-coding-schedule",
+          last_execution_mode: "materialized_to_backlog",
+          last_execution_plane: "queue",
+          last_admission_classification: "queue",
+          last_admission_reason: "Scheduled product work is routed into the canonical backlog queue.",
+          last_materialization_status: "created",
+        },
+        {
           id: "daily-digest",
           job_family: "daily_digest",
           title: "Daily briefing",
@@ -4162,6 +4241,10 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
           can_run_now: true,
           last_summary: "Daily briefing cadence is healthy.",
           last_error: null,
+          last_execution_mode: "executed_directly",
+          last_execution_plane: "direct_control",
+          last_admission_classification: "direct_control",
+          last_admission_reason: "This loop remains a direct control-plane routine in v1.",
         },
         {
           id: "research:research-fixture-models",
@@ -4182,9 +4265,15 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
           governor_reason: "Governor deferred this research run while the operator is away.",
           last_summary: "Most recent research run completed and published findings.",
           last_error: null,
+          last_backlog_id: "backlog-fixture-research-job",
+          last_execution_mode: "materialized_to_backlog",
+          last_execution_plane: "queue",
+          last_admission_classification: "queue",
+          last_admission_reason: "Scheduled product work is routed into the canonical backlog queue.",
+          last_materialization_status: "refreshed",
         },
       ],
-      count: 2,
+      count: 3,
     };
   }
 
@@ -4193,10 +4282,29 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
     const jobId = decodeURIComponent(segments[segments.length - 2] ?? "scheduled-job");
     const body = parseFixtureBody(init?.body);
     const force = Boolean(body?.force);
+    if (jobId === "agent-schedule:coding-agent") {
+      return {
+        job_id: jobId,
+        status: "materialized_to_backlog",
+        backlog_id: "backlog-fixture-coding-schedule-manual",
+        materialization_status: force ? "refreshed" : "created",
+        execution_mode: "materialized_to_backlog",
+        execution_plane: "queue",
+        admission_classification: "queue",
+        admission_reason: "Scheduled product work is routed into the canonical backlog queue.",
+        summary: force
+          ? "Fixture coding-agent schedule refreshed canonical backlog work with operator override."
+          : "Fixture coding-agent schedule materialized canonical backlog work.",
+      };
+    }
     if (jobId === "research:research-fixture-models" && !force) {
       return {
         job_id: jobId,
         status: "deferred",
+        execution_mode: "materialized_to_backlog",
+        execution_plane: "queue",
+        admission_classification: "blocked_by_headroom",
+        admission_reason: "Governor deferred this research run while the operator is away.",
         summary: "Governor deferred manual run for research:research-fixture-models: operator is away.",
         governor_decision: {
           status: "deferred",
@@ -4208,6 +4316,10 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
     return {
       job_id: jobId,
       status: "queued",
+      execution_mode: "executed_directly",
+      execution_plane: "direct_control",
+      admission_classification: "direct_control",
+      admission_reason: "This loop remains a direct control-plane routine in v1.",
       summary: force
         ? `Fixture scheduled job ${jobId} triggered with operator override.`
         : `Fixture scheduled job ${jobId} triggered.`,
@@ -5306,6 +5418,13 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
         pass_rate: 1,
         patterns_consumed: 0,
         proposals_generated: 0,
+        backlog_items_created: 0,
+        backlog_items_refreshed: 0,
+        backlog_ids: [],
+        review_ids: [],
+        execution_plane: "proposal_only",
+        admission_classification: "proposal_only",
+        admission_reason: "Fixture proving ground run is benchmark-only and does not apply mutations.",
         errors: [],
         source: "benchmark_history",
       },
@@ -5331,11 +5450,22 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
         archive_entries: 0,
         benchmark_results: 6,
         latest_baseline: {},
+        last_admission_classification: "proposal_only",
+        last_admission_reason: "Fixture proving ground run is benchmark-only and does not apply mutations.",
+        last_backlog_ids: [],
+        last_review_ids: [],
         last_cycle: {
           timestamp,
           benchmarks: { passed: 5, total: 5, pass_rate: 1 },
           patterns_consumed: 0,
           proposals_generated: 0,
+          backlog_items_created: 0,
+          backlog_items_refreshed: 0,
+          backlog_ids: [],
+          review_ids: [],
+          execution_plane: "proposal_only",
+          admission_classification: "proposal_only",
+          admission_reason: "Fixture proving ground run is benchmark-only and does not apply mutations.",
           errors: [],
         },
       },

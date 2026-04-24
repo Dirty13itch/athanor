@@ -3,8 +3,11 @@ import { config } from "./config";
 import { getOverviewSnapshot } from "./dashboard-data";
 import {
   getFixtureGpuSnapshot,
+  getFixtureHistorySnapshot,
+  getFixtureIntelligenceSnapshot,
   getFixtureModelsSnapshot,
   getFixtureOverviewSnapshot,
+  getFixtureReviewSnapshot,
   getFixtureServicesSnapshot,
   getFixtureWorkforceSnapshot,
 } from "./dashboard-fixtures";
@@ -94,6 +97,44 @@ describe("dashboard fixtures", () => {
     expect(gpu.nodes.some((node) => node.nodeId === "dev")).toBe(true);
   });
 
+  it("keeps fixture review identities aligned between workforce tasks and history items", () => {
+    const workforce = getFixtureWorkforceSnapshot();
+    const history = getFixtureHistorySnapshot();
+    const intelligence = getFixtureIntelligenceSnapshot();
+    const review = getFixtureReviewSnapshot();
+    const reviewableTask = workforce.tasks.find((task) => task.id === "task-eoq-1");
+    const failedTask = workforce.tasks.find((task) => task.id === "task-media-1");
+    const pendingActivity = history.activity.find((item) => item.relatedTaskId === "task-eoq-1");
+    const pendingReviewItem = review.reviewItems.find((item) => item.taskId === "task-eoq-1");
+    const failedReviewItem = review.reviewItems.find((item) => item.taskId === "task-media-1");
+
+    expect(reviewableTask?.reviewId).toBe("approval:task-eoq-1");
+    expect(failedTask?.resultId).toBe("builder-result:task-media-1");
+    expect("reviewTaskId" in (pendingActivity as Record<string, unknown>)).toBe(false);
+    expect(pendingActivity?.reviewId).toBe(reviewableTask?.reviewId);
+    expect(pendingActivity?.resultId).toBeNull();
+    expect(pendingActivity?.href).toBe("/review?selection=approval%3Atask-eoq-1");
+    expect(pendingReviewItem?.id).toBe(reviewableTask?.reviewId);
+    expect(failedReviewItem?.resultId).toBe("builder-result:task-media-1");
+    expect("reviewItems" in intelligence).toBe(false);
+    expect("reviewTasks" in intelligence).toBe(false);
+  });
+
+  it("keeps fixture scheduled queue pressure aligned with front-door workforce summary", () => {
+    const overview = getFixtureOverviewSnapshot();
+    const workforce = getFixtureWorkforceSnapshot();
+
+    expect(workforce.summary.scheduled).toEqual({
+      totalJobs: 3,
+      queueBackedJobs: 2,
+      directJobs: 1,
+      proposalOnlyJobs: 0,
+      blockedJobs: 0,
+      needsSyncJobs: 0,
+    });
+    expect(overview.workforce.summary.scheduled).toEqual(workforce.summary.scheduled);
+  });
+
   it("keeps fixture launch surfaces aligned with the canonical front door", () => {
     const overview = getFixtureOverviewSnapshot();
 
@@ -125,6 +166,12 @@ describe("dashboard fixtures", () => {
         config.projectRegistry.map((project) => project.id)
       );
       expect(overview.externalTools).toEqual(config.externalTools);
+    expect(overview.executiveKernel.kernel_mode).toBe("hybrid_sessions_plus_programs");
+    expect(overview.executiveKernel.first_live_family).toBe("builder");
+    expect(overview.executiveKernel.capability_posture.implementation?.subject_id).toBe("openai_codex");
+    expect(overview.executiveKernel.capability_posture.local_endpoint?.subject_id).toBe("foundry-coder-lane");
+    expect(overview.builderFrontDoor.shared_pressure.current_session_status).toBe("review_required");
+    expect(overview.builderFrontDoor.shared_pressure.current_session_pending_review_count).toBe(1);
     } finally {
       if (previousFixtureMode === undefined) {
         delete env.DASHBOARD_FIXTURE_MODE;

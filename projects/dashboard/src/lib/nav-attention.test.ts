@@ -39,6 +39,7 @@ describe("buildNavAttentionSignals", () => {
     expect(signal?.tier).toBe("urgent");
     expect(signal?.source).toBe("pending_approvals");
     expect(signal?.count).toBe(2);
+    expect(signal?.signature).toContain("approval:task-home-1");
   });
 
   it("surfaces operator pressure on / and /operator", () => {
@@ -124,6 +125,69 @@ describe("buildNavAttentionSignals", () => {
     expect(signal?.tier).toBe("action");
     expect(signal?.source).toBe("builder_pending_approval");
     expect(signal?.count).toBe(1);
+  });
+
+  it("ignores status-only pending approvals without shared review ids", () => {
+    const workforce = getFixtureWorkforceSnapshot();
+    workforce.tasks = workforce.tasks.map((task) =>
+      task.status === "pending_approval"
+        ? {
+            ...task,
+            reviewId: null,
+          }
+        : task
+    );
+
+    const signals = buildNavAttentionSignals({
+      workforce,
+      services: getFixtureServicesSnapshot().services,
+      agents: getFixtureAgentsSnapshot().agents,
+      judge: fixtureJudge,
+      builder: getFixtureOverviewSnapshot().builderFrontDoor,
+      updatedAt: "2026-03-09T15:00:00.000Z",
+    });
+
+    const runsSignal = signals.find((entry) => entry.routeHref === "/runs");
+    const operatorSignal = signals.find((entry) => entry.routeHref === "/operator");
+    expect(runsSignal?.source).toBe("failed_tasks");
+    expect(runsSignal?.signature).toContain("builder-result:task-media-1");
+    expect(operatorSignal?.source).toBe("failed_tasks");
+  });
+
+  it("ignores status-only failed tasks without shared result ids", () => {
+    const workforce = getFixtureWorkforceSnapshot();
+    workforce.tasks = workforce.tasks.map((task) => {
+      if (task.status === "pending_approval") {
+        return {
+          ...task,
+          status: "pending" as const,
+          reviewId: null,
+        };
+      }
+
+      if (task.status === "failed") {
+        return {
+          ...task,
+          resultId: null,
+        };
+      }
+
+      return task;
+    });
+
+    const signals = buildNavAttentionSignals({
+      workforce,
+      services: getFixtureServicesSnapshot().services,
+      agents: getFixtureAgentsSnapshot().agents,
+      judge: fixtureJudge,
+      builder: getFixtureOverviewSnapshot().builderFrontDoor,
+      updatedAt: "2026-03-09T15:00:00.000Z",
+    });
+
+    const runsSignal = signals.find((entry) => entry.routeHref === "/runs");
+    const rootSignal = signals.find((entry) => entry.routeHref === "/");
+    expect(runsSignal?.source).toBe("queued_work");
+    expect(rootSignal?.source).toBe("queued_work");
   });
 });
 

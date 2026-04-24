@@ -11,6 +11,7 @@ import type {
   WorkforceNotification,
   WorkforceSnapshot,
 } from "@/lib/contracts";
+import { getBuilderKernelSharedPressure } from "@/lib/builder-kernel-pressure";
 
 export type { NavAttentionPersistenceRecord, NavAttentionPersistenceState } from "@/lib/contracts";
 
@@ -95,9 +96,19 @@ function byNewestId<T extends { id: string; createdAt?: string }>(items: T[]) {
   });
 }
 
+function getPendingApprovalTasks(workforce: WorkforceSnapshot) {
+  return byNewestId(
+    workforce.tasks.filter((task) => task.status === "pending_approval" && Boolean(task.reviewId))
+  );
+}
+
+function getFailedResultTasks(workforce: WorkforceSnapshot) {
+  return byNewestId(workforce.tasks.filter((task) => task.status === "failed" && Boolean(task.resultId)));
+}
+
 function getRunsSignal(workforce: WorkforceSnapshot): NavAttentionSignal {
   const updatedAt = workforce.generatedAt;
-  const approvals = byNewestId(workforce.tasks.filter((task) => task.status === "pending_approval"));
+  const approvals = getPendingApprovalTasks(workforce);
   if (approvals.length > 0) {
     return createSignal(
       "/runs",
@@ -106,11 +117,11 @@ function getRunsSignal(workforce: WorkforceSnapshot): NavAttentionSignal {
       approvals.length === 1 ? "1 run needs approval." : `${approvals.length} runs need approval.`,
       updatedAt,
       approvals.length,
-      approvals.map((task) => task.id)
+      approvals.map((task) => task.reviewId ?? task.id)
     );
   }
 
-  const failed = byNewestId(workforce.tasks.filter((task) => task.status === "failed"));
+  const failed = getFailedResultTasks(workforce);
   if (failed.length > 0) {
     return createSignal(
       "/runs",
@@ -119,7 +130,7 @@ function getRunsSignal(workforce: WorkforceSnapshot): NavAttentionSignal {
       failed.length === 1 ? "1 run failed and needs review." : `${failed.length} runs failed and need review.`,
       updatedAt,
       failed.length,
-      failed.map((task) => task.id)
+      failed.map((task) => task.resultId ?? task.id)
     );
   }
 
@@ -146,7 +157,7 @@ function getOperatorDecisionSignal(
   workforce: WorkforceSnapshot,
 ): NavAttentionSignal {
   const updatedAt = workforce.generatedAt;
-  const approvals = byNewestId(workforce.tasks.filter((task) => task.status === "pending_approval"));
+  const approvals = getPendingApprovalTasks(workforce);
   if (approvals.length > 0) {
     return createSignal(
       routeHref,
@@ -157,11 +168,11 @@ function getOperatorDecisionSignal(
         : `${approvals.length} operator decisions are waiting for approval.`,
       updatedAt,
       approvals.length,
-      approvals.map((task) => task.id),
+      approvals.map((task) => task.reviewId ?? task.id),
     );
   }
 
-  const failed = byNewestId(workforce.tasks.filter((task) => task.status === "failed"));
+  const failed = getFailedResultTasks(workforce);
   if (failed.length > 0) {
     return createSignal(
       routeHref,
@@ -172,7 +183,7 @@ function getOperatorDecisionSignal(
         : `${failed.length} failed runs still need operator review.`,
       updatedAt,
       failed.length,
-      failed.map((task) => task.id),
+      failed.map((task) => task.resultId ?? task.id),
     );
   }
 
@@ -197,6 +208,7 @@ function getOperatorDecisionSignal(
 }
 
 function getBuilderSignal(builder: BuilderFrontDoorSummary, updatedAt: string): NavAttentionSignal {
+  const sharedPressure = getBuilderKernelSharedPressure(builder);
   if (builder.degraded) {
     return createSignal(
       "/builder",
@@ -214,7 +226,7 @@ function getBuilderSignal(builder: BuilderFrontDoorSummary, updatedAt: string): 
     return createNoneSignal("/builder", updatedAt);
   }
 
-  if (current.status === "failed" || current.verification_status === "failed") {
+  if (sharedPressure.current_session_status === "result_attention") {
     return createSignal(
       "/builder",
       "urgent",
@@ -226,21 +238,33 @@ function getBuilderSignal(builder: BuilderFrontDoorSummary, updatedAt: string): 
     );
   }
 
-  if (current.pending_approval_count > 0 || current.status === "waiting_approval") {
+  if (sharedPressure.current_session_status === "needs_sync") {
+    return createSignal(
+      "/builder",
+      "action",
+      "builder_needs_sync",
+      "Builder status and shared review or result evidence are out of sync.",
+      updatedAt,
+      1,
+      [current.id, current.status, sharedPressure.current_session_status],
+    );
+  }
+
+  if (sharedPressure.current_session_status === "review_required") {
     return createSignal(
       "/builder",
       "action",
       "builder_pending_approval",
-      current.pending_approval_count === 1
-        ? "1 builder session is waiting for approval."
-        : `${current.pending_approval_count} builder approvals are waiting.`,
+      sharedPressure.current_session_pending_review_count === 1
+        ? "1 builder session is waiting for review."
+        : `${sharedPressure.current_session_pending_review_count} builder reviews are waiting.`,
       updatedAt,
-      current.pending_approval_count,
-      [current.id, current.status],
+      sharedPressure.current_session_pending_review_count,
+      [current.id, sharedPressure.current_session_status],
     );
   }
 
-  if (current.status === "queued" || current.status === "running") {
+  if (sharedPressure.current_session_status === "active") {
     return createSignal(
       "/builder",
       "watch",

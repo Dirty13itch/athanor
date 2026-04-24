@@ -16,7 +16,7 @@ describe("bootstrap nudge api route", () => {
     const request = new Request("http://localhost/api/bootstrap/programs/launch-readiness-bootstrap/nudge", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ execute: true }),
+      body: JSON.stringify({ execute: true, project_id: "athanor", owner_agent: "coding-agent" }),
     });
 
     const response = await POST(request as never, {
@@ -35,6 +35,9 @@ describe("bootstrap nudge api route", () => {
           execute: true,
           retry_blockers: true,
           process_integrations: true,
+          materialize_backlog: true,
+          project_id: "athanor",
+          owner_agent: "coding-agent",
         }),
       })
     );

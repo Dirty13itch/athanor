@@ -22,6 +22,14 @@ describe("workforce snapshot", () => {
     expect(snapshot.subscriptions.length).toBeGreaterThan(0);
     expect(snapshot.conventions.proposed.length).toBeGreaterThan(0);
     expect(snapshot.improvement?.totalProposals).toBeGreaterThan(0);
+    expect(snapshot.tasks.find((task) => task.id === "task-eoq-1")?.reviewId).toBe("approval:task-eoq-1");
+    expect(snapshot.tasks.find((task) => task.id === "task-home-1")?.reviewId).toBe("approval:task-home-1");
+    expect(snapshot.tasks.find((task) => task.id === "task-ath-1")?.reviewId).toBeNull();
+    expect(snapshot.tasks.find((task) => task.id === "task-ath-brief")?.resultId).toBe("builder-result:task-ath-brief");
+    expect(snapshot.tasks.find((task) => task.id === "task-kindred-1")?.resultId).toBe("builder-result:task-kindred-1");
+    expect(snapshot.tasks.find((task) => task.id === "task-media-1")?.resultId).toBe("builder-result:task-media-1");
+    expect(snapshot.tasks.filter((task) => task.status === "pending_approval").every((task) => Boolean(task.reviewId))).toBe(true);
+    expect(snapshot.tasks.filter((task) => ["completed", "failed"].includes(task.status)).every((task) => Boolean(task.resultId))).toBe(true);
   });
 
   it("embeds workforce state into the overview snapshot", async () => {

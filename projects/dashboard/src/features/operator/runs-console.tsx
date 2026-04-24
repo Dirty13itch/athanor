@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Gauge, RefreshCcw, ShieldCheck, TimerReset, Waypoints } from "lucide-react";
+import { AlertTriangle, Gauge, RefreshCcw, ShieldCheck, Waypoints } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { formatRelativeTime } from "@/lib/format";
 import { requestJson } from "@/features/workforce/helpers";
+import type { ExecutionResultProjection, ExecutionReviewProjection } from "@/lib/contracts";
 
 type RunStatus = "all" | "queued" | "running" | "waiting_approval" | "blocked" | "completed" | "failed" | "cancelled";
 
@@ -40,13 +41,6 @@ interface OperatorRun {
   approvals?: Array<{ id: string; status: string; privilege_class: string }>;
 }
 
-interface OperatorSummary {
-  runs?: {
-    total?: number;
-    by_status?: Record<string, number>;
-  };
-}
-
 interface RunsFeedStatus {
   available?: boolean;
   degraded?: boolean;
@@ -59,7 +53,19 @@ interface RunsFeedPayload extends RunsFeedStatus {
   count?: number;
 }
 
+interface ExecutionReviewsPayload {
+  reviews?: ExecutionReviewProjection[];
+  count?: number;
+}
+
+interface ExecutionResultsPayload {
+  results?: ExecutionResultProjection[];
+  count?: number;
+}
+
 const STATUS_FILTERS: RunStatus[] = ["running", "waiting_approval", "completed", "failed", "all"];
+
+const ACTIONABLE_RESULT_STATUSES = new Set(["failed", "blocked", "cancelled"]);
 
 export function RunsConsole() {
   const [status, setStatus] = useState<RunStatus>("running");
@@ -75,11 +81,55 @@ export function RunsConsole() {
     refetchIntervalInBackground: false,
   });
 
-  const summaryQuery = useQuery({
-    queryKey: ["operator-work-summary"],
-    queryFn: async (): Promise<OperatorSummary> => {
-      const data = await requestJson("/api/operator/summary");
-      return (data ?? {}) as OperatorSummary;
+  const allRunsQuery = useQuery({
+    queryKey: ["operator-runs-all"],
+    queryFn: async (): Promise<RunsFeedPayload> => {
+      try {
+        const data = await requestJson("/api/operator/runs?limit=500");
+        return (data ?? {}) as RunsFeedPayload;
+      } catch {
+        return {
+          available: false,
+          degraded: true,
+          detail: "Failed to load complete operator run ledger.",
+          runs: [],
+          count: 0,
+        };
+      }
+    },
+    refetchInterval: 20_000,
+    refetchIntervalInBackground: false,
+  });
+
+  const reviewsQuery = useQuery({
+    queryKey: ["execution-reviews-pending"],
+    queryFn: async (): Promise<ExecutionReviewsPayload> => {
+      try {
+        const data = await requestJson("/api/execution/reviews?status=pending");
+        return (data ?? {}) as ExecutionReviewsPayload;
+      } catch {
+        return {
+          reviews: [],
+          count: 0,
+        };
+      }
+    },
+    refetchInterval: 20_000,
+    refetchIntervalInBackground: false,
+  });
+
+  const resultsQuery = useQuery({
+    queryKey: ["execution-results-all"],
+    queryFn: async (): Promise<ExecutionResultsPayload> => {
+      try {
+        const data = await requestJson("/api/execution/results?limit=500");
+        return (data ?? {}) as ExecutionResultsPayload;
+      } catch {
+        return {
+          results: [],
+          count: 0,
+        };
+      }
     },
     refetchInterval: 20_000,
     refetchIntervalInBackground: false,
@@ -95,9 +145,25 @@ export function RunsConsole() {
   }
 
   const runs = runsQuery.data?.runs ?? [];
-  const byStatus = summaryQuery.data?.runs?.by_status ?? {};
+  const allRuns = allRunsQuery.data?.runs ?? [];
+  const pendingReviews = reviewsQuery.data?.reviews ?? [];
+  const actionableResults = (resultsQuery.data?.results ?? []).filter((result) =>
+    ACTIONABLE_RESULT_STATUSES.has(result.status),
+  );
+  const runningCount = allRuns.filter((run) => run.status === "running").length;
+  const pendingReviewRunIds = new Set(
+    pendingReviews.map((review) => review.related_run_id || review.owner_id).filter(Boolean),
+  );
+  const actionableResultRunIds = new Set(
+    actionableResults.map((result) => result.related_run_id || result.owner_id).filter(Boolean),
+  );
   const runsFeedStatus = runsQuery.data;
-  const runsFeedUnavailable = runsFeedStatus?.available === false || runsFeedStatus?.degraded;
+  const allRunsFeedStatus = allRunsQuery.data;
+  const runsFeedUnavailable =
+    runsFeedStatus?.available === false ||
+    runsFeedStatus?.degraded ||
+    allRunsFeedStatus?.available === false ||
+    allRunsFeedStatus?.degraded;
 
   return (
     <div className="space-y-8">
@@ -107,17 +173,54 @@ export function RunsConsole() {
         description="Canonical execution lineage projected from durable run, attempt, and step state."
         attentionHref="/runs"
         actions={
-          <Button variant="outline" onClick={() => void Promise.all([runsQuery.refetch(), summaryQuery.refetch()])} disabled={runsQuery.isFetching || summaryQuery.isFetching}>
-            <RefreshCcw className={`mr-2 h-4 w-4 ${runsQuery.isFetching || summaryQuery.isFetching ? "animate-spin" : ""}`} />
+          <Button
+            variant="outline"
+            onClick={() =>
+              void Promise.all([
+                runsQuery.refetch(),
+                allRunsQuery.refetch(),
+                reviewsQuery.refetch(),
+                resultsQuery.refetch(),
+              ])
+            }
+            disabled={
+              runsQuery.isFetching ||
+              allRunsQuery.isFetching ||
+              reviewsQuery.isFetching ||
+              resultsQuery.isFetching
+            }
+          >
+            <RefreshCcw
+              className={`mr-2 h-4 w-4 ${
+                runsQuery.isFetching || allRunsQuery.isFetching || reviewsQuery.isFetching || resultsQuery.isFetching
+                  ? "animate-spin"
+                  : ""
+              }`}
+            />
             Refresh
           </Button>
         }
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Visible runs" value={`${runs.length}`} detail="Current filtered run ledger." icon={<Waypoints className="h-5 w-5" />} />
-          <StatCard label="Running" value={`${byStatus.running ?? 0}`} detail={`${byStatus.waiting_approval ?? 0} waiting on approval.`} icon={<Gauge className="h-5 w-5" />} />
-          <StatCard label="Completed" value={`${byStatus.completed ?? 0}`} detail={`${byStatus.failed ?? 0} failed executions remain in view.`} icon={<TimerReset className="h-5 w-5" />} />
-          <StatCard label="Approval holds" value={`${byStatus.waiting_approval ?? 0}`} detail="Pending approval requests linked to execution runs." icon={<ShieldCheck className="h-5 w-5" />} />
+          <StatCard
+            label="Running"
+            value={`${runningCount}`}
+            detail={`${allRuns.length} total runs currently projected through the ledger.`}
+            icon={<Gauge className="h-5 w-5" />}
+          />
+          <StatCard
+            label="Shared reviews"
+            value={`${pendingReviews.length}`}
+            detail="Kernel-backed approval holds linked to execution runs."
+            icon={<ShieldCheck className="h-5 w-5" />}
+          />
+          <StatCard
+            label="Result alerts"
+            value={`${actionableResults.length}`}
+            detail="Kernel-backed failed, blocked, or cancelled result packets."
+            icon={<AlertTriangle className="h-5 w-5" />}
+          />
         </div>
       </PageHeader>
 
@@ -157,9 +260,23 @@ export function RunsConsole() {
             <div className="space-y-3">
               {runs.map((run) => (
                 <div key={run.id} className="surface-tile rounded-2xl border p-4">
+                  {(() => {
+                    const hasSharedReview = pendingReviewRunIds.has(run.id);
+                    const hasResultAlert = actionableResultRunIds.has(run.id);
+                    const needsSync =
+                      !hasSharedReview &&
+                      !hasResultAlert &&
+                      (run.approval_pending ||
+                        ["waiting_approval", "failed", "blocked", "cancelled"].includes(run.status));
+
+                    return (
+                      <>
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="outline">{run.status}</Badge>
                     <Badge variant="secondary">{run.agent_id}</Badge>
+                    {hasSharedReview ? <Badge variant="outline">shared review</Badge> : null}
+                    {hasResultAlert ? <Badge variant="destructive">result alert</Badge> : null}
+                    {needsSync ? <Badge variant="outline">needs sync</Badge> : null}
                     <span className="text-xs text-muted-foreground">{`${run.workload_class || "task"} · ${run.provider_lane || run.runtime_lane}`}</span>
                   </div>
                   <p className="mt-3 font-medium">{run.summary || run.id}</p>
@@ -170,8 +287,21 @@ export function RunsConsole() {
                     <span>{`${run.step_count} steps`}</span>
                     {run.latest_attempt?.runtime_host ? <span>{`Host ${run.latest_attempt.runtime_host}`}</span> : null}
                   </div>
-                  {run.approval_pending ? <p className="mt-3 text-xs text-amber-600">Approval hold is active on this run.</p> : null}
+                  {hasSharedReview ? (
+                    <p className="mt-3 text-xs text-amber-600">Shared review hold is active on this run.</p>
+                  ) : null}
+                  {hasResultAlert ? (
+                    <p className="mt-3 text-xs text-[color:var(--signal-danger)]">Kernel result alert is active on this run.</p>
+                  ) : null}
+                  {needsSync ? (
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      Run status and shared kernel evidence need sync.
+                    </p>
+                  ) : null}
                   <p className="mt-3 text-xs text-muted-foreground">{formatRelativeTime(new Date(run.updated_at * 1000).toISOString())}</p>
+                      </>
+                    );
+                  })()}
                 </div>
               ))}
             </div>

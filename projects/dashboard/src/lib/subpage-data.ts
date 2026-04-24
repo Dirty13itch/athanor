@@ -14,6 +14,9 @@ import {
   memorySnapshotSchema,
   type MonitoringSnapshot,
   monitoringSnapshotSchema,
+  reviewItemSchema,
+  type ReviewSnapshot,
+  reviewSnapshotSchema,
 } from "@/lib/contracts";
 import { agentServerHeaders, config, joinUrl } from "@/lib/config";
 import {
@@ -24,10 +27,12 @@ import {
   getFixtureMediaSnapshot,
   getFixtureMemorySnapshot,
   getFixtureMonitoringSnapshot,
+  getFixtureReviewSnapshot,
   isDashboardFixtureMode,
 } from "@/lib/dashboard-fixtures";
 import { average } from "@/lib/format";
 import { getProjectsSnapshot, getWorkforceSnapshot } from "@/lib/dashboard-data";
+import { loadExecutionResults, loadExecutionReviews } from "@/lib/executive-kernel";
 import { getNeo4jAuthHeader } from "@/lib/server-config";
 
 const rawActivityResponseSchema = z.object({
@@ -401,6 +406,142 @@ function fetchAgentSafe<T>(path: string, schema: z.ZodSchema<T>, fallback: T) {
   });
 }
 
+function buildPendingExecutionReviewMap(
+  reviews: Array<{ id: string; related_task_id?: string | null; status?: string | null }>
+) {
+  return new Map(
+    reviews
+      .filter((review) => (review.status ?? "pending") === "pending")
+      .map((review) => [review.related_task_id ?? "", review.id] as const)
+      .filter(([taskId]) => Boolean(taskId))
+  );
+}
+
+function buildCompletedExecutionResultMap(
+  results: Array<{ id: string; owner_id?: string | null; status?: string | null; summary?: string | null }>
+) {
+  return new Map(
+    results
+      .filter((result) => result.status === "failed" || result.status === "completed")
+      .map((result) => [result.owner_id ?? "", result] as const)
+      .filter(([taskId]) => Boolean(taskId))
+  );
+}
+
+function buildReviewItems(
+  tasks: Array<{
+    id: string;
+    agentId: string;
+    prompt: string;
+    priority: "critical" | "high" | "normal" | "low";
+    status: "pending" | "pending_approval" | "running" | "stale_lease" | "completed" | "failed" | "cancelled";
+    createdAt: string;
+    completedAt: string | null;
+    requiresApproval: boolean;
+    reviewId: string | null;
+    resultId: string | null;
+    source: string | null;
+    projectId: string | null;
+    error: string | null;
+  }>,
+  resultMap: Map<string, {
+    id: string;
+    summary?: string | null;
+    outcome?: string | null;
+    verification_status?: string | null;
+    artifacts?: Array<{
+      id: string;
+      label: string;
+      kind: string;
+      href: string | null;
+      local_path: string | null;
+    }>;
+    files_changed?: string[];
+    validation?: Array<{
+      id: string;
+      label: string;
+      status: "pending" | "passed" | "failed" | "blocked";
+      detail: string;
+    }>;
+    remaining_risks?: string[];
+    resumable_handle?: string | null;
+    recovery_gate?: string | null;
+    deep_link?: string | null;
+  }>
+) {
+  return tasks.flatMap((task) => {
+    if (task.reviewId) {
+      return [
+        reviewItemSchema.parse({
+          id: task.reviewId,
+          kind: "approval",
+          taskId: task.id,
+          reviewId: task.reviewId,
+          resultId: null,
+          projectId: task.projectId,
+          agentId: task.agentId,
+          prompt: task.prompt,
+          priority: task.priority,
+          status: task.status,
+          createdAt: task.createdAt,
+          completedAt: task.completedAt,
+          requiresApproval: task.requiresApproval,
+          source: task.source,
+          resultSummary: null,
+          resultOutcome: null,
+          resultVerificationStatus: null,
+          resultArtifacts: [],
+          resultFilesChanged: [],
+          resultValidation: [],
+          remainingRisks: [],
+          resumableHandle: null,
+          recoveryGate: null,
+          error: task.error,
+          deepLink: `/review?selection=${encodeURIComponent(task.reviewId)}`,
+        }),
+      ];
+    }
+
+    if (task.resultId) {
+      const result = resultMap.get(task.id);
+      if (!result) {
+        return [];
+      }
+      return [
+        reviewItemSchema.parse({
+          id: task.resultId,
+          kind: "result",
+          taskId: task.id,
+          reviewId: null,
+          resultId: task.resultId,
+          projectId: task.projectId,
+          agentId: task.agentId,
+          prompt: task.prompt,
+          priority: task.priority,
+          status: task.status,
+          createdAt: task.createdAt,
+          completedAt: task.completedAt,
+          requiresApproval: task.requiresApproval,
+          source: task.source,
+          resultSummary: result.summary ?? null,
+          resultOutcome: result.outcome ?? null,
+          resultVerificationStatus: result.verification_status ?? null,
+          resultArtifacts: result.artifacts ?? [],
+          resultFilesChanged: result.files_changed ?? [],
+          resultValidation: result.validation ?? [],
+          remainingRisks: result.remaining_risks ?? [],
+          resumableHandle: result.resumable_handle ?? null,
+          recoveryGate: result.recovery_gate ?? null,
+          error: null,
+          deepLink: result.deep_link ?? `/runs?selection=${encodeURIComponent(task.id)}`,
+        }),
+      ];
+    }
+
+    return [];
+  });
+}
+
 function inferProjectId(...values: Array<string | null | undefined>) {
   const combined = values
     .filter((value): value is string => Boolean(value))
@@ -443,20 +584,6 @@ function fileCategory(path: string) {
     return "research";
   }
   return "output";
-}
-
-function hasFileOps(task: { prompt?: string | null; result?: string | null; error?: string | null; agentId?: string | null }) {
-  const combined = [task.prompt, task.result, task.error, task.agentId]
-    .filter((value): value is string => Boolean(value))
-    .join(" ")
-    .toLowerCase();
-  return (
-    task.agentId === "coding-agent" ||
-    combined.includes("file") ||
-    combined.includes("diff") ||
-    combined.includes("write") ||
-    combined.includes("renderer")
-  );
 }
 
 async function neo4jQuery(statement: string) {
@@ -511,9 +638,11 @@ export async function getHistorySnapshot(): Promise<HistorySnapshot> {
     return getFixtureHistorySnapshot();
   }
 
-  const [projects, workforce, activityResponse, conversationResponse, outputsResponse] = await Promise.all([
+  const [projects, workforce, pendingReviews, executionResults, activityResponse, conversationResponse, outputsResponse] = await Promise.all([
     getProjectsSnapshot(),
     getWorkforceSnapshot(),
+    loadExecutionReviews({ status: "pending", limit: 500 }),
+    loadExecutionResults({ limit: 500 }),
     fetchAgentSafe("/v1/activity?limit=60", rawActivityResponseSchema, {
       activity: [],
     }),
@@ -522,13 +651,26 @@ export async function getHistorySnapshot(): Promise<HistorySnapshot> {
       outputs: [],
     }),
   ]);
+  const pendingReviewIdsByTask = buildPendingExecutionReviewMap(pendingReviews);
+  const resultIdsByTask = buildCompletedExecutionResultMap(executionResults);
+  const workforceTasks = workforce.tasks.map((task) => ({
+    ...task,
+    reviewId: pendingReviewIdsByTask.get(task.id) ?? task.reviewId,
+    resultId: resultIdsByTask.get(task.id)?.id ?? task.resultId ?? null,
+    result: task.result ?? resultIdsByTask.get(task.id)?.summary ?? null,
+  }));
 
   const activity = activityResponse.activity.map((item, index) => {
-    const relatedTask = workforce.tasks.find((task) =>
+    const relatedTask = workforceTasks.find((task) =>
       task.agentId === item.agent &&
       task.prompt.toLowerCase().includes(item.input_summary.toLowerCase().slice(0, 20))
     );
     const projectId = relatedTask?.projectId ?? inferProjectId(item.input_summary, item.output_summary);
+    const reviewId =
+      relatedTask && pendingReviewIdsByTask.has(relatedTask.id)
+        ? pendingReviewIdsByTask.get(relatedTask.id) ?? null
+        : relatedTask?.reviewId ?? null;
+    const resultId = relatedTask?.resultId ?? null;
     return {
       id: `activity-${index + 1}`,
       agentId: item.agent,
@@ -541,15 +683,15 @@ export async function getHistorySnapshot(): Promise<HistorySnapshot> {
       timestamp: item.timestamp,
       relatedTaskId: relatedTask?.id ?? null,
       relatedThreadId: null,
-      reviewTaskId:
-        relatedTask && ["pending_approval", "failed"].includes(relatedTask.status) ? relatedTask.id : null,
+      reviewId,
+      resultId,
       status: relatedTask?.status ?? null,
       href: `/activity?selection=activity-${index + 1}`,
     };
   });
 
   const conversations = conversationResponse.conversations.map((item, index) => {
-    const relatedTask = workforce.tasks.find(
+    const relatedTask = workforceTasks.find(
       (task) =>
         task.agentId === item.agent &&
         task.prompt.toLowerCase().includes(item.user_message.toLowerCase().slice(0, 20))
@@ -571,7 +713,7 @@ export async function getHistorySnapshot(): Promise<HistorySnapshot> {
   });
 
   const outputs = outputsResponse.outputs.map((item, index) => {
-    const taskMatch = workforce.tasks.find(
+    const taskMatch = workforceTasks.find(
       (task) =>
         (task.projectId && item.path.toLowerCase().includes(task.projectId)) ||
         (task.prompt && item.path.toLowerCase().includes(task.prompt.toLowerCase().slice(0, 16)))
@@ -596,13 +738,11 @@ export async function getHistorySnapshot(): Promise<HistorySnapshot> {
       activityCount: activity.length,
       conversationCount: conversations.length,
       outputCount: outputs.length,
-      reviewCount: workforce.tasks.filter(
-        (task) => ["pending_approval", "failed"].includes(task.status) || hasFileOps(task)
-      ).length,
+      reviewCount: pendingReviewIdsByTask.size + resultIdsByTask.size,
     },
     projects: projects.projects,
     agents: workforce.agents,
-    tasks: workforce.tasks,
+    tasks: workforceTasks,
     activity,
     conversations,
     outputs,
@@ -775,11 +915,36 @@ export async function getIntelligenceSnapshot(): Promise<IntelligenceSnapshot> {
           }
         : null,
     },
-    reviewTasks: workforce.tasks.filter(
-      (task) =>
-        ["pending_approval", "failed"].includes(task.status) ||
-        (hasFileOps(task) && task.status === "completed")
-    ),
+  });
+}
+
+export async function getReviewSnapshot(): Promise<ReviewSnapshot> {
+  if (isDashboardFixtureMode()) {
+    return getFixtureReviewSnapshot();
+  }
+
+  const [projects, workforce, pendingReviews, executionResults] = await Promise.all([
+    getProjectsSnapshot(),
+    getWorkforceSnapshot(),
+    loadExecutionReviews({ status: "pending", limit: 500 }),
+    loadExecutionResults({ limit: 500 }),
+  ]);
+  const pendingReviewIdsByTask = buildPendingExecutionReviewMap(pendingReviews);
+  const resultIdsByTask = buildCompletedExecutionResultMap(executionResults);
+  const workforceTasks = workforce.tasks.map((task) => ({
+    ...task,
+    reviewId: pendingReviewIdsByTask.get(task.id) ?? task.reviewId,
+    resultId: resultIdsByTask.get(task.id)?.id ?? task.resultId ?? null,
+    result: task.result ?? resultIdsByTask.get(task.id)?.summary ?? null,
+  }));
+  const reviewItems = buildReviewItems(workforceTasks, resultIdsByTask);
+
+  return reviewSnapshotSchema.parse({
+    generatedAt: nowIso(),
+    projects: projects.projects,
+    agents: workforce.agents,
+    reviewItems,
+    reviewTasks: workforceTasks.filter((task) => Boolean(task.reviewId || task.resultId)),
   });
 }
 

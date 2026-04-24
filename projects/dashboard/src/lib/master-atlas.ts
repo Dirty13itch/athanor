@@ -59,6 +59,15 @@ export interface MasterAtlasSummary {
   autonomous_dispatchable_queue_count?: number | null;
   autonomous_top_task_id?: string | null;
   autonomous_top_task_title?: string | null;
+  project_factory_operating_mode?: string | null;
+  project_factory_top_priority_project_id?: string | null;
+  project_factory_top_priority_project_label?: string | null;
+  project_factory_broad_ready?: boolean | null;
+  accepted_project_output_count?: number | null;
+  pending_project_output_candidate_count?: number | null;
+  pending_hybrid_project_output_count?: number | null;
+  project_factory_latest_pending_project_id?: string | null;
+  project_output_stage_met?: boolean | null;
   next_required_approval?: {
     approval_class?: string | null;
     label?: string | null;

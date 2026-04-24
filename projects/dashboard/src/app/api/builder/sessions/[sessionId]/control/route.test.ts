@@ -6,6 +6,16 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { __resetBuilderStoreForTests, createBuilderSession, readBuilderSession } from "@/lib/builder-store";
 import { POST } from "./route";
 
+async function waitForBuilderSessionStatus(sessionId: string, status: string) {
+  const deadline = Date.now() + 2_000;
+  let current = await readBuilderSession(sessionId);
+  while (current?.status !== status && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    current = await readBuilderSession(sessionId);
+  }
+  return current;
+}
+
 describe("POST /api/builder/sessions/[sessionId]/control", () => {
   const env = process.env as Record<string, string | undefined>;
   const originalPath = env.DASHBOARD_BUILDER_STORE_PATH;
@@ -78,8 +88,7 @@ describe("POST /api/builder/sessions/[sessionId]/control", () => {
       },
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 80));
-    const completed = await readBuilderSession(session.id);
+    const completed = await waitForBuilderSessionStatus(session.id, "completed");
     expect(completed?.status).toBe("completed");
     expect(completed?.latest_result_packet?.outcome).toBe("succeeded");
   });

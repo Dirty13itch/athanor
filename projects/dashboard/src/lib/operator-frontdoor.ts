@@ -1,13 +1,13 @@
 import { access, readFile } from "node:fs/promises";
-import path from "node:path";
 import {
   steadyStateSnapshotSchema,
   type SteadyStateReadStatus,
   type SteadyStateSnapshot,
 } from "@/lib/contracts";
+import { candidateTruthInventoryPaths, type TruthInventorySourceKind } from "@/lib/truth-inventory-paths";
 
 interface SteadyStateCandidatePath {
-  kind: "workspace_report" | "repo_root_fallback";
+  kind: TruthInventorySourceKind;
   path: string;
 }
 
@@ -17,16 +17,7 @@ export interface SteadyStateFrontDoorReadResult {
 }
 
 function steadyStateCandidatePaths(): SteadyStateCandidatePath[] {
-  return [
-    {
-      kind: "workspace_report",
-      path: path.resolve(process.cwd(), "reports", "truth-inventory", "steady-state-status.json"),
-    },
-    {
-      kind: "repo_root_fallback",
-      path: path.resolve(process.cwd(), "..", "..", "reports", "truth-inventory", "steady-state-status.json"),
-    },
-  ];
+  return candidateTruthInventoryPaths("steady-state-status.json");
 }
 
 function buildSnapshot(raw: Record<string, any>, candidate: SteadyStateCandidatePath): SteadyStateSnapshot {

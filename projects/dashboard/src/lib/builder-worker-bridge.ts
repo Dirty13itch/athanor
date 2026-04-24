@@ -9,7 +9,12 @@ import type {
   BuilderValidationRecord,
   BuilderVerificationState,
 } from "@/lib/contracts";
-import { createBuilderEvent, mutateBuilderSession, readBuilderSession } from "@/lib/builder-store";
+import {
+  createBuilderEvent,
+  mutateBuilderSession,
+  readBuilderSession,
+  resolveBuilderStorePath,
+} from "@/lib/builder-store";
 
 type BuilderExecutionMode = "start" | "resume";
 
@@ -17,6 +22,7 @@ type ActiveBuilderRun = {
   child: ChildProcessWithoutNullStreams | null;
   timer: NodeJS.Timeout | null;
   runDir: string;
+  storePath: string;
   worktreePath: string;
   mode: BuilderExecutionMode;
   cancelRequested: boolean;
@@ -563,7 +569,7 @@ async function finalizeRun(
     clearTimeout(run.timer);
     run.timer = null;
   }
-  const session = await readBuilderSession(sessionId);
+  const session = await readBuilderSession(sessionId, run.storePath);
   if (!session) {
     activeRuns.delete(sessionId);
     return;
@@ -605,7 +611,7 @@ async function finalizeRun(
           "warning",
         ),
       );
-    });
+    }, run.storePath);
     activeRuns.delete(sessionId);
     return;
   }
@@ -661,7 +667,7 @@ async function finalizeRun(
         failed ? "danger" : "success",
       ),
     );
-  });
+  }, run.storePath);
 
   activeRuns.delete(sessionId);
 }
@@ -669,6 +675,7 @@ async function finalizeRun(
 async function markExecutionRunning(
   sessionId: string,
   runDir: string,
+  storePath: string,
   worktreePath: string,
   mode: BuilderExecutionMode,
 ): Promise<void> {
@@ -711,10 +718,10 @@ async function markExecutionRunning(
         "info",
       ),
     );
-  });
+  }, storePath);
 }
 
-async function handleCodexLine(sessionId: string, line: string): Promise<void> {
+async function handleCodexLine(sessionId: string, line: string, storePath: string): Promise<void> {
   if (!line.trim()) {
     return;
   }
@@ -754,7 +761,7 @@ async function handleCodexLine(sessionId: string, line: string): Promise<void> {
           "success",
         ),
       );
-    });
+    }, storePath);
   }
 }
 
@@ -763,6 +770,12 @@ async function finalizeSyntheticRun(
   mode: "success" | "failure" | "cancelled",
   run: ActiveBuilderRun,
 ): Promise<void> {
+  const existingSession = await readBuilderSession(sessionId, run.storePath);
+  if (!existingSession) {
+    activeRuns.delete(sessionId);
+    return;
+  }
+
   const artifacts = buildArtifacts(run.runDir, run.worktreePath);
   const syntheticSummary =
     mode === "success"
@@ -832,7 +845,7 @@ async function finalizeSyntheticRun(
         mode === "success" ? "success" : mode === "cancelled" ? "warning" : "danger",
       ),
     );
-  });
+  }, run.storePath);
 
   activeRuns.delete(sessionId);
 }
@@ -842,7 +855,8 @@ async function launchBuilderExecution(sessionId: string, mode: BuilderExecutionM
     return;
   }
 
-  const session = await readBuilderSession(sessionId);
+  const storePath = resolveBuilderStorePath();
+  const session = await readBuilderSession(sessionId, storePath);
   if (!session) {
     throw new Error(`Unknown builder session: ${sessionId}`);
   }
@@ -869,20 +883,25 @@ async function launchBuilderExecution(sessionId: string, mode: BuilderExecutionM
   const codexHome = resolveCodexHome(runDir);
   await seedCodexHome(codexHome);
 
-  await markExecutionRunning(sessionId, runDir, worktreePath, mode);
+  await markExecutionRunning(sessionId, runDir, storePath, worktreePath, mode);
 
   if (syntheticMode) {
+    const activeRun: ActiveBuilderRun = {
+      child: null,
+      timer: null,
+      runDir,
+      storePath,
+      worktreePath,
+      mode,
+      cancelRequested: false,
+    };
     const timer = setTimeout(() => {
-      void finalizeSyntheticRun(sessionId, syntheticMode, activeRuns.get(sessionId) ?? {
-        child: null,
-        timer: null,
-        runDir,
-        worktreePath,
-        mode,
-        cancelRequested: false,
+      void finalizeSyntheticRun(sessionId, syntheticMode, activeRuns.get(sessionId) ?? activeRun).catch(() => {
+        activeRuns.delete(sessionId);
       });
     }, DEFAULT_TEST_DELAY_MS);
-    activeRuns.set(sessionId, { child: null, timer, runDir, worktreePath, mode, cancelRequested: false });
+    activeRun.timer = timer;
+    activeRuns.set(sessionId, activeRun);
     return;
   }
 
@@ -918,6 +937,7 @@ async function launchBuilderExecution(sessionId: string, mode: BuilderExecutionM
       child.kill("SIGTERM");
     }, resolveExecutionTimeoutMs()),
     runDir,
+    storePath,
     worktreePath,
     mode,
     cancelRequested: false,
@@ -938,7 +958,7 @@ async function launchBuilderExecution(sessionId: string, mode: BuilderExecutionM
     }
     finalized = true;
     if (buffer.trim()) {
-      await handleCodexLine(sessionId, buffer.trim());
+      await handleCodexLine(sessionId, buffer.trim(), activeRun.storePath);
       buffer = "";
     }
     await lineChain;
@@ -957,7 +977,7 @@ async function launchBuilderExecution(sessionId: string, mode: BuilderExecutionM
       const line = buffer.slice(0, newlineIndex).trim();
       buffer = buffer.slice(newlineIndex + 1);
       if (line) {
-        lineChain = lineChain.then(() => handleCodexLine(sessionId, line));
+        lineChain = lineChain.then(() => handleCodexLine(sessionId, line, activeRun.storePath));
       }
       newlineIndex = buffer.indexOf("\n");
     }

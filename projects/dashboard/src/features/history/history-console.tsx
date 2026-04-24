@@ -18,6 +18,7 @@ import { getHistory } from "@/lib/api";
 import { type HistoryActivityItem, type HistoryConversationItem, type HistoryOutputItem, type HistorySnapshot } from "@/lib/contracts";
 import { formatRelativeTime, formatTimestamp } from "@/lib/format";
 import { queryKeys } from "@/lib/query-client";
+import { getSharedTaskPresentation, matchesSharedTaskFilter } from "@/lib/task-filter-evidence";
 import { useUrlState } from "@/lib/url-state";
 
 const TABS = [
@@ -30,29 +31,28 @@ type HistoryVariant = "activity" | "conversations" | "outputs";
 type StatusFilter = "all" | "pending_approval" | "running" | "completed" | "failed";
 type TimeframeFilter = "4h" | "24h" | "7d" | "30d";
 
-function historyStatusTone(status: string | null | undefined) {
-  switch (status) {
-    case "pending_approval":
-      return "review";
-    case "running":
-      return "info";
-    case "completed":
-      return "success";
-    case "failed":
-      return "danger";
-    default:
-      return "info";
+function historyItemEvidence(item: HistoryActivityItem | HistoryConversationItem | HistoryOutputItem) {
+  if (!("status" in item) || !item.status) {
+    return { reviewId: null, resultId: null };
   }
+
+  return {
+    reviewId: "reviewId" in item ? item.reviewId ?? null : null,
+    resultId: "resultId" in item ? item.resultId ?? null : null,
+  };
 }
 
-function historySurfaceClass(status: string | null | undefined) {
-  switch (status) {
-    case "pending_approval":
+function historySurfaceClass(item: HistoryActivityItem | HistoryConversationItem | HistoryOutputItem, snapshot: HistorySnapshot) {
+  const presentation = getHistoryTaskPresentation(item, snapshot);
+  switch (presentation?.state) {
+    case "approval":
       return "surface-hero border";
     case "failed":
       return "surface-instrument border";
     case "running":
       return "surface-instrument border";
+    case "needs_sync":
+      return "surface-panel border border-[color:var(--signal-warning)]/30 bg-[color:var(--signal-warning)]/10";
     default:
       return "surface-tile border";
   }
@@ -102,16 +102,53 @@ function itemMatchesStatus(
     return true;
   }
 
-  if ("status" in item && item.status) {
-    return item.status === status;
-  }
+  const mappedStatus = status === "pending_approval" ? "approval" : status;
 
   const relatedTaskId = item.relatedTaskId;
-  if (!relatedTaskId) {
+  if (relatedTaskId) {
+    const relatedTask = snapshot.tasks.find((task) => task.id === relatedTaskId);
+    if (relatedTask) {
+      return matchesSharedTaskFilter(relatedTask, mappedStatus);
+    }
+  }
+
+  if (!("status" in item) || !item.status) {
     return false;
   }
 
-  return snapshot.tasks.find((task) => task.id === relatedTaskId)?.status === status;
+  const evidence = historyItemEvidence(item);
+  return matchesSharedTaskFilter(
+    {
+      status: item.status,
+      reviewId: evidence.reviewId,
+      resultId: evidence.resultId,
+    },
+    mappedStatus,
+  );
+}
+
+function getHistoryTaskPresentation(
+  item: HistoryActivityItem | HistoryConversationItem | HistoryOutputItem,
+  snapshot: HistorySnapshot,
+) {
+  const relatedTaskId = item.relatedTaskId;
+  if (relatedTaskId) {
+    const relatedTask = snapshot.tasks.find((task) => task.id === relatedTaskId);
+    if (relatedTask) {
+      return getSharedTaskPresentation(relatedTask);
+    }
+  }
+
+  if (!("status" in item) || !item.status) {
+    return null;
+  }
+
+  const evidence = historyItemEvidence(item);
+  return getSharedTaskPresentation({
+    status: item.status,
+    reviewId: evidence.reviewId,
+    resultId: evidence.resultId,
+  });
 }
 
 function itemProjectId(item: HistoryActivityItem | HistoryConversationItem | HistoryOutputItem) {
@@ -140,6 +177,12 @@ function SelectionDetails({
   const relatedTask = item.relatedTaskId
     ? snapshot.tasks.find((task) => task.id === item.relatedTaskId) ?? null
     : null;
+  const reviewSelectionId =
+    ("reviewId" in item ? item.reviewId : null) ??
+    ("resultId" in item ? item.resultId : null) ??
+    relatedTask?.reviewId ??
+    relatedTask?.resultId ??
+    null;
 
   return (
     <div className="space-y-6 p-6">
@@ -207,9 +250,9 @@ function SelectionDetails({
               </Link>
             </Button>
           ) : null}
-          {relatedTask && ["pending_approval", "failed"].includes(relatedTask.status) ? (
+          {reviewSelectionId ? (
             <Button asChild size="sm" variant="outline">
-              <Link href={`/review?selection=${relatedTask.id}`}>
+              <Link href={`/review?selection=${encodeURIComponent(reviewSelectionId)}`}>
                 <ExternalLink className="mr-2 h-4 w-4" />
                 Review item
               </Link>
@@ -438,14 +481,18 @@ export function HistoryConsole({
                   key={item.id}
                   type="button"
                   onClick={() => setSearchValue("selection", item.id)}
-                  className={`w-full rounded-2xl p-4 text-left transition hover:bg-accent/40 ${historySurfaceClass(item.status ?? null)}`}
+                  className={`w-full rounded-2xl p-4 text-left transition hover:bg-accent/40 ${historySurfaceClass(item, snapshot)}`}
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="secondary">{getAgentName(snapshot, item.agentId)}</Badge>
                     {item.projectId ? <Badge variant="outline">{getProjectName(snapshot, item.projectId)}</Badge> : null}
-                    {item.status ? (
-                      <Badge variant="outline" className="status-badge" data-tone={historyStatusTone(item.status)}>
-                        {item.status}
+                    {getHistoryTaskPresentation(item, snapshot) ? (
+                      <Badge
+                        variant="outline"
+                        className="status-badge"
+                        data-tone={getHistoryTaskPresentation(item, snapshot)?.tone}
+                      >
+                        {getHistoryTaskPresentation(item, snapshot)?.label}
                       </Badge>
                     ) : null}
                     <span className="ml-auto text-xs text-muted-foreground">{formatRelativeTime(item.timestamp)}</span>
@@ -475,7 +522,7 @@ export function HistoryConsole({
                   key={item.id}
                   type="button"
                   onClick={() => setSearchValue("selection", item.threadId)}
-                  className={`w-full rounded-2xl p-4 text-left transition hover:bg-accent/40 ${historySurfaceClass(itemMatchesStatus(item, status, snapshot) ? snapshot.tasks.find((task) => task.id === item.relatedTaskId)?.status ?? null : null)}`}
+                  className={`w-full rounded-2xl p-4 text-left transition hover:bg-accent/40 ${historySurfaceClass(item, snapshot)}`}
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="secondary">{getAgentName(snapshot, item.agentId)}</Badge>
@@ -500,7 +547,7 @@ export function HistoryConsole({
                   key={item.id}
                   type="button"
                   onClick={() => setSearchValue("selection", item.id)}
-                  className={`w-full rounded-2xl p-4 text-left transition hover:bg-accent/40 ${historySurfaceClass(snapshot.tasks.find((task) => task.id === item.relatedTaskId)?.status ?? null)}`}
+                  className={`w-full rounded-2xl p-4 text-left transition hover:bg-accent/40 ${historySurfaceClass(item, snapshot)}`}
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="secondary">{item.category}</Badge>

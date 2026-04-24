@@ -1,5 +1,6 @@
 import { queryPrometheus, type PrometheusResult } from "@/lib/api";
 import { agentServerHeaders, config, getNodeNameFromInstance } from "@/lib/config";
+import { loadOperatorSummaryPayload } from "@/lib/operator-summary";
 import { extractTaskResidueSummary, type TaskResidueSummary } from "@/lib/task-residue";
 
 export const dynamic = "force-dynamic";
@@ -109,40 +110,43 @@ async function fetchSnapshot(): Promise<StreamPayload> {
   let tasks: StreamPayload["tasks"] = null;
   let notifications: StreamPayload["notifications"] = { pending: 0, total: 0 };
   try {
-    const res = await fetch(`${config.agentServer.url}/v1/operator/summary`, {
-      signal: AbortSignal.timeout(3000),
-      headers: agentServerHeaders(),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const runSummary = data?.runs ?? {};
-      const runByStatus = runSummary?.by_status ?? {};
-      tasks = data?.tasks
-        ? extractTaskResidueSummary(data.tasks)
-        : extractTaskResidueSummary({
-            total: runSummary?.total,
-            completed: runByStatus.completed,
-            running: runByStatus.running,
-            failed: runByStatus.failed,
-            pending: runByStatus.queued ?? runByStatus.pending,
-            currently_running: runByStatus.running,
-            worker_running: toCount(runByStatus.running) > 0,
-          });
+    const data = await loadOperatorSummaryPayload();
+    const runSummary =
+      data.runs && typeof data.runs === "object"
+        ? (data.runs as { total?: unknown; by_status?: Record<string, unknown> })
+        : {};
+    const runByStatus = runSummary.by_status ?? {};
+    tasks = data.tasks
+      ? extractTaskResidueSummary(data.tasks)
+      : extractTaskResidueSummary({
+          total: runSummary.total,
+          completed: runByStatus.completed,
+          running: runByStatus.running,
+          failed: runByStatus.failed,
+          pending: runByStatus.queued ?? runByStatus.pending,
+          currently_running: runByStatus.running,
+          worker_running: toCount(runByStatus.running) > 0,
+        });
 
-      const inboxSummary = data?.inbox ?? {};
-      const inboxByStatus = inboxSummary?.by_status ?? {};
-      const pendingInbox =
-        toCount(inboxByStatus.new) +
-        toCount(inboxByStatus.acknowledged) +
-        toCount(inboxByStatus.snoozed);
-      const approvalSummary = data?.approvals ?? {};
-      const approvalByStatus = approvalSummary?.by_status ?? {};
-      const pendingApprovals = toCount(approvalByStatus.pending);
-      notifications = {
-        pending: pendingInbox + pendingApprovals,
-        total: toCount(inboxSummary?.total) + toCount(approvalSummary?.total),
-      };
-    }
+    const inboxSummary =
+      data.inbox && typeof data.inbox === "object"
+        ? (data.inbox as { total?: unknown; by_status?: Record<string, unknown> })
+        : {};
+    const inboxByStatus = inboxSummary.by_status ?? {};
+    const pendingInbox =
+      toCount(inboxByStatus.new) +
+      toCount(inboxByStatus.acknowledged) +
+      toCount(inboxByStatus.snoozed);
+    const approvalSummary =
+      data.approvals && typeof data.approvals === "object"
+        ? (data.approvals as { total?: unknown; by_status?: Record<string, unknown> })
+        : {};
+    const approvalByStatus = approvalSummary.by_status ?? {};
+    const pendingApprovals = toCount(approvalByStatus.pending);
+    notifications = {
+      pending: pendingInbox + pendingApprovals,
+      total: toCount(inboxSummary.total) + toCount(approvalSummary.total),
+    };
   } catch { /* operator summary unavailable */ }
 
   // Media status

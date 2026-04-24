@@ -1,11 +1,32 @@
+import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
 import { proxyAgentOperatorJson } from "@/lib/operator-actions";
+import { listBuilderSyntheticInboxItems } from "@/lib/builder-store";
 import { proxyAgentJson } from "@/lib/server-agent";
 
 export async function GET(request: NextRequest) {
   const params = new URLSearchParams(request.nextUrl.searchParams);
   const query = params.toString();
-  return proxyAgentJson(`/v1/operator/inbox${query ? `?${query}` : ""}`, undefined, "Failed to fetch operator inbox");
+  const response = await proxyAgentJson(
+    `/v1/operator/inbox${query ? `?${query}` : ""}`,
+    undefined,
+    "Failed to fetch operator inbox",
+  );
+  const payload = (await response.json().catch(() => ({}))) as {
+    items?: Array<Record<string, unknown>>;
+    count?: number;
+    [key: string]: unknown;
+  };
+  const items = [
+    ...(await listBuilderSyntheticInboxItems(params.get("status"))),
+    ...((Array.isArray(payload.items) ? payload.items : []) as Array<Record<string, unknown>>),
+  ].sort((left, right) => Number(right.updated_at ?? 0) - Number(left.updated_at ?? 0));
+
+  return NextResponse.json({
+    ...payload,
+    items,
+    count: items.length,
+  });
 }
 
 export async function POST(request: NextRequest) {

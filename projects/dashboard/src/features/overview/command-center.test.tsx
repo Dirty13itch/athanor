@@ -195,6 +195,131 @@ describe("CommandCenter", () => {
         return pilotReadinessPayload;
       }
 
+      if (url === "/api/operator/summary") {
+        return {
+          blockerMap: {
+            generatedAt: "2026-04-18T19:00:00.000Z",
+            objective: "closure_debt",
+            activeWorkstream: {
+              id: "dispatch-and-work-economy-closure",
+              title: "Dispatch and Work-Economy Closure",
+              claimTaskId: "workstream:validation-and-publication",
+              claimTaskTitle: "Validation and Publication",
+              claimLaneFamily: "validation_and_checkpoint",
+              dispatchStatus: "dispatched",
+            },
+            remaining: {
+              cashNow: 0,
+              boundedFollowOn: 0,
+              programSlice: 4,
+              familyCount: 4,
+              pathCount: 63,
+              familyIds: [
+                "control-plane-registry-and-routing",
+                "agent-execution-kernel-follow-on",
+                "agent-route-contract-follow-on",
+                "control-plane-proof-and-ops-follow-on",
+              ],
+            },
+            nextTranche: {
+              id: "control-plane-registry-and-routing",
+              title: "Control-Plane Registry and Routing",
+              executionClass: "program_slice",
+              matchCount: 10,
+              nextAction: "Isolate registry and routing residue.",
+              decompositionRequired: false,
+              decompositionReasons: [],
+              categories: ["registry/policy", "agent runtime"],
+            },
+            queue: {
+              total: 12,
+              dispatchable: 8,
+              blocked: 2,
+              suppressed: 2,
+            },
+            stableOperatingDay: {
+              met: false,
+              coveredWindowHours: 12,
+              requiredWindowHours: 24,
+              includedPassCount: 4,
+              consecutiveHealthyPassCount: 4,
+              detail: "Stable-day proof needs 12 more hour(s) of consecutive healthy passes.",
+            },
+            resultEvidence: {
+              thresholdRequired: 5,
+              thresholdProgress: 3,
+              thresholdMet: false,
+              resultBackedCompletionCount: 3,
+              reviewBackedOutputCount: 2,
+            },
+            proofGate: {
+              open: false,
+              status: "closed",
+              blockingCheckIds: ["stable_operating_day", "result_backed_threshold"],
+            },
+            autoMutation: {
+              state: "repo_safe_only_runtime_and_provider_mutations_gated",
+              proofGateOpen: false,
+              detail: "Repo-safe work can continue autonomously, but runtime and provider mutations remain gated.",
+            },
+            sourceKind: "workspace_report",
+            sourcePath: "/mnt/c/Athanor/reports/truth-inventory/blocker-map.json",
+          },
+          blockerExecutionPlan: {
+            generatedAt: "2026-04-18T19:00:00.000Z",
+            selectionMode: "closure_debt",
+            nextFamilyId: "control-plane-registry-and-routing",
+            nextTarget: {
+              kind: "subtranche",
+              familyId: "control-plane-registry-and-routing",
+              familyTitle: "Control-Plane Registry and Routing",
+              subtrancheId: "registry-ledgers-and-matrices",
+              subtrancheTitle: "Registry Ledgers and Matrices",
+              executionClass: "program_slice",
+              approvalGated: false,
+              externalBlocked: false,
+            },
+            families: [],
+            sourceKind: "workspace_report",
+            sourcePath: "/mnt/c/Athanor/reports/truth-inventory/blocker-execution-plan.json",
+          },
+          continuityController: {
+            generatedAt: "2026-04-18T19:05:00.000Z",
+            controllerStatus: "running",
+            activePassId: "continuity-pass-123",
+            activeFamilyId: "control-plane-registry-and-routing",
+            activeSubtrancheId: "registry-ledgers-and-matrices",
+            startedAt: "2026-04-18T19:05:00.000Z",
+            finishedAt: null,
+            lastSuccessfulPassAt: "2026-04-18T18:55:00.000Z",
+            lastMeaningfulDeltaAt: "2026-04-18T18:55:00.000Z",
+            lastSkipReason: null,
+            backoffUntil: null,
+            consecutiveNoDeltaPasses: 0,
+            nextTarget: {
+              kind: "subtranche",
+              familyId: "control-plane-registry-and-routing",
+              familyTitle: "Control-Plane Registry and Routing",
+              subtrancheId: "registry-ledgers-and-matrices",
+              subtrancheTitle: "Registry Ledgers and Matrices",
+            },
+          },
+          valueThroughput: {
+            resultBackedCompletionCount: 3,
+            reviewBackedOutputCount: 2,
+            staleClaimCount: 1,
+            reviewDebt: {
+              count: 2,
+              oldestAgeHours: 6,
+            },
+            reconciliation: {
+              issueCount: 1,
+              repairableCount: 1,
+            },
+          },
+        };
+      }
+
       return {};
     });
 
@@ -203,6 +328,11 @@ describe("CommandCenter", () => {
     expect(screen.getByRole("heading", { name: /Current work, next move, and live pressure\./i })).toBeInTheDocument();
     expect(screen.getByText("Current plan")).toBeInTheDocument();
     expect(screen.getByText("wp-1741531200")).toBeInTheDocument();
+    expect(screen.getByText("Scheduled queue")).toBeInTheDocument();
+    expect(screen.getByText(/0 proposal-only, 1 direct loop, 0 blocked, 0 need sync/i)).toBeInTheDocument();
+    expect(screen.getByText("Closure debt")).toBeInTheDocument();
+    expect(screen.getAllByText("Continuity").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Value throughput")).toBeInTheDocument();
     expect(screen.getAllByText(/Push EoBQ content and keep Athanor drift in check\./i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Implement the next EoBQ scene renderer state machine and branching transitions\./i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Open workforce planner/i })).toHaveAttribute("href", "/workforce");
@@ -217,10 +347,17 @@ describe("CommandCenter", () => {
     expect(screen.getByRole('link', { name: /Open operator desk/i })).toHaveAttribute('href', '/operator');
     expect(screen.getByText("Builder front door")).toBeInTheDocument();
     expect(screen.getAllByText(/Codex direct implementation/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/1 shared review/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("link", { name: /Open builder desk/i })).toHaveAttribute(
       "href",
       "/builder?session=builder-fixture-1",
     );
+    expect(screen.getByText("Executive kernel")).toBeInTheDocument();
+    expect(screen.getByText(/Hybrid sessions \+ programs/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 protected \/ 2 harvestable/i)).toBeInTheDocument();
+    expect(screen.getByText(/openai_codex \(91\) \/ foundry-coder-lane \(95\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 degraded subject/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/2 queue-backed scheduled emitters/i).length).toBeGreaterThanOrEqual(1);
     expect(await screen.findByText(/Pilot readiness/i)).toBeInTheDocument();
     expect((await screen.findAllByText(/Letta Memory Plane/i)).length).toBeGreaterThan(0);
     expect((await screen.findAllByText(/OpenHands Bounded Worker Lane/i)).length).toBeGreaterThan(0);
@@ -239,6 +376,8 @@ describe("CommandCenter", () => {
     expect(screen.getByText(/recovered from server restart/i)).toBeInTheDocument();
     expect(screen.getByText(/Cheap Bulk Cloud/i)).toBeInTheDocument();
     expect(screen.getAllByText(/restart interfering/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Continuity is running, targeting Registry Ledgers and Matrices\./i)).toBeInTheDocument();
+    expect(screen.getAllByText(/stable day 12\/24h · result evidence 3\/5/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("link", { name: /Open this surface/i })).toHaveAttribute(
       "href",
       "/routing",

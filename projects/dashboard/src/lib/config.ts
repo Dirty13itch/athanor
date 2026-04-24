@@ -205,7 +205,6 @@ const vaultOpenWebUiLinkUrl = env("ATHANOR_VAULT_OPEN_WEBUI_LINK_URL", `http://$
 const homeAssistantLinkUrl = env("ATHANOR_HOME_ASSISTANT_LINK_URL", `http://${vaultLinkHost}:8123/`);
 const plexLinkUrl = env("ATHANOR_PLEX_LINK_URL", `http://${vaultLinkHost}:32400/web`);
 const eoqLinkUrl = env("ATHANOR_EOQ_LINK_URL", `http://${workshopLinkHost}:3002/`);
-const ulrichLinkUrl = env("ATHANOR_ULRICH_LINK_URL", `http://${workshopLinkHost}:3003/`);
 const sonarrLinkUrl = env("ATHANOR_SONARR_LINK_URL", `http://${vaultLinkHost}:8989/`);
 const radarrLinkUrl = env("ATHANOR_RADARR_LINK_URL", `http://${vaultLinkHost}:7878/`);
 const prowlarrLinkUrl = env("ATHANOR_PROWLARR_LINK_URL", `http://${vaultLinkHost}:9696/`);
@@ -656,18 +655,6 @@ export const config = {
       primaryRoute: "/backlog?project=kindred",
       externalUrl: null,
       operators: ["Claude", "research-agent"],
-    },
-    {
-      id: "ulrich-energy",
-      name: "Ulrich Energy",
-      headline: "Scaffolded operational tenant for field workflows, reporting, and client-facing energy work.",
-      status: "scaffolded",
-      kind: "scaffold",
-      firstClass: false,
-      lens: "default",
-      primaryRoute: "/backlog?project=ulrich-energy",
-      externalUrl: ulrichLinkUrl,
-      operators: ["Claude", "coding-agent", "research-agent"],
     },
     {
       id: "media",

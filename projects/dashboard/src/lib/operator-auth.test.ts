@@ -71,6 +71,8 @@ describe("operator auth", () => {
     expect(isPrivilegedMutationPath("/api/projects/athanor/maintenance", "POST")).toBe(true);
     expect(isPrivilegedMutationPath("/api/bootstrap/programs/launch-readiness-bootstrap/promote", "POST")).toBe(true);
     expect(isPrivilegedMutationPath("/api/bootstrap/programs/launch-readiness-bootstrap/nudge", "POST")).toBe(true);
+    expect(isPrivilegedMutationPath("/api/execution/reviews/review-1/approve", "POST")).toBe(true);
+    expect(isPrivilegedMutationPath("/api/execution/reviews/review-1/reject", "POST")).toBe(true);
     expect(isPrivilegedMutationPath("/api/operator/approvals/approval-1/approve", "POST")).toBe(true);
     expect(isPrivilegedMutationPath("/api/operator/approvals/approval-1/reject", "POST")).toBe(true);
     expect(isPrivilegedMutationPath("/api/operator/system-mode", "POST")).toBe(true);

@@ -129,6 +129,38 @@ test("smoke: operator catalog endpoints return inventories", async ({ request })
   ]);
 });
 
+test("smoke: executive command-center endpoints return the expected shape", async ({ request }) => {
+  const masterAtlasResponse = await request.get("/api/master-atlas");
+  expect(masterAtlasResponse.ok()).toBeTruthy();
+  await expectJsonKeys(masterAtlasResponse, [
+    "generated_at",
+    "summary",
+    "governed_dispatch_execution",
+  ]);
+
+  const operatorMobileSummaryResponse = await request.get("/api/operator/mobile-summary");
+  expect(operatorMobileSummaryResponse.ok()).toBeTruthy();
+  const operatorMobileSummary = await expectJsonKeys(operatorMobileSummaryResponse, ["summary", "status"]);
+  expect(operatorMobileSummary.summary).toHaveProperty("proofGate");
+
+  const operatorSummaryResponse = await request.get("/api/operator/summary");
+  expect(operatorSummaryResponse.ok()).toBeTruthy();
+  const operatorSummary = await expectJsonKeys(operatorSummaryResponse, [
+    "steadyState",
+    "projectFactory",
+  ]);
+  expect(operatorSummary.projectFactory ?? {}).toHaveProperty("topPriorityProjectId");
+
+  const projectFactoryResponse = await request.get("/api/projects/factory");
+  expect(projectFactoryResponse.ok()).toBeTruthy();
+  const projectFactory = await expectJsonKeys(projectFactoryResponse, [
+    "summary",
+    "firstClassProjects",
+    "baselineProjects",
+  ]);
+  expect(Array.isArray(projectFactory.firstClassProjects)).toBeTruthy();
+});
+
 test("smoke: workforce snapshot endpoint returns the expected sections", async ({ request }) => {
   const response = await request.get("/api/workforce");
   expect(response.ok()).toBeTruthy();

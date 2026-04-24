@@ -5,6 +5,7 @@ import { useCallback, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
+  BarChart3,
   CheckCircle2,
   Inbox,
   LoaderCircle,
@@ -25,33 +26,32 @@ import { RichText } from "@/components/rich-text";
 import { PilotReadinessBlock } from "@/components/pilot-readiness-block";
 import { StatCard } from "@/components/stat-card";
 import { requestJson, postWithoutBody, postJson } from "@/features/workforce/helpers";
-import type { BuilderFrontDoorSummary, SteadyStateSnapshot } from "@/lib/contracts";
+import type {
+  BuilderFrontDoorSummary,
+  ExecutionReviewProjection,
+  SteadyStateSnapshot,
+} from "@/lib/contracts";
 import { formatRelativeTime } from "@/lib/format";
 import type { MasterAtlasRelationshipMap } from "@/lib/master-atlas";
+import type { BlockerMap } from "@/lib/blocker-map";
+import type { BlockerExecutionPlan } from "@/lib/blocker-execution-plan";
+import type { ContinuityControllerState } from "@/lib/continuity-controller";
 import { buildSteadyStateDecisionSummary } from "@/lib/steady-state-summary";
 import { readChatEventStream } from "@/lib/sse";
+import type { AutonomousValueProof } from "@/lib/autonomous-value-proof";
+import type { ProjectFactoryConsoleSnapshot } from "@/lib/project-factory";
+import type { ValueThroughputScorecard } from "@/lib/value-throughput";
+import {
+  getBuilderKernelPressureLabel,
+  getBuilderKernelSharedPressure,
+  getBuilderKernelPressureTone,
+} from "@/lib/builder-kernel-pressure";
 
 interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
   createdAt: string;
-}
-
-interface PendingApproval {
-  id: string;
-  related_run_id?: string;
-  related_task_id?: string;
-  requested_action: string;
-  privilege_class: string;
-  reason: string;
-  status: string;
-  requested_at?: number;
-  task_prompt?: string;
-  task_agent_id?: string;
-  task_priority?: string;
-  task_status?: string;
-  metadata?: Record<string, unknown>;
 }
 
 interface OperatorReadStatus {
@@ -61,12 +61,12 @@ interface OperatorReadStatus {
   source?: string;
 }
 
-interface PendingApprovalsPayload extends OperatorReadStatus {
-  approvals?: PendingApproval[];
+export interface PendingApprovalsPayload extends OperatorReadStatus {
+  reviews?: ExecutionReviewProjection[];
   count?: number;
 }
 
-interface GovernanceSnapshot {
+export interface GovernanceSnapshot {
   available?: boolean;
   degraded?: boolean;
   detail?: string;
@@ -94,15 +94,81 @@ interface TaskResidueSummary {
   failed_historical_repaired?: number;
 }
 
-interface OperatorSummaryPayload {
+export interface OperatorSummaryPayload {
   available?: boolean;
   degraded?: boolean;
   detail?: string;
   source?: string;
+  blockerMap?: BlockerMap | null;
+  blockerMapStatus?: {
+    available?: boolean;
+    degraded?: boolean;
+    detail?: string | null;
+    sourceKind?: "workspace_report" | "repo_root_fallback" | null;
+    sourcePath?: string | null;
+  } | null;
+  blockerExecutionPlan?: BlockerExecutionPlan | null;
+  blockerExecutionPlanStatus?: {
+    available?: boolean;
+    degraded?: boolean;
+    detail?: string | null;
+    sourceKind?: "workspace_report" | "repo_root_fallback" | null;
+    sourcePath?: string | null;
+  } | null;
+  continuityController?: ContinuityControllerState | null;
+  continuityControllerStatus?: {
+    available?: boolean;
+    degraded?: boolean;
+    detail?: string | null;
+    sourceKind?: "workspace_report" | "repo_root_fallback" | null;
+    sourcePath?: string | null;
+  } | null;
+  scheduled?: {
+    totalJobs?: number;
+    queueBackedJobs?: number;
+    directJobs?: number;
+    proposalOnlyJobs?: number;
+    blockedJobs?: number;
+    needsSyncJobs?: number;
+  };
+  valueThroughput?: ValueThroughputScorecard | null;
+  valueThroughputStatus?: {
+    available?: boolean;
+    degraded?: boolean;
+    detail?: string | null;
+    sourceKind?: "workspace_report" | "repo_root_fallback" | null;
+    sourcePath?: string | null;
+  } | null;
+  autonomousValueProof?: AutonomousValueProof | null;
+  autonomousValueProofStatus?: {
+    available?: boolean;
+    degraded?: boolean;
+    detail?: string | null;
+    sourceKind?: "workspace_report" | "repo_root_fallback" | null;
+    sourcePath?: string | null;
+  } | null;
   tasks?: TaskResidueSummary;
   steadyState?: SteadyStateSnapshot | null;
   builderFrontDoor?: BuilderFrontDoorSummary | null;
   steadyStateStatus?: {
+    available?: boolean;
+    degraded?: boolean;
+    detail?: string | null;
+    sourceKind?: "workspace_report" | "repo_root_fallback" | null;
+    sourcePath?: string | null;
+  } | null;
+  projectFactory?: {
+    acceptedProjectOutputCount?: number;
+    broadProjectFactoryReady?: boolean;
+    factoryOperatingMode?: string;
+    latestPendingProjectId?: string | null;
+    pendingCandidateCount?: number;
+    pendingHybridAcceptanceCount?: number;
+    projectOutputStageMet?: boolean;
+    topPriorityProjectId?: string | null;
+    topPriorityProjectLabel?: string | null;
+  } | null;
+  projectFactoryStatus?: {
     available?: boolean;
     degraded?: boolean;
     detail?: string | null;
@@ -116,6 +182,10 @@ function createId(prefix: string) {
     return `${prefix}-${crypto.randomUUID()}`;
   }
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function formatHours(value: number) {
+  return Number.isInteger(value) ? `${value}` : value.toFixed(1).replace(/\.0$/, "");
 }
 
 function OperatorMetric({
@@ -155,8 +225,17 @@ const PENDING_APPROVALS_KEY = ["operator-pending-approvals"] as const;
 const GOVERNANCE_KEY = ["operator-governance"] as const;
 const SUMMARY_KEY = ["operator-summary"] as const;
 const MASTER_ATLAS_KEY = ["operator-master-atlas"] as const;
+const PROJECT_FACTORY_KEY = ["operator-project-factory"] as const;
 
-export function OperatorConsole() {
+export interface OperatorConsoleInitialData {
+  pendingApprovals: PendingApprovalsPayload;
+  governance: GovernanceSnapshot;
+  operatorSummary: OperatorSummaryPayload;
+  masterAtlas: MasterAtlasRelationshipMap | null;
+  projectFactory: ProjectFactoryConsoleSnapshot | null;
+}
+
+export function OperatorConsole({ initialData = null }: { initialData?: OperatorConsoleInitialData | null }) {
   const queryClient = useQueryClient();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -168,9 +247,10 @@ export function OperatorConsole() {
   const pendingApprovalsQuery = useQuery({
     queryKey: PENDING_APPROVALS_KEY,
     queryFn: async (): Promise<PendingApprovalsPayload> => {
-      const data = await requestJson("/api/operator/approvals?status=pending");
+      const data = await requestJson("/api/execution/reviews?status=pending");
       return (data ?? {}) as PendingApprovalsPayload;
     },
+    initialData: initialData?.pendingApprovals,
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
@@ -181,6 +261,7 @@ export function OperatorConsole() {
       const data = await requestJson("/api/operator/governance");
       return (data ?? {}) as GovernanceSnapshot;
     },
+    initialData: initialData?.governance,
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
@@ -191,6 +272,7 @@ export function OperatorConsole() {
       const data = await requestJson("/api/operator/summary");
       return (data ?? {}) as OperatorSummaryPayload;
     },
+    initialData: initialData?.operatorSummary,
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
@@ -201,24 +283,51 @@ export function OperatorConsole() {
       const data = await requestJson("/api/master-atlas");
       return (data ?? {}) as MasterAtlasRelationshipMap;
     },
+    initialData: initialData?.masterAtlas ?? undefined,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+  });
+  const projectFactoryQuery = useQuery({
+    queryKey: PROJECT_FACTORY_KEY,
+    queryFn: async (): Promise<ProjectFactoryConsoleSnapshot> => {
+      const data = await requestJson("/api/projects/factory");
+      return (data ?? {}) as ProjectFactoryConsoleSnapshot;
+    },
+    initialData: initialData?.projectFactory ?? undefined,
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
 
   const pendingApprovalsPayload = pendingApprovalsQuery.data ?? {};
-  const pendingApprovals = pendingApprovalsPayload.approvals ?? [];
+  const pendingApprovals = pendingApprovalsPayload.reviews ?? [];
   const governance = governanceQuery.data ?? {};
   const operatorSummary = summaryQuery.data ?? {};
   const taskResidue = operatorSummary.tasks ?? {};
+  const scheduled = operatorSummary.scheduled ?? {};
   const steadyState = operatorSummary.steadyState ?? null;
   const builderFrontDoor = operatorSummary.builderFrontDoor ?? null;
+  const blockerMap = operatorSummary.blockerMap ?? null;
+  const blockerExecutionPlan = operatorSummary.blockerExecutionPlan ?? null;
+  const continuityController = operatorSummary.continuityController ?? null;
+  const valueThroughput = operatorSummary.valueThroughput ?? null;
+  const autonomousValueProof = operatorSummary.autonomousValueProof ?? null;
+  const projectFactory = operatorSummary.projectFactory ?? null;
   const builderCurrent = builderFrontDoor?.current_session ?? null;
+  const blockerMapStatus = operatorSummary.blockerMapStatus ?? null;
+  const blockerExecutionPlanStatus = operatorSummary.blockerExecutionPlanStatus ?? null;
+  const continuityControllerStatus = operatorSummary.continuityControllerStatus ?? null;
   const steadyStateStatus = operatorSummary.steadyStateStatus ?? null;
+  const valueThroughputStatus = operatorSummary.valueThroughputStatus ?? null;
+  const autonomousValueProofStatus = operatorSummary.autonomousValueProofStatus ?? null;
+  const projectFactoryStatus = operatorSummary.projectFactoryStatus ?? null;
   const masterAtlas =
     masterAtlasQuery.data && typeof masterAtlasQuery.data.generated_at === "string"
       ? masterAtlasQuery.data
       : null;
+  const masterAtlasSummary = masterAtlas?.summary ?? null;
   const gooseEvidence = masterAtlas?.goose_evidence_summary ?? null;
+  const projectFactorySnapshot = projectFactoryQuery.data ?? null;
+  const latestPendingProjectCandidate = projectFactorySnapshot?.latestPendingCandidate ?? null;
   const approvalsAvailable = pendingApprovalsPayload.available !== false;
   const governanceAvailable = governance.available !== false;
   const summaryAvailable = summaryQuery.data?.available !== false;
@@ -231,6 +340,137 @@ export function OperatorConsole() {
   const staleLeases = Number(taskResidue.stale_lease_actionable ?? taskResidue.stale_lease ?? 0);
   const recoveredStaleLeases = Number(taskResidue.stale_lease_recovered_historical ?? 0);
   const repairedHistorical = Number(taskResidue.failed_historical_repaired ?? 0);
+  const scheduledQueueBackedJobs = Number(scheduled.queueBackedJobs ?? 0);
+  const scheduledDirectJobs = Number(scheduled.directJobs ?? 0);
+  const scheduledProposalOnlyJobs = Number(scheduled.proposalOnlyJobs ?? 0);
+  const scheduledBlockedJobs = Number(scheduled.blockedJobs ?? 0);
+  const scheduledNeedsSyncJobs = Number(scheduled.needsSyncJobs ?? 0);
+  const blockerMapAvailable = Boolean(blockerMap);
+  const remainingBlockerFamilies = Number(blockerMap?.remaining.familyCount ?? 0);
+  const remainingBlockerPaths = Number(blockerMap?.remaining.pathCount ?? 0);
+  const nextTrancheTitle = blockerMap?.nextTranche.title ?? blockerMap?.nextTranche.id ?? "No tranche queued";
+  const nextTranchePaths = Number(blockerMap?.nextTranche.matchCount ?? 0);
+  const proofGateStatus = blockerMap?.proofGate.status ?? "unknown";
+  const autoMutationState = blockerMap?.autoMutation.state ?? "unknown";
+  const stableDayCoveredHours = Number(blockerMap?.stableOperatingDay.coveredWindowHours ?? 0);
+  const stableDayRequiredHours = Number(blockerMap?.stableOperatingDay.requiredWindowHours ?? 24);
+  const stableDayMet = Boolean(blockerMap?.stableOperatingDay.met);
+  const resultEvidenceThresholdProgress = Number(blockerMap?.resultEvidence.thresholdProgress ?? 0);
+  const resultEvidenceThresholdRequired = Number(blockerMap?.resultEvidence.thresholdRequired ?? 5);
+  const resultEvidenceThresholdMet = Boolean(blockerMap?.resultEvidence.thresholdMet);
+  const proofProgressSummary = blockerMapAvailable
+    ? `stable day ${
+        stableDayMet
+          ? `met (${formatHours(stableDayCoveredHours)}/${formatHours(stableDayRequiredHours)}h)`
+          : `${formatHours(stableDayCoveredHours)}/${formatHours(stableDayRequiredHours)}h`
+      } · result evidence ${
+        resultEvidenceThresholdMet
+          ? `met (${resultEvidenceThresholdProgress}/${resultEvidenceThresholdRequired})`
+          : `${resultEvidenceThresholdProgress}/${resultEvidenceThresholdRequired}`
+      }`
+    : "Proof progress unavailable";
+  const continuityStatus = continuityController?.controllerStatus ?? "unknown";
+  const continuityActiveFamily =
+    continuityController?.activeSubtrancheId ??
+    continuityController?.activeFamilyId ??
+    blockerExecutionPlan?.nextTarget.subtrancheId ??
+    blockerExecutionPlan?.nextTarget.familyId ??
+    "none";
+  const continuityNextTarget =
+    continuityController?.nextTarget?.subtrancheTitle ??
+    continuityController?.nextTarget?.familyTitle ??
+    blockerExecutionPlan?.nextTarget.subtrancheTitle ??
+    blockerExecutionPlan?.nextTarget.familyTitle ??
+    nextTrancheTitle;
+  const continuitySkipReason = continuityController?.lastSkipReason ?? "none";
+  const continuityBackoff = continuityController?.backoffUntil ?? "none";
+  const continuitySummary = continuityController
+    ? `${continuityActiveFamily} active/selected · next ${continuityNextTarget} · skip ${continuitySkipReason} · backoff ${continuityBackoff}`
+    : continuityControllerStatus?.detail ??
+      blockerExecutionPlanStatus?.detail ??
+      "Continuity controller artifacts are temporarily unavailable.";
+  const blockerMapSummary = blockerMapAvailable
+    ? `${remainingBlockerFamilies} family tranche${remainingBlockerFamilies === 1 ? "" : "s"} / ${remainingBlockerPaths} path match${remainingBlockerPaths === 1 ? "" : "es"}`
+    : blockerMapStatus?.detail ?? "Canonical blocker map is temporarily unavailable.";
+  const blockerMapDetail = blockerMapAvailable
+    ? `Next: ${nextTrancheTitle} (${nextTranchePaths} path${nextTranchePaths === 1 ? "" : "s"}) · proof gate ${proofGateStatus} · ${proofProgressSummary} · auto-mutation ${autoMutationState}`
+    : blockerMapStatus?.detail ?? "Canonical blocker map is temporarily unavailable.";
+  const resultBackedCompletions = Number(valueThroughput?.resultBackedCompletionCount ?? 0);
+  const reviewBackedOutputs = Number(valueThroughput?.reviewBackedOutputCount ?? 0);
+  const staleClaimCount = Number(valueThroughput?.staleClaimCount ?? 0);
+  const reviewDebtCount = Number(valueThroughput?.reviewDebt.count ?? 0);
+  const reviewDebtAge = Number(valueThroughput?.reviewDebt.oldestAgeHours ?? 0);
+  const directControlLoops = Number(valueThroughput?.scheduledExecution.directControlJobs ?? 0);
+  const proposalOnlyLoops = Number(valueThroughput?.scheduledExecution.proposalOnlyJobs ?? 0);
+  const reconciliationIssueCount = Number(valueThroughput?.reconciliation.issueCount ?? 0);
+  const valueThroughputAvailable = Boolean(valueThroughput);
+  const valueThroughputDegraded = Boolean(valueThroughputStatus?.degraded);
+  const valueThroughputSummary = valueThroughputAvailable
+    ? `${resultBackedCompletions} result-backed · ${reviewBackedOutputs} review-backed · ${staleClaimCount} stale claim${staleClaimCount === 1 ? "" : "s"} · ${reviewDebtCount} review debt · ${directControlLoops} direct-control · ${proposalOnlyLoops} proposal-only`
+    : valueThroughputStatus?.detail ?? "Value-throughput scorecard is temporarily unavailable.";
+  const valueThroughputDetail = valueThroughputDegraded && valueThroughputStatus?.detail
+    ? `${valueThroughputSummary} · ${valueThroughputStatus.detail}`
+    : valueThroughputSummary;
+  const autonomousValueAvailable = Boolean(autonomousValueProof);
+  const autonomousValueDegraded = Boolean(autonomousValueProofStatus?.degraded);
+  const acceptedOperatorValueCount = Number(autonomousValueProof?.acceptedOperatorValueCount ?? 0);
+  const acceptedProductValueCount = Number(autonomousValueProof?.acceptedProductValueCount ?? 0);
+  const disqualifiedValueCount = Number(autonomousValueProof?.disqualifiedEntryCount ?? 0);
+  const latestAcceptedTitle = autonomousValueProof?.latestAcceptedEntry?.title ?? "No accepted autonomous value proof";
+  const latestAcceptedSurface = autonomousValueProof?.latestAcceptedEntry?.beneficiarySurface ?? "unscoped";
+  const latestAcceptedKind = autonomousValueProof?.latestAcceptedEntry?.deliverableKind ?? "unknown";
+  const operatorValueStageMet = Boolean(autonomousValueProof?.stageStatus.operatorValue.met);
+  const productValueStageMet = Boolean(autonomousValueProof?.stageStatus.productValue.met);
+  const remainingOperatorValue = Number(autonomousValueProof?.stageStatus.operatorValue.remainingRequired ?? 0);
+  const remainingProductValue = Number(autonomousValueProof?.stageStatus.productValue.remainingRequired ?? 0);
+  const autonomousValueSummary = autonomousValueAvailable
+    ? `${acceptedOperatorValueCount} operator-value · ${acceptedProductValueCount} product-value · ${disqualifiedValueCount} disqualified`
+    : autonomousValueProofStatus?.detail ?? "Autonomous value proof is temporarily unavailable.";
+  const autonomousValueDetail =
+    autonomousValueDegraded && autonomousValueProofStatus?.detail
+      ? `${autonomousValueSummary} · ${autonomousValueProofStatus.detail}`
+      : autonomousValueSummary;
+  const autonomousValueTone =
+    !autonomousValueAvailable || autonomousValueDegraded || disqualifiedValueCount > 0
+      ? "warning"
+      : acceptedOperatorValueCount > 0 || acceptedProductValueCount > 0
+        ? "success"
+        : "default";
+  const projectFactoryMode =
+    projectFactory?.factoryOperatingMode ?? masterAtlasSummary?.project_factory_operating_mode ?? "unknown";
+  const projectFactoryTopProjectId =
+    projectFactory?.topPriorityProjectId ?? masterAtlasSummary?.project_factory_top_priority_project_id ?? "none";
+  const projectFactoryTopProjectLabel =
+    projectFactory?.topPriorityProjectLabel ??
+    masterAtlasSummary?.project_factory_top_priority_project_label ??
+    projectFactoryTopProjectId;
+  const projectFactoryAcceptedCount = Number(
+    projectFactory?.acceptedProjectOutputCount ?? masterAtlasSummary?.accepted_project_output_count ?? 0,
+  );
+  const projectFactoryPendingCandidateCount = Number(
+    projectFactory?.pendingCandidateCount ?? masterAtlasSummary?.pending_project_output_candidate_count ?? 0,
+  );
+  const projectFactoryPendingHybridCount = Number(
+    projectFactory?.pendingHybridAcceptanceCount ?? masterAtlasSummary?.pending_hybrid_project_output_count ?? 0,
+  );
+  const projectFactoryLatestPendingProjectId =
+    projectFactory?.latestPendingProjectId ??
+    masterAtlasSummary?.project_factory_latest_pending_project_id ??
+    "none";
+  const projectFactoryBroadReady = Boolean(
+    projectFactory?.broadProjectFactoryReady ?? masterAtlasSummary?.project_factory_broad_ready,
+  );
+  const projectOutputStageMet = Boolean(
+    projectFactory?.projectOutputStageMet ?? masterAtlasSummary?.project_output_stage_met,
+  );
+  const projectFactorySummary = `${projectFactoryAcceptedCount} accepted · ${projectFactoryPendingCandidateCount} pending candidate${projectFactoryPendingCandidateCount === 1 ? "" : "s"} · ${projectFactoryPendingHybridCount} hybrid review`;
+  const projectFactoryDetail = `Top ${projectFactoryTopProjectLabel} · latest pending ${projectFactoryLatestPendingProjectId} · mode ${projectFactoryMode}`;
+  const projectFactoryTone =
+    projectOutputStageMet && projectFactoryBroadReady
+      ? "success"
+      : projectFactoryPendingCandidateCount > 0 || projectFactoryPendingHybridCount > 0
+        ? "warning"
+        : "default";
   const masterAtlasDegraded =
     !masterAtlas ||
     masterAtlas.available === false ||
@@ -255,8 +495,8 @@ export function OperatorConsole() {
       masterAtlas?.turnover_readiness?.dispatchable_autonomous_queue_count != null
         ? `${masterAtlas.turnover_readiness.dispatchable_autonomous_queue_count} dispatchable lane(s) remain.`
         : "No next operator action published.",
-    queuePosture: `${approvalHeldTasks} approvals / ${staleLeases} stale leases / ${actionableFailures} failures`,
-    needsYou: approvalHeldTasks > 0 || actionableFailures > 0 || launchBlockers.length > 0,
+    queuePosture: `${approvalHeldTasks} approvals / ${staleLeases} stale leases / ${actionableFailures} failures / ${scheduledQueueBackedJobs} queued / ${scheduledProposalOnlyJobs} proposal-only`,
+    needsYou: approvalHeldTasks > 0 || actionableFailures > 0 || launchBlockers.length > 0 || scheduledNeedsSyncJobs > 0,
   });
   const operatorNeedsYou = steadyStateSummary.needsYou;
   const operatorAttentionLabel = steadyStateSummary.attentionLabel;
@@ -265,12 +505,24 @@ export function OperatorConsole() {
   const operatorCurrentWorkDetail = steadyStateSummary.currentWorkDetail;
   const operatorNextUp = steadyStateSummary.nextUpTitle;
   const operatorNextUpDetail = steadyStateSummary.nextUpDetail;
-  const builderAttentionTone =
-    builderFrontDoor?.degraded || builderCurrent?.status === "failed" || builderCurrent?.verification_status === "failed"
+  const builderSharedPressure = builderFrontDoor ? getBuilderKernelSharedPressure(builderFrontDoor) : null;
+  const builderPressureLabel = builderFrontDoor ? getBuilderKernelPressureLabel(builderFrontDoor) : "offline";
+  const builderNeedsSync = builderSharedPressure?.current_session_needs_sync ?? false;
+  const builderSharedReviewCount = builderSharedPressure?.current_session_pending_review_count ?? 0;
+  const builderSharedResultCount = builderSharedPressure?.current_session_actionable_result_count ?? 0;
+  const builderAttentionTone = !builderFrontDoor
+    ? "warning"
+    : getBuilderKernelPressureTone(builderFrontDoor) === "danger"
       ? "warning"
-      : (builderCurrent?.pending_approval_count ?? 0) > 0 || builderCurrent?.status === "waiting_approval"
+      : getBuilderKernelPressureTone(builderFrontDoor) === "warning"
         ? "warning"
         : "success";
+  const valueThroughputTone =
+    !valueThroughputAvailable || valueThroughputDegraded || staleClaimCount > 0 || reconciliationIssueCount > 0
+      ? "warning"
+      : resultBackedCompletions > 0 || reviewBackedOutputs > 0
+        ? "success"
+        : "default";
   const governedDispatchHealthy =
     Boolean(governedDispatch) &&
     !governedDispatch?.error &&
@@ -305,7 +557,7 @@ export function OperatorConsole() {
 
   const approveMutation = useMutation({
     mutationFn: async (approvalId: string) => {
-      await postWithoutBody(`/api/operator/approvals/${encodeURIComponent(approvalId)}/approve`);
+      await postWithoutBody(`/api/execution/reviews/${encodeURIComponent(approvalId)}/approve`);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: PENDING_APPROVALS_KEY });
@@ -316,7 +568,7 @@ export function OperatorConsole() {
 
   const rejectMutation = useMutation({
     mutationFn: async ({ approvalId, reason }: { approvalId: string; reason: string }) => {
-      await postJson(`/api/operator/approvals/${encodeURIComponent(approvalId)}/reject`, { reason });
+      await postJson(`/api/execution/reviews/${encodeURIComponent(approvalId)}/reject`, { reason });
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: PENDING_APPROVALS_KEY });
@@ -421,12 +673,14 @@ export function OperatorConsole() {
               void governanceQuery.refetch();
               void summaryQuery.refetch();
               void masterAtlasQuery.refetch();
+              void projectFactoryQuery.refetch();
             }}
             disabled={
               pendingApprovalsQuery.isFetching ||
               governanceQuery.isFetching ||
               summaryQuery.isFetching ||
-              masterAtlasQuery.isFetching
+              masterAtlasQuery.isFetching ||
+              projectFactoryQuery.isFetching
             }
           >
             <RefreshCcw
@@ -434,7 +688,8 @@ export function OperatorConsole() {
                 pendingApprovalsQuery.isFetching ||
                 governanceQuery.isFetching ||
                 summaryQuery.isFetching ||
-                masterAtlasQuery.isFetching
+                masterAtlasQuery.isFetching ||
+                projectFactoryQuery.isFetching
                   ? "animate-spin"
                   : ""
               }`}
@@ -465,7 +720,7 @@ export function OperatorConsole() {
           </div>
         ) : null}
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-8">
           <StatCard
             label="Actionable Failures"
             value={summaryAvailable ? `${actionableFailures}` : "offline"}
@@ -511,17 +766,79 @@ export function OperatorConsole() {
             tone={summaryAvailable && steadyState?.currentWork?.taskTitle ? "success" : "warning"}
           />
           <StatCard
+            label="Closure blockers"
+            value={blockerMapAvailable ? `${remainingBlockerFamilies}` : "offline"}
+            detail={blockerMapAvailable ? blockerMapDetail : blockerMapSummary}
+            icon={<AlertTriangle className="h-5 w-5" />}
+            tone={!blockerMapAvailable || remainingBlockerFamilies > 0 ? "warning" : "success"}
+          />
+          <StatCard
+            label="Continuity controller"
+            value={continuityController ? continuityStatus : "offline"}
+            detail={continuitySummary}
+            icon={<LoaderCircle className="h-5 w-5" />}
+            tone={
+              !continuityController ||
+              continuityControllerStatus?.degraded ||
+              continuityStatus === "blocked" ||
+              continuityStatus === "skipped"
+                ? "warning"
+                : "success"
+            }
+          />
+          <StatCard
+            label="Scheduled queue"
+            value={summaryAvailable ? `${scheduledQueueBackedJobs}` : "offline"}
+            detail={
+              summaryAvailable
+                ? `${scheduledProposalOnlyJobs} proposal-only · ${scheduledDirectJobs} direct loop · ${scheduledBlockedJobs} blocked · ${scheduledNeedsSyncJobs} need sync`
+                : "Operator summary feed is temporarily unavailable."
+            }
+            icon={<RefreshCcw className="h-5 w-5" />}
+            tone={!summaryAvailable || scheduledNeedsSyncJobs > 0 || scheduledBlockedJobs > 0 ? "warning" : "success"}
+          />
+          <StatCard
+            label="Value throughput"
+            value={valueThroughputAvailable ? `${resultBackedCompletions}` : "offline"}
+            detail={valueThroughputDetail}
+            icon={<BarChart3 className="h-5 w-5" />}
+            tone={valueThroughputTone}
+          />
+          <StatCard
+            label="Autonomous value"
+            value={autonomousValueAvailable ? `${acceptedOperatorValueCount}/${acceptedProductValueCount}` : "offline"}
+            detail={autonomousValueDetail}
+            icon={<BarChart3 className="h-5 w-5" />}
+            tone={autonomousValueTone}
+          />
+          <StatCard
             label="Builder Kernel"
-            value={builderCurrent ? builderCurrent.status.replaceAll("_", " ") : builderFrontDoor ? "ready" : "offline"}
+            value={builderPressureLabel}
             detail={
               builderFrontDoor
                 ? builderCurrent
-                  ? `${builderCurrent.primary_adapter} · ${builderCurrent.verification_status.replaceAll("_", " ")}`
+                  ? builderNeedsSync
+                    ? `${builderCurrent.primary_adapter} · shared review/result evidence missing`
+                    : `${builderCurrent.primary_adapter} · ${builderSharedReviewCount} shared review(s) · ${builderSharedResultCount} result alert(s)`
                   : "No active builder session published."
                 : "Builder front door is not attached to the operator summary route."
             }
             icon={<ShieldCheck className="h-5 w-5" />}
             tone={builderAttentionTone}
+          />
+          <StatCard
+            label="Project Factory"
+            value={projectFactoryTopProjectLabel}
+            detail={projectFactoryDetail}
+            icon={<BarChart3 className="h-5 w-5" />}
+            tone={projectFactoryTone}
+          />
+          <StatCard
+            label="Project Outputs"
+            value={`${projectFactoryAcceptedCount}/${projectFactoryPendingCandidateCount}`}
+            detail={projectFactorySummary}
+            icon={<Inbox className="h-5 w-5" />}
+            tone={projectFactoryTone}
           />
         </div>
       </PageHeader>
@@ -558,10 +875,22 @@ export function OperatorConsole() {
                 tone={launchBlockers.length > 0 ? "warning" : "success"}
               />
               <OperatorMetric
+                label="Next tranche"
+                value={blockerMapAvailable ? `${remainingBlockerFamilies}` : "offline"}
+                detail={blockerMapDetail}
+                tone={!blockerMapAvailable || remainingBlockerFamilies > 0 ? "warning" : "success"}
+              />
+              <OperatorMetric
                 label="Current work"
                 value={operatorCurrentWork}
                 detail={`${operatorCurrentWorkDetail} Next: ${operatorNextUp}`}
                 tone={steadyState?.currentWork?.taskTitle ? "success" : "warning"}
+              />
+              <OperatorMetric
+                label="Project factory"
+                value={projectFactoryTopProjectLabel}
+                detail={`${projectFactorySummary} · ${projectFactoryDetail}`}
+                tone={projectFactoryTone === "success" ? "success" : "warning"}
               />
             </div>
 
@@ -649,6 +978,67 @@ export function OperatorConsole() {
               )}
             </div>
           </div>
+
+          <div className="surface-panel rounded-[28px] border px-5 py-5 sm:px-6">
+            <p className="page-eyebrow">Project-output review</p>
+            <h2 className="mt-1 font-heading text-2xl font-medium tracking-[-0.03em]">Pending governed artifacts</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+              Hybrid project outputs stay visible here so repo-safe work does not stall while a governed review is waiting on the operator.
+            </p>
+
+            <div className="mt-5 space-y-3">
+              {latestPendingProjectCandidate ? (
+                <article className="surface-instrument rounded-2xl border px-4 py-4">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-foreground">{latestPendingProjectCandidate.title}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline">{projectFactoryTopProjectLabel}</Badge>
+                        {latestPendingProjectCandidate.acceptanceBacklogId ? (
+                          <Badge variant="secondary">{latestPendingProjectCandidate.acceptanceBacklogId}</Badge>
+                        ) : null}
+                        {latestPendingProjectCandidate.acceptanceMode ? (
+                          <Badge variant="outline">{latestPendingProjectCandidate.acceptanceMode}</Badge>
+                        ) : null}
+                        {latestPendingProjectCandidate.verificationStatus ? (
+                          <Badge variant="outline">
+                            {latestPendingProjectCandidate.verificationStatus.replaceAll("_", " ")}
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {latestPendingProjectCandidate.nextAction ??
+                          "Open the project-factory route and review the governed acceptance artifacts."}
+                      </p>
+                      {latestPendingProjectCandidate.deliverableRefs.length > 0 ? (
+                        <div className="space-y-1 text-xs text-muted-foreground">
+                          {latestPendingProjectCandidate.deliverableRefs.slice(0, 3).map((ref) => (
+                            <p key={ref} className="truncate font-mono">
+                              {ref}
+                            </p>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button asChild size="sm" variant="outline">
+                        <Link href="/projects">Open Project Factory</Link>
+                      </Button>
+                    </div>
+                  </div>
+                </article>
+              ) : (
+                <EmptyState
+                  title="No pending project-output review"
+                  description={
+                    projectFactoryStatus?.detail ??
+                    "No governed project-output candidate is currently waiting on hybrid review."
+                  }
+                  className="py-6"
+                />
+              )}
+            </div>
+          </div>
         </section>
 
         <section className="space-y-4">
@@ -661,14 +1051,15 @@ export function OperatorConsole() {
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <Badge
                     variant={
-                      builderFrontDoor?.degraded || builderCurrent?.status === "failed"
+                      builderFrontDoor?.degraded || builderSharedPressure?.current_session_status === "result_attention"
                         ? "destructive"
-                        : builderCurrent?.pending_approval_count
+                        : builderSharedPressure?.current_session_status === "review_required" ||
+                            builderSharedPressure?.current_session_status === "needs_sync"
                           ? "outline"
                           : "secondary"
                     }
                   >
-                    {builderCurrent ? builderCurrent.status.replaceAll("_", " ") : builderFrontDoor ? "ready" : "offline"}
+                    {builderPressureLabel}
                   </Badge>
                   {builderCurrent ? <Badge variant="outline">{builderCurrent.primary_adapter}</Badge> : null}
                   {builderCurrent?.resumable_handle ? <Badge variant="outline">resumable</Badge> : null}
@@ -677,7 +1068,9 @@ export function OperatorConsole() {
                   {builderFrontDoor?.degraded
                     ? builderFrontDoor.detail ?? "Builder front door is degraded from this dashboard runtime."
                     : builderCurrent
-                      ? `${builderCurrent.current_route} is live with ${builderCurrent.pending_approval_count} approval hold(s) and ${builderCurrent.artifact_count} artifact(s).`
+                      ? builderNeedsSync
+                        ? `${builderCurrent.current_route} is still reporting ${builderCurrent.status.replaceAll("_", " ")}, but the shared execution kernel has no matching review or result packet for this session yet.`
+                        : `${builderCurrent.current_route} is live with ${builderSharedReviewCount} shared review hold(s), ${builderSharedResultCount} shared result alert(s), and ${builderCurrent.artifact_count} artifact(s).`
                       : "Open the builder desk to start a routed implementation lane."}
                 </p>
                 <div className="mt-3 space-y-2 text-sm text-muted-foreground">
@@ -711,6 +1104,55 @@ export function OperatorConsole() {
                   <p>Next up: {operatorNextUp}</p>
                   <p>{operatorNextUpDetail}</p>
                 </div>
+              </div>
+
+              <div className="surface-instrument rounded-2xl border px-4 py-4">
+                <p className="page-eyebrow text-[10px]">Value throughput</p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Badge variant={staleClaimCount > 0 || reconciliationIssueCount > 0 ? "outline" : "secondary"}>
+                    {valueThroughputAvailable ? `${resultBackedCompletions} result-backed` : "feed offline"}
+                  </Badge>
+                  {valueThroughputAvailable ? (
+                    <Badge variant="outline">{`${reviewBackedOutputs} review-backed`}</Badge>
+                  ) : null}
+                  {valueThroughputAvailable ? (
+                    <Badge variant="outline">{`${staleClaimCount} stale claim${staleClaimCount === 1 ? "" : "s"}`}</Badge>
+                  ) : null}
+                  {valueThroughputAvailable && valueThroughputDegraded ? (
+                    <Badge variant="outline">degraded feed</Badge>
+                  ) : null}
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  {valueThroughputAvailable
+                    ? valueThroughputDegraded && valueThroughputStatus?.detail
+                      ? `${reviewDebtCount} review debt item${reviewDebtCount === 1 ? "" : "s"} remain, oldest age ${reviewDebtAge}h. Direct-control loops stay separate at ${directControlLoops}, and proposal-only loops are ${proposalOnlyLoops}. ${valueThroughputStatus.detail}`
+                      : `${reviewDebtCount} review debt item${reviewDebtCount === 1 ? "" : "s"} remain, oldest age ${reviewDebtAge}h. Direct-control loops stay separate at ${directControlLoops}, and proposal-only loops are ${proposalOnlyLoops}.`
+                    : valueThroughputStatus?.detail ?? "Value-throughput scorecard is not currently attached to the operator summary route."}
+                </p>
+              </div>
+
+              <div className="surface-instrument rounded-2xl border px-4 py-4">
+                <p className="page-eyebrow text-[10px]">Autonomous value proof</p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Badge variant={operatorValueStageMet ? "secondary" : "outline"}>
+                    {autonomousValueAvailable ? `${acceptedOperatorValueCount} operator-value` : "feed offline"}
+                  </Badge>
+                  {autonomousValueAvailable ? (
+                    <Badge variant={productValueStageMet ? "secondary" : "outline"}>
+                      {`${acceptedProductValueCount} product-value`}
+                    </Badge>
+                  ) : null}
+                  {autonomousValueAvailable ? (
+                    <Badge variant={disqualifiedValueCount > 0 ? "outline" : "secondary"}>
+                      {`${disqualifiedValueCount} disqualified`}
+                    </Badge>
+                  ) : null}
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  {autonomousValueAvailable
+                    ? `Latest accepted proof: ${latestAcceptedTitle} on ${latestAcceptedSurface} via ${latestAcceptedKind}. Remaining ladder: ${remainingOperatorValue} operator-value and ${remainingProductValue} product-value proof${remainingOperatorValue + remainingProductValue === 1 ? "" : "s"}.`
+                    : autonomousValueProofStatus?.detail ?? "Autonomous value proof is not currently attached to the operator summary route."}
+                </p>
               </div>
 
               <div className="surface-instrument rounded-2xl border px-4 py-4">

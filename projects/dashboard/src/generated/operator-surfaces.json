@@ -10,8 +10,8 @@
       "label": "Builder Front Door",
       "node": "DEV",
       "operatorRole": "build_system",
-      "runtimeDetail": "200",
-      "runtimeState": "reachable",
+      "runtimeDetail": "TimeoutError: timed out",
+      "runtimeState": "unreachable",
       "runtimeUrl": "http://dev.athanor.local:3001/builder",
       "status": "active_specialist",
       "url": "https://athanor.local/builder"
@@ -95,22 +95,6 @@
       "runtimeUrl": "http://192.168.1.225:3002/",
       "status": "active_specialist",
       "url": "http://interface.athanor.local:3002/"
-    },
-    {
-      "canonicalDetail": "200",
-      "canonicalState": "reachable",
-      "canonicalUrl": "http://interface.athanor.local:3003/",
-      "category": "project",
-      "description": "First-class domain product outside the core portal. Hosted on Workshop as Ulrich Energy.",
-      "id": "ulrich_energy",
-      "label": "Ulrich Energy",
-      "node": "Workshop",
-      "operatorRole": "domain_product",
-      "runtimeDetail": "200",
-      "runtimeState": "reachable",
-      "runtimeUrl": "http://192.168.1.225:3003/",
-      "status": "active_specialist",
-      "url": "http://interface.athanor.local:3003/"
     },
     {
       "canonicalDetail": "200",
@@ -362,13 +346,13 @@
     "id": "athanor_command_center",
     "label": "Athanor Command Center",
     "node": "DEV",
-    "runtimeDetail": "200",
-    "runtimeState": "reachable",
+    "runtimeDetail": "TimeoutError: timed out",
+    "runtimeState": "unreachable",
     "runtimeUrl": "http://dev.athanor.local:3001/",
     "status": "active_production",
     "targetDeploymentMode": "containerized_service_behind_caddy"
   },
-  "generatedAt": "2026-04-17T22:57:47.279249+00:00",
+  "generatedAt": "2026-04-21T19:11:01.403901+00:00",
   "quickLinks": [
     {
       "category": "tool",
@@ -405,12 +389,6 @@
       "name": "Empire of Broken Queens",
       "node": "Workshop",
       "url": "http://interface.athanor.local:3002/"
-    },
-    {
-      "category": "project",
-      "name": "Ulrich Energy",
-      "node": "Workshop",
-      "url": "http://interface.athanor.local:3003/"
     },
     {
       "category": "home",
@@ -504,6 +482,6 @@
     }
   ],
   "registryUpdatedAt": "2026-04-17T22:18:00Z",
-  "runtimeObservedAt": "2026-04-17T22:57:47.279249+00:00",
+  "runtimeObservedAt": "2026-04-21T19:11:01.403901+00:00",
   "sourceOfTruth": "config/automation-backbone/operator-surface-registry.json + reports/truth-inventory/latest.json#operator_surface_probe"
 }

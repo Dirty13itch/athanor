@@ -19,6 +19,33 @@ const bridgeUrl = process.env.PLAYWRIGHT_WS_PTY_BRIDGE_URL ?? `http://127.0.0.1:
 const bridgeTicketSecret =
   process.env.PLAYWRIGHT_WS_PTY_BRIDGE_TICKET_SECRET ?? "playwright-bridge-ticket-secret";
 
+function shellSingleQuote(value: string) {
+  return `'${value.replace(/'/g, `'\"'\"'`)}'`;
+}
+
+const webServerCommand =
+  process.platform === "win32"
+    ? `powershell -NoProfile -Command "$env:DASHBOARD_FIXTURE_MODE='1'; $env:DASHBOARD_REQUIRE_OPERATOR_SESSION='1'; $env:ATHANOR_DASHBOARD_OPERATOR_TOKEN='${operatorToken}'; $env:ATHANOR_WS_PTY_BRIDGE_URL='${bridgeUrl}'; $env:ATHANOR_WS_PTY_BRIDGE_ALLOWED_NODES='workshop'; $env:ATHANOR_WS_PTY_BRIDGE_TICKET_SECRET='${bridgeTicketSecret}'; $env:PLAYWRIGHT_NEXT_DIST_DIR='${playwrightDistDir}'; $env:NEXT_PUBLIC_VAPID_PUBLIC_KEY='BEl6dGVzdF92YXBpZF9wdWJsaWNfa2V5X2Zvcl9wbGF5d3JpZ2h0X19fX19fX19fXw'; npx next dev ${nextDevBundlerArgs} --hostname 127.0.0.1 --port ${playwrightPort}"`
+    : [
+        "env",
+        "DASHBOARD_FIXTURE_MODE=1",
+        "DASHBOARD_REQUIRE_OPERATOR_SESSION=1",
+        `ATHANOR_DASHBOARD_OPERATOR_TOKEN=${shellSingleQuote(operatorToken)}`,
+        `ATHANOR_WS_PTY_BRIDGE_URL=${shellSingleQuote(bridgeUrl)}`,
+        "ATHANOR_WS_PTY_BRIDGE_ALLOWED_NODES=workshop",
+        `ATHANOR_WS_PTY_BRIDGE_TICKET_SECRET=${shellSingleQuote(bridgeTicketSecret)}`,
+        `PLAYWRIGHT_NEXT_DIST_DIR=${shellSingleQuote(playwrightDistDir)}`,
+        "NEXT_PUBLIC_VAPID_PUBLIC_KEY=BEl6dGVzdF92YXBpZF9wdWJsaWNfa2V5X2Zvcl9wbGF5d3JpZ2h0X19fX19fX19fXw",
+        "npx",
+        "next",
+        "dev",
+        ...(nextDevBundlerArgs ? [nextDevBundlerArgs] : []),
+        "--hostname",
+        "127.0.0.1",
+        "--port",
+        String(playwrightPort),
+      ].join(" ");
+
 process.env.PLAYWRIGHT_BASE_URL = baseUrl;
 process.env.PLAYWRIGHT_OPERATOR_TOKEN = operatorToken;
 process.env.PLAYWRIGHT_PORT = String(playwrightPort);
@@ -54,8 +81,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command:
-      `powershell -NoProfile -Command "$env:DASHBOARD_FIXTURE_MODE='1'; $env:DASHBOARD_REQUIRE_OPERATOR_SESSION='1'; $env:ATHANOR_DASHBOARD_OPERATOR_TOKEN='${operatorToken}'; $env:ATHANOR_WS_PTY_BRIDGE_URL='${bridgeUrl}'; $env:ATHANOR_WS_PTY_BRIDGE_ALLOWED_NODES='workshop'; $env:ATHANOR_WS_PTY_BRIDGE_TICKET_SECRET='${bridgeTicketSecret}'; $env:PLAYWRIGHT_NEXT_DIST_DIR='${playwrightDistDir}'; $env:NEXT_PUBLIC_VAPID_PUBLIC_KEY='BEl6dGVzdF92YXBpZF9wdWJsaWNfa2V5X2Zvcl9wbGF5d3JpZ2h0X19fX19fX19fXw'; npx next dev ${nextDevBundlerArgs} --hostname 127.0.0.1 --port ${playwrightPort}"`,
+    command: webServerCommand,
     url: baseUrl,
     reuseExistingServer: false,
     timeout: 120_000,

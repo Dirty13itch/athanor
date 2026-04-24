@@ -1,4 +1,5 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { applyBuilderSyntheticInboxAction, isBuilderSyntheticInboxId } from "@/lib/builder-store";
 import { proxyAgentOperatorJson } from "@/lib/operator-actions";
 
 export async function POST(
@@ -7,6 +8,12 @@ export async function POST(
 ) {
   const { inboxId } = await params;
   const body = await request.json().catch(() => ({}));
+  if (isBuilderSyntheticInboxId(inboxId)) {
+    const item = await applyBuilderSyntheticInboxAction(inboxId, "snooze", {
+      until: (body as { until?: unknown }).until,
+    });
+    return NextResponse.json({ ok: true, item });
+  }
   return proxyAgentOperatorJson(
     request,
     `/v1/operator/inbox/${encodeURIComponent(inboxId)}/snooze`,

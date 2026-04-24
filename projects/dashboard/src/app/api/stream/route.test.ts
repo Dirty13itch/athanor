@@ -4,6 +4,10 @@ vi.mock("@/lib/api", () => ({
   queryPrometheus: vi.fn(async () => []),
 }));
 
+const { loadOperatorSummaryPayload } = vi.hoisted(() => ({
+  loadOperatorSummaryPayload: vi.fn(async () => ({})),
+}));
+
 vi.mock("@/lib/config", () => ({
   agentServerHeaders: () => ({ Authorization: "Bearer test" }),
   config: {
@@ -13,6 +17,10 @@ vi.mock("@/lib/config", () => ({
     gpuWorkloads: {},
   },
   getNodeNameFromInstance: (instance: string) => instance.split(":")[0] || "unknown",
+}));
+
+vi.mock("@/lib/operator-summary", () => ({
+  loadOperatorSummaryPayload,
 }));
 
 import { GET } from "./route";
@@ -36,7 +44,45 @@ describe("stream api route", () => {
     vi.restoreAllMocks();
   });
 
-  it("streams canonical task residue from operator summary tasks instead of run totals", async () => {
+  it("streams canonical task residue from the shared operator summary payload instead of raw run totals", async () => {
+    loadOperatorSummaryPayload.mockResolvedValue({
+      runs: {
+        total: 999,
+        by_status: {
+          completed: 999,
+          failed: 999,
+          running: 999,
+          queued: 999,
+        },
+      },
+      tasks: {
+        total: 332,
+        completed: 138,
+        failed: 153,
+        running: 0,
+        pending: 0,
+        pending_approval: 13,
+        stale_lease: 21,
+        failed_actionable: 72,
+        failed_historical_repaired: 81,
+        failed_missing_detail: 0,
+      },
+      inbox: {
+        total: 0,
+        by_status: {
+          new: 0,
+          acknowledged: 0,
+          snoozed: 0,
+        },
+      },
+      approvals: {
+        total: 13,
+        by_status: {
+          pending: 13,
+        },
+      },
+    });
+
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
       const url = String(input);
       if (url === "http://agent/health") {
@@ -44,45 +90,6 @@ describe("stream api route", () => {
       }
       if (url === "http://agent/v1/status/services") {
         return jsonResponse({ services: [{ name: "redis", status: "up" }] });
-      }
-      if (url === "http://agent/v1/operator/summary") {
-        return jsonResponse({
-          runs: {
-            total: 999,
-            by_status: {
-              completed: 999,
-              failed: 999,
-              running: 999,
-              queued: 999,
-            },
-          },
-          tasks: {
-            total: 332,
-            completed: 138,
-            failed: 153,
-            running: 0,
-            pending: 0,
-            pending_approval: 13,
-            stale_lease: 21,
-            failed_actionable: 72,
-            failed_historical_repaired: 81,
-            failed_missing_detail: 0,
-          },
-          inbox: {
-            total: 0,
-            by_status: {
-              new: 0,
-              acknowledged: 0,
-              snoozed: 0,
-            },
-          },
-          approvals: {
-            total: 13,
-            by_status: {
-              pending: 13,
-            },
-          },
-        });
       }
       if (url === "http://agent/v1/status/media") {
         return jsonResponse({ streamCount: 0, downloads: [], sessions: [] });

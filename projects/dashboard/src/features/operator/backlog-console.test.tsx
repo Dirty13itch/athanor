@@ -71,6 +71,12 @@ describe("BacklogConsole", () => {
               prompt: "Advance governed dispatch closure.",
               owner_agent: "coding-agent",
               work_class: "system_improvement",
+              family: "maintenance",
+              project_id: "athanor",
+              routing_class: "private_but_cloud_allowed",
+              source_type: "operator_request",
+              verification_contract: "maintenance_proof",
+              materialization_reason: "Materialized from governed dispatch state.",
               priority: 1,
               status: "captured",
               approval_mode: "none",
@@ -97,6 +103,9 @@ describe("BacklogConsole", () => {
     render(<BacklogConsole initialStatus="all" />, { wrapper: buildWrapper() });
 
     expect(await screen.findByText(/Dispatch and Work-Economy Closure/i)).toBeInTheDocument();
+    expect(screen.getByText(/^maintenance$/i)).toBeInTheDocument();
+    expect(screen.getByText(/private_but_cloud_allowed/i)).toBeInTheDocument();
+    expect(screen.getByText(/Materialized from governed dispatch state./i)).toBeInTheDocument();
     expect(requestJson).toHaveBeenCalledWith("/api/operator/backlog");
   });
 });

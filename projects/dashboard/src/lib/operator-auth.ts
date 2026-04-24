@@ -12,6 +12,8 @@ const PRIVILEGED_MUTATION_PATHS: RegExp[] = [
   /^\/api\/bootstrap\/integrations\/[^/]+\/replay$/,
   /^\/api\/builder\/sessions$/,
   /^\/api\/builder\/sessions\/[^/]+\/control$/,
+  /^\/api\/execution\/reviews\/[^/]+\/(?:approve|reject)$/,
+  /^\/api\/execution\/sessions\/[^/]+\/control$/,
   /^\/api\/consolidation$/,
   /^\/api\/gallery\/rate$/,
   /^\/api\/containers\/[^/]+\/restart$/,

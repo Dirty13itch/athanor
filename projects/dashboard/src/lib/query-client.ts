@@ -21,6 +21,7 @@ export const queryKeys = {
   systemMap: ["system-map"] as const,
   history: ["history"] as const,
   intelligence: ["intelligence"] as const,
+  review: ["review"] as const,
   memory: ["memory"] as const,
   monitoring: ["monitoring"] as const,
   mediaOverview: ["media-overview"] as const,

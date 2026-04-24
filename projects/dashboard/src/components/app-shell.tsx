@@ -25,6 +25,11 @@ import { RouteIcon } from "@/components/route-icon";
 import { StatusDot } from "@/components/status-dot";
 import { getCapabilityPilotReadiness, getOverview } from "@/lib/api";
 import {
+  getBuilderKernelPressureLabel,
+  getBuilderKernelPressureTone,
+  getBuilderKernelSharedPressure,
+} from "@/lib/builder-kernel-pressure";
+import {
   getRouteFamiliesWithRoutes,
   getRouteLabel,
   type RouteIconKey,
@@ -158,13 +163,20 @@ function HeaderMetric({
   );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  initialOverview = null,
+}: {
+  children: React.ReactNode;
+  initialOverview?: Awaited<ReturnType<typeof getOverview>> | null;
+}) {
   const pathname = usePathname();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const { preferences } = useOperatorUiPreferences();
   const overviewQuery = useQuery({
     queryKey: queryKeys.overview,
     queryFn: getOverview,
+    initialData: initialOverview ?? undefined,
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
@@ -175,7 +187,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     refetchIntervalInBackground: false,
   });
 
-  const overview = overviewQuery.data;
+  const overview = overviewQuery.data ?? initialOverview ?? undefined;
   const pilotReadiness = pilotReadinessQuery.data;
   const blockedPilotCount = pilotReadiness?.summary.blocked ?? 0;
   const topBlockedPilot =
@@ -186,11 +198,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const degradedCount = overview?.summary.degradedServices ?? 0;
   const builderFrontDoor = overview?.builderFrontDoor ?? null;
   const builderCurrent = builderFrontDoor?.current_session ?? null;
-  const builderTone = builderFrontDoor?.degraded || builderCurrent?.status === "failed" || builderCurrent?.verification_status === "failed"
-    ? "danger"
-    : (builderCurrent?.pending_approval_count ?? 0) > 0 || builderCurrent?.status === "waiting_approval"
-      ? "warning"
-      : "healthy";
+  const builderSharedPressure = builderFrontDoor ? getBuilderKernelSharedPressure(builderFrontDoor) : null;
+  const builderStatusLabel = builderFrontDoor ? getBuilderKernelPressureLabel(builderFrontDoor) : "ready";
+  const builderTone = builderFrontDoor ? getBuilderKernelPressureTone(builderFrontDoor) : "healthy";
   const routeLabel = getRouteLabel(pathname);
   const shellIndicatorTone = degradedCount > 0 ? "danger" : warningCount > 0 ? "warning" : "healthy";
   const lastRefresh = overview ? formatRelativeTime(overview.generatedAt) : "Loading";
@@ -236,7 +246,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const digestChangeSummary = digestHydrated
     ? describeSteadyStateDigestChange(previousDigest, steadyStateDigest)
-    : "Loading local operator digest.";
+    : steadyStateDigest.degraded
+      ? steadyStateDigest.changeHeadline
+      : "Front door synced on this device.";
 
   return (
     <NavAttentionProvider overview={overview} pathname={pathname}>
@@ -308,13 +320,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               />
               <HeaderMetric
                 label="Builder"
-                value={builderCurrent ? builderCurrent.status.replaceAll("_", " ") : builderFrontDoor ? "ready" : "--"}
+                value={builderFrontDoor ? builderStatusLabel : "--"}
                 tone={builderTone}
                 detail={
                   builderFrontDoor
-                    ? builderCurrent
-                      ? `${builderCurrent.primary_adapter} · ${builderCurrent.verification_status.replaceAll("_", " ")}`
-                      : "No active builder session."
+                    ? builderFrontDoor.degraded
+                      ? builderFrontDoor.detail ?? "Builder summary degraded."
+                      : builderCurrent
+                        ? builderSharedPressure?.current_session_needs_sync
+                          ? "Shared review/result evidence missing."
+                          : builderSharedPressure && (
+                                builderSharedPressure.current_session_pending_review_count > 0 ||
+                                builderSharedPressure.current_session_actionable_result_count > 0
+                              )
+                            ? `${builderSharedPressure.current_session_pending_review_count} shared reviews · ${builderSharedPressure.current_session_actionable_result_count} result alerts`
+                            : `${builderCurrent.primary_adapter} · ${builderCurrent.verification_status.replaceAll("_", " ")}`
+                        : "No active builder session."
                     : "Loading builder front door"
                 }
               />

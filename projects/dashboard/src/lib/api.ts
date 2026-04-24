@@ -22,6 +22,7 @@ import {
   operationsReadinessSnapshotSchema,
   overviewSnapshotSchema,
   judgePlaneResponseSchema,
+  reviewSnapshotSchema,
   scheduledJobsResponseSchema,
   servicesHistorySnapshotSchema,
   servicesSnapshotSchema,
@@ -53,6 +54,7 @@ import {
   type OperationsReadinessSnapshot,
   type OverviewSnapshot,
   type JudgePlaneSnapshot,
+  type ReviewSnapshot,
   type ScheduledJobsResponse,
   type ServicesHistorySnapshot,
   type ServicesSnapshot,
@@ -303,6 +305,10 @@ export async function getHistory(): Promise<HistorySnapshot> {
 
 export async function getIntelligence(): Promise<IntelligenceSnapshot> {
   return fetchJson("/api/intelligence", { cache: "no-store" }, intelligenceSnapshotSchema);
+}
+
+export async function getReview(): Promise<ReviewSnapshot> {
+  return fetchJson("/api/review", { cache: "no-store" }, reviewSnapshotSchema);
 }
 
 export async function getJudgePlane(limit = 12): Promise<JudgePlaneSnapshot> {
