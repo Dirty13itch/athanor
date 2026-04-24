@@ -314,7 +314,14 @@ async def trigger_pipeline_cycle(request: Request):
         status_code=200,
         action=action,
         detail="Triggered pipeline cycle",
-        metadata={"tasks_submitted": result.tasks_submitted, "tasks_held": result.tasks_held},
+        metadata={
+            "tasks_submitted": result.tasks_submitted,
+            "tasks_held": result.tasks_held,
+            "backlog_items_created": result.backlog_items_created,
+            "backlog_items_refreshed": result.backlog_items_refreshed,
+            "tasks_submitted_direct": result.tasks_submitted_direct,
+            "tasks_skipped_out_of_scope": result.tasks_skipped_out_of_scope,
+        },
     )
     return {"cycle": asdict(result)}
 

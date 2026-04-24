@@ -4,11 +4,17 @@ import json
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 import yaml
 
+from .capability_intelligence import (
+    best_local_endpoint_for_task,
+    find_capability_record,
+    get_capability_intelligence_artifact,
+)
 from .config import settings
 from .model_governance import (
     get_credential_surface_registry,
@@ -18,6 +24,7 @@ from .model_governance import (
     get_subscription_burn_registry,
     get_tooling_inventory_registry,
 )
+from .repo_paths import resolve_repo_root, resolve_subscription_policy_path
 
 LEASES_KEY = "athanor:subscriptions:leases"
 PROVIDER_STATS_KEY = "athanor:subscriptions:provider-stats"
@@ -27,6 +34,9 @@ EVENT_LIMIT = 250
 _POLICY_CACHE: dict[str, Any] | None = None
 _POLICY_CACHE_MTIME_NS: int | None = None
 _POLICY_CACHE_PATH: str | None = None
+_QUOTA_TRUTH_CACHE: dict[str, Any] | None = None
+_QUOTA_TRUTH_MTIME_NS: int | None = None
+_QUOTA_TRUTH_PATH: str | None = None
 
 PROVIDER_SURFACES = {
     "athanor_local": "local_inference",
@@ -41,11 +51,14 @@ PRIVATE_SENSITIVITY = {"private", "secret", "lan_only"}
 SOVEREIGN_SENSITIVITY = {"adult_sensitive", "lan_only", "sovereign_only"}
 SOVEREIGN_POLICY_CLASSES = {"sovereign_only", "refusal_sensitive"}
 
+REPO_ROOT = resolve_repo_root(__file__)
+QUOTA_TRUTH_PATH = REPO_ROOT / "reports" / "truth-inventory" / "quota-truth.json"
+
 
 def _policy_path() -> Path:
     if settings.subscription_policy_path:
         return Path(settings.subscription_policy_path)
-    return Path(__file__).resolve().parents[2] / "config" / "subscription-routing-policy.yaml"
+    return resolve_subscription_policy_path(__file__)
 
 
 def load_policy() -> dict[str, Any]:
@@ -81,6 +94,73 @@ def load_policy() -> dict[str, Any]:
     _POLICY_CACHE_MTIME_NS = stat.st_mtime_ns
     _POLICY_CACHE_PATH = path_str
     return policy
+
+
+def _load_quota_truth() -> dict[str, Any]:
+    global _QUOTA_TRUTH_CACHE
+    global _QUOTA_TRUTH_MTIME_NS
+    global _QUOTA_TRUTH_PATH
+
+    path = QUOTA_TRUTH_PATH
+    if not path.exists():
+        return {}
+
+    stat = path.stat()
+    path_str = str(path)
+    if (
+        _QUOTA_TRUTH_CACHE is not None
+        and _QUOTA_TRUTH_PATH == path_str
+        and _QUOTA_TRUTH_MTIME_NS == stat.st_mtime_ns
+    ):
+        return _QUOTA_TRUTH_CACHE
+
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+    if not isinstance(payload, dict):
+        return {}
+
+    _QUOTA_TRUTH_CACHE = payload
+    _QUOTA_TRUTH_MTIME_NS = stat.st_mtime_ns
+    _QUOTA_TRUTH_PATH = path_str
+    return payload
+
+
+def _quota_truth_index() -> dict[str, dict[str, Any]]:
+    records = _load_quota_truth().get("records", [])
+    if not isinstance(records, list):
+        return {}
+    indexed: dict[str, dict[str, Any]] = {}
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        provider_id = str(record.get("provider_id") or "").strip()
+        if not provider_id:
+            continue
+        indexed[provider_id] = dict(record)
+    return indexed
+
+
+def _parse_iso_datetime(value: Any) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+def _seconds_until(value: Any) -> float | None:
+    target = _parse_iso_datetime(value)
+    if target is None:
+        return None
+    return (target - datetime.now(timezone.utc)).total_seconds()
 
 
 @dataclass
@@ -330,10 +410,12 @@ def _agent_meta(policy: dict[str, Any], requester: str) -> dict[str, Any]:
 def _provider_selection_context(
     provider_id: str,
     *,
+    task_class: str,
     provider_meta: dict[str, Any],
     provider_catalog_index: dict[str, dict[str, Any]],
     tooling_by_provider: dict[str, list[dict[str, str]]],
     credential_env_names: set[str],
+    capability_artifact: dict[str, Any],
 ) -> dict[str, Any]:
     catalog_entry = dict(provider_catalog_index.get(provider_id) or {})
     tooling_entries = tooling_by_provider.get(provider_id, [])
@@ -361,6 +443,15 @@ def _provider_selection_context(
         "routing_enabled_cli_ready",
         "tool_installed_no_recent_burn",
     } and routing_posture == "ordinary_auto"
+    capability_record = find_capability_record(
+        capability_artifact,
+        subject_id=provider_id,
+        task_class=task_class,
+        subject_kind="provider",
+    )
+    local_endpoint_fit = (
+        best_local_endpoint_for_task(capability_artifact, task_class) if provider_id == "athanor_local" else {}
+    )
     return {
         "catalog": catalog_entry,
         "enriched": enriched,
@@ -372,6 +463,14 @@ def _provider_selection_context(
         "ordinary_routing_ready": ordinary_routing_ready,
         "governed_handoff_ready": routing_posture in {"ordinary_auto", "governed_handoff_only"}
         and "handoff_bundle" in execution_modes,
+        "capability_record": capability_record,
+        "capability_score": float(capability_record.get("capability_score") or 0),
+        "capability_confidence": float(capability_record.get("capability_confidence") or 0),
+        "capability_demotion_state": str(capability_record.get("demotion_state") or "unknown"),
+        "capability_demotion_reason": capability_record.get("demotion_reason"),
+        "capability_sources": list(capability_record.get("evidence_sources") or []),
+        "quota_window_priority": int(capability_record.get("quota_window_priority") or 0),
+        "local_endpoint_fit": local_endpoint_fit,
     }
 
 
@@ -394,10 +493,19 @@ def _force_local_only(request: LeaseRequest) -> bool:
     return str(request.sensitivity or "").strip().lower() in SOVEREIGN_SENSITIVITY
 
 
-def _enabled_candidates(policy: dict[str, Any], task_class: str, requester: str) -> list[str]:
+def _enabled_candidates(
+    policy: dict[str, Any],
+    task_class: str,
+    requester: str,
+    *,
+    metadata: dict[str, Any] | None = None,
+) -> list[str]:
     task_meta = policy.get("task_classes", {}).get(task_class, {})
     ordered = _unique(list(task_meta.get("primary", [])) + list(task_meta.get("fallback", [])))
     allowed = set(_agent_meta(policy, requester).get("allowed_providers", ordered))
+    preferred_provider_id = str((metadata or {}).get("preferred_provider_id") or "").strip()
+    if preferred_provider_id and preferred_provider_id not in ordered:
+        ordered = [preferred_provider_id, *ordered]
     candidates = []
     for provider_id in ordered:
         provider_meta = _provider_meta(policy, provider_id)
@@ -504,6 +612,18 @@ def _score_provider(
     evidence_posture = str(context.get("evidence_posture") or "")
     ordinary_routing_ready = bool(context.get("ordinary_routing_ready"))
     governed_handoff_ready = bool(context.get("governed_handoff_ready"))
+    pricing_truth_label = str(context.get("pricing_truth_label") or "")
+    capability_score = float(context.get("capability_score") or 0)
+    capability_confidence = float(context.get("capability_confidence") or 0)
+    capability_demotion_state = str(context.get("capability_demotion_state") or "unknown")
+    capability_demotion_reason = context.get("capability_demotion_reason")
+    quota_window_priority = int(context.get("quota_window_priority") or 0)
+    local_endpoint_fit = dict(context.get("local_endpoint_fit") or {})
+    quota_record = _quota_truth_index().get(provider_id, {})
+    usage_mode = str(quota_record.get("usage_mode") or "")
+    remaining_units = quota_record.get("remaining_units")
+    seconds_until_reset = _seconds_until(quota_record.get("next_reset_at"))
+    preferred_provider_id = str((request.metadata or {}).get("preferred_provider_id") or "").strip()
 
     if request.sensitivity in PRIVATE_SENSITIVITY:
         if _is_cloud_provider(policy, provider_id):
@@ -529,21 +649,48 @@ def _score_provider(
         score += 12
         reasons.append("parallel_cloud_bonus")
 
+    if provider_id == "athanor_local":
+        score += 10
+        reasons.append("owned_local_capacity_bonus")
+        if remaining_units is not None and remaining_units > 0:
+            score += 6
+            reasons.append("local_headroom_available")
+        if local_endpoint_fit:
+            endpoint_score = float(local_endpoint_fit.get("capability_score") or 0)
+            score += round((endpoint_score - 50) * 0.35)
+            reasons.append(f"local_endpoint_fit={local_endpoint_fit.get('subject_id', 'unknown')}")
+
+    if request.task_class == "cheap_bulk_transform" and provider_id == "athanor_local":
+        score += 28
+        reasons.append("bulk_transform_local_first")
+
     if request.task_class == "cheap_bulk_transform" and provider_id == "zai_glm_coding":
         score += 12
-        reasons.append("bulk_transform_bonus")
+        reasons.append("bulk_transform_subscription_overflow")
+
+    if request.task_class == "async_backlog_execution" and provider_id == "athanor_local":
+        score += 10
+        reasons.append("async_backlog_local_harvest_bonus")
 
     if request.task_class == "async_backlog_execution" and provider_id == "zai_glm_coding":
-        score += 26
-        reasons.append("async_backlog_bulk_bonus")
+        score += 8
+        reasons.append("async_backlog_subscription_overflow_bonus")
 
     if request.task_class == "async_backlog_execution" and provider_id == "openai_codex":
-        score += 8
-        reasons.append("async_backlog_fallback_bonus")
+        score += 20
+        reasons.append("async_backlog_subscription_window_bonus")
 
     if request.task_class == "repo_wide_audit" and provider_id == "google_gemini":
         score += 12
         reasons.append("repo_audit_bonus")
+
+    if request.task_class == "multi_file_implementation" and provider_id == "openai_codex":
+        score += 18
+        reasons.append("implementation_default_bonus")
+
+    if request.task_class == "multi_file_implementation" and provider_id == "athanor_local":
+        score += 6
+        reasons.append("implementation_local_fallback_bonus")
 
     if request.requester == "research-agent" and provider_id == "moonshot_kimi":
         score += 6
@@ -553,9 +700,44 @@ def _score_provider(
         score += 8
         reasons.append("coding_background_bonus")
 
+    if preferred_provider_id and provider_id == preferred_provider_id:
+        score += 60
+        reasons.append("preferred_provider_hint")
+
     if provider_id == "athanor_local":
         score += 4
         reasons.append("local_safety_bonus")
+
+    if capability_score > 0:
+        score += round((capability_score - 50) * 1.3)
+        reasons.append(f"capability_score={int(capability_score)}")
+        if capability_confidence >= 0.75:
+            score += 4
+            reasons.append("capability_confident")
+        elif capability_confidence < 0.45:
+            score -= 6
+            reasons.append("capability_low_confidence")
+        if quota_window_priority >= 90:
+            score += 4
+            reasons.append("capability_reset_window_priority")
+
+    if capability_demotion_state == "demoted":
+        score -= 90
+        reasons.append(f"capability_demoted:{capability_demotion_reason or 'unknown'}")
+    elif capability_demotion_state == "degraded":
+        score -= 24
+        reasons.append(f"capability_degraded:{capability_demotion_reason or 'unknown'}")
+
+    if usage_mode == "subscription":
+        score += 4
+        reasons.append("subscription_sunk_cost_bonus")
+        if seconds_until_reset is not None and 0 < seconds_until_reset <= 8 * 3600:
+            score += 6
+            reasons.append("reset_window_harvest_bonus")
+
+    if pricing_truth_label == "metered_api":
+        score -= 14
+        reasons.append("metered_last_penalty")
 
     if not ordinary_routing_ready:
         if governed_handoff_ready:
@@ -577,7 +759,7 @@ def _score_provider(
 def preview_execution_lease(request: LeaseRequest) -> ExecutionLease:
     policy = load_policy()
     task_class = request.task_class or infer_task_class(request.requester, metadata=request.metadata)
-    candidates = _enabled_candidates(policy, task_class, request.requester)
+    candidates = _enabled_candidates(policy, task_class, request.requester, metadata=request.metadata)
     if not candidates:
         candidates = ["athanor_local"]
     force_local_only = _force_local_only(request)
@@ -585,17 +767,23 @@ def preview_execution_lease(request: LeaseRequest) -> ExecutionLease:
         candidates = [provider_id for provider_id in candidates if not _is_cloud_provider(policy, provider_id)]
         if not candidates:
             candidates = ["athanor_local"]
+    preferred_provider_id = str((request.metadata or {}).get("preferred_provider_id") or "").strip()
+    if preferred_provider_id and preferred_provider_id in candidates:
+        candidates = [preferred_provider_id, *[provider_id for provider_id in candidates if provider_id != preferred_provider_id]]
 
     provider_catalog_index = _provider_catalog_index()
     tooling_by_provider = _tooling_provider_index()
     credential_env_names = _credential_env_names()
+    capability_artifact = get_capability_intelligence_artifact()
     selection_contexts = {
         provider_id: _provider_selection_context(
             provider_id,
+            task_class=task_class,
             provider_meta=_provider_meta(policy, provider_id),
             provider_catalog_index=provider_catalog_index,
             tooling_by_provider=tooling_by_provider,
             credential_env_names=credential_env_names,
+            capability_artifact=capability_artifact,
         )
         for provider_id in candidates
     }
@@ -688,6 +876,13 @@ def preview_execution_lease(request: LeaseRequest) -> ExecutionLease:
             "provider_routing_reason": str(selected_context.get("routing_reason") or ""),
             "provider_governed_handoff_ready": bool(selected_context.get("governed_handoff_ready")),
             "provider_ordinary_routing_ready": bool(selected_context.get("ordinary_routing_ready")),
+            "provider_capability_score": selected_context.get("capability_score"),
+            "provider_capability_confidence": selected_context.get("capability_confidence"),
+            "provider_capability_sources": list(selected_context.get("capability_sources") or []),
+            "provider_capability_demotion_state": str(selected_context.get("capability_demotion_state") or "unknown"),
+            "provider_capability_demotion_reason": selected_context.get("capability_demotion_reason"),
+            "provider_quota_window_priority": selected_context.get("quota_window_priority"),
+            "provider_local_endpoint_fit": dict(selected_context.get("local_endpoint_fit") or {}),
             "excluded_handoff_only_providers": policy_handoff_only_candidates if not allow_handoff_only else [],
             "excluded_unready_providers": evidence_unready_candidates,
             "excluded_cloud_providers": [provider_id for provider_id in candidates + excluded_candidates if _is_cloud_provider(policy, provider_id)] if force_local_only else [],

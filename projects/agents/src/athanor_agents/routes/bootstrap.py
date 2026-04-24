@@ -312,6 +312,7 @@ async def replay_bootstrap_integration_endpoint(slice_id: str, request: Request)
 @router.post("/programs/{program_id}/nudge")
 async def nudge_bootstrap_program_endpoint(program_id: str, request: Request):
     from ..bootstrap_state import run_bootstrap_supervisor_cycle
+    from ..operator_work import materialize_bootstrap_follow_up
 
     body, action, denial = await _load_body(
         request,
@@ -328,6 +329,47 @@ async def nudge_bootstrap_program_endpoint(program_id: str, request: Request):
         retry_blockers=bool(body.get("retry_blockers", True)),
         process_integrations=bool(body.get("process_integrations", True)),
     )
+    backlog = None
+    recommendation = result.get("recommendation") if isinstance(result.get("recommendation"), dict) else {}
+    slice_id = str((recommendation or {}).get("slice_id") or "").strip()
+    if bool(body.get("materialize_backlog", False)) and slice_id:
+        owner_agent = str(body.get("owner_agent") or "coding-agent").strip() or "coding-agent"
+        family = str((recommendation or {}).get("family") or result.get("active_family") or "project_bootstrap").strip()
+        project_id = str(body.get("project_id") or "athanor").strip() or "athanor"
+        host_id = str((recommendation or {}).get("host_id") or "").strip()
+        continuation_mode = str((recommendation or {}).get("continuation_mode") or "").strip()
+        source_ref = f"bootstrap:{program_id}:{slice_id}"
+        title = f"Bootstrap follow-up: {family} / {slice_id}"
+        prompt_lines = [
+            f"Continue bootstrap program {program_id}.",
+            f"Slice id: {slice_id}",
+            f"Family: {family}",
+        ]
+        if host_id:
+            prompt_lines.append(f"Recommended host: {host_id}")
+        if continuation_mode:
+            prompt_lines.append(f"Continuation mode: {continuation_mode}")
+        worktree_path = str((recommendation or {}).get("worktree_path") or "").strip()
+        if worktree_path:
+            prompt_lines.append(f"Prepared worktree: {worktree_path}")
+        prompt_lines.append("Materialize this bootstrap recommendation as governed queue work before execution.")
+        backlog = await materialize_bootstrap_follow_up(
+            program_id=program_id,
+            slice_id=slice_id,
+            family=family,
+            title=title,
+            prompt="\n".join(prompt_lines),
+            project_id=project_id,
+            source_ref=source_ref,
+            owner_agent=owner_agent,
+            metadata={
+                "recommended_host_id": host_id,
+                "continuation_mode": continuation_mode,
+                "worktree_path": worktree_path,
+                "base_ref": str((recommendation or {}).get("base_ref") or ""),
+                "materialized_from": "bootstrap_nudge",
+            },
+        )
     await emit_operator_audit_event(
         service="agent-server",
         route="/v1/bootstrap/programs/{program_id}/nudge",
@@ -341,9 +383,13 @@ async def nudge_bootstrap_program_endpoint(program_id: str, request: Request):
             "active_family": result.get("active_family", ""),
             "slice_id": (result.get("recommendation") or {}).get("slice_id", ""),
             "execute": bool(body.get("execute", False)),
+            "backlog_id": (backlog or {}).get("id", ""),
         },
     )
-    return {"status": "nudged", **result}
+    payload = {"status": "nudged", **result}
+    if backlog:
+        payload["backlog"] = backlog
+    return payload
 
 
 @router.post("/programs/{program_id}/approve")

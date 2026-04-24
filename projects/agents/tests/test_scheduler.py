@@ -230,6 +230,109 @@ class TestManualRunnerHelpers:
         assert hasattr(scheduler, "_run_pattern_detection_job")
 
 
+class TestScheduledQueueBoundaries:
+    def test_only_coding_agent_schedule_uses_backlog_queue(self):
+        assert scheduler._scheduled_agent_runs_via_backlog("coding-agent") is True
+        assert scheduler._scheduled_agent_runs_via_backlog("general-assistant") is False
+        assert scheduler._scheduled_agent_runs_via_backlog("research-agent") is False
+
+    def test_queue_classifier_locks_v1_product_work_and_system_routines(self):
+        assert scheduler._scheduled_job_execution_mode("agent-schedule:coding-agent") == "materialized_to_backlog"
+        assert scheduler._scheduled_job_execution_mode("agent-schedule:general-assistant") == "executed_directly"
+        assert scheduler._scheduled_job_execution_mode("pipeline-cycle") == "executed_directly"
+        assert scheduler._scheduled_job_execution_mode("research:scheduler") == "materialized_to_backlog"
+        assert scheduler._scheduled_job_execution_mode("research:rj-123") == "materialized_to_backlog"
+        assert scheduler._scheduled_job_execution_mode("daily-digest") == "executed_directly"
+        assert scheduler._scheduled_job_execution_mode("knowledge-refresh") == "executed_directly"
+        assert scheduler._scheduled_job_execution_mode("cache-cleanup") == "executed_directly"
+
+
+class TestScheduledQueueMaterialization:
+    def test_manual_coding_agent_schedule_materializes_backlog(self):
+        schedule = {
+            "interval": 1800,
+            "prompt": "Close the next bounded coding queue item.",
+            "priority": "normal",
+        }
+
+        with (
+            patch.object(
+                scheduler,
+                "_materialize_scheduled_agent_run",
+                AsyncMock(
+                    return_value={
+                        "status": "created",
+                        "backlog_id": "backlog-coding-1",
+                        "backlog": {"id": "backlog-coding-1"},
+                        "already_materialized": False,
+                    }
+                ),
+            ) as materialize,
+            patch.object(scheduler, "_submit_agent_schedule_task", AsyncMock()) as submit_direct,
+            patch.object(scheduler, "_set_last_run", AsyncMock()) as set_last_run,
+            patch.object(scheduler, "_emit_schedule_event", AsyncMock()) as emit_event,
+        ):
+            result = asyncio.run(
+                scheduler._run_agent_schedule(
+                    "coding-agent",
+                    schedule,
+                    trigger_mode="manual",
+                    actor="operator",
+                    force_override=False,
+                )
+            )
+
+        assert result["status"] == "materialized_to_backlog"
+        assert result["backlog_id"] == "backlog-coding-1"
+        materialize.assert_awaited_once()
+        submit_direct.assert_not_awaited()
+        set_last_run.assert_awaited_once()
+        emit_event.assert_awaited_once()
+        assert emit_event.await_args.kwargs["metadata"]["backlog_id"] == "backlog-coding-1"
+        assert emit_event.await_args.kwargs["metadata"]["execution_mode"] == "materialized_to_backlog"
+
+    def test_manual_general_assistant_schedule_stays_direct(self):
+        schedule = {
+            "interval": 1800,
+            "prompt": "Run the general-assistant operational sweep.",
+            "priority": "normal",
+        }
+
+        with (
+            patch.object(scheduler, "_materialize_scheduled_agent_run", AsyncMock()) as materialize,
+            patch.object(
+                scheduler,
+                "_submit_agent_schedule_task",
+                AsyncMock(
+                    return_value={
+                        "task_id": "task-queue-1",
+                        "status": "queued",
+                        "held_for_approval": False,
+                    }
+                ),
+            ) as submit_direct,
+            patch.object(scheduler, "_set_last_run", AsyncMock()) as set_last_run,
+            patch.object(scheduler, "_emit_schedule_event", AsyncMock()) as emit_event,
+        ):
+            result = asyncio.run(
+                scheduler._run_agent_schedule(
+                    "general-assistant",
+                    schedule,
+                    trigger_mode="manual",
+                    actor="operator",
+                    force_override=False,
+                )
+            )
+
+        assert result["status"] == "queued"
+        assert result["task_id"] == "task-queue-1"
+        materialize.assert_not_awaited()
+        submit_direct.assert_awaited_once()
+        set_last_run.assert_awaited_once()
+        emit_event.assert_awaited_once()
+        assert emit_event.await_args.kwargs["metadata"]["execution_mode"] == "executed_directly"
+
+
 class _FakeRedis:
     def __init__(self, last_run=None):
         self.last_run = last_run

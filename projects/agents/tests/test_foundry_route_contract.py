@@ -116,6 +116,55 @@ class FoundryRouteContractTests(unittest.TestCase):
         audit.assert_awaited_once()
         self.assertEqual("denied", audit.await_args.kwargs["decision"])
 
+    def test_create_maintenance_run_can_materialize_backlog_follow_up(self) -> None:
+        client = _make_client()
+        project_packet = {"id": "athanor", "stage": "active_build"}
+        maintenance_run = {
+            "id": "maintenance-1",
+            "project_id": "athanor",
+            "kind": "smoke",
+            "trigger": "manual",
+            "status": "queued",
+            "evidence_ref": "reports/maintenance/athanor-smoke.json",
+        }
+        backlog = {"id": "backlog-maint-1", "family": "maintenance"}
+        with (
+            patch("athanor_agents.routes.projects.emit_operator_audit_event", AsyncMock()) as audit,
+            patch("athanor_agents.foundry_state.fetch_project_packet_record", AsyncMock(return_value=project_packet)),
+            patch("athanor_agents.foundry_state.upsert_maintenance_run_record", AsyncMock(return_value=True)) as upsert_maintenance_run_record,
+            patch("athanor_agents.foundry_state.list_maintenance_run_records", AsyncMock(return_value=[maintenance_run])),
+            patch("athanor_agents.operator_work.materialize_maintenance_signal", AsyncMock(return_value=backlog)) as materialize_maintenance_signal,
+        ):
+            response = client.post(
+                "/v1/projects/athanor/maintenance",
+                json={
+                    "actor": "operator",
+                    "session_id": "sess-1",
+                    "correlation_id": "corr-1",
+                    "reason": "Record maintenance run",
+                    "kind": "smoke",
+                    "trigger": "manual",
+                    "status": "queued",
+                    "materialize_backlog": True,
+                    "owner_agent": "coding-agent",
+                    "recurrence_program_id": "weekly-athanor-maintenance",
+                },
+            )
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("created", response.json()["status"])
+        self.assertEqual("backlog-maint-1", response.json()["backlog"]["id"])
+        upsert_maintenance_run_record.assert_awaited_once()
+        materialize_maintenance_signal.assert_awaited_once()
+        self.assertEqual("athanor", materialize_maintenance_signal.await_args.kwargs["project_id"])
+        self.assertEqual("weekly-athanor-maintenance", materialize_maintenance_signal.await_args.kwargs["recurrence_program_id"])
+        self.assertEqual(
+            "maintenance:athanor:program:weekly-athanor-maintenance",
+            materialize_maintenance_signal.await_args.kwargs["source_ref"],
+        )
+        audit.assert_awaited_once()
+        self.assertEqual("accepted", audit.await_args.kwargs["decision"])
+
     def test_list_rollback_events_returns_records(self) -> None:
         client = _make_client()
         rollbacks = [{"id": "rollback-1", "project_id": "athanor", "status": "executed"}]

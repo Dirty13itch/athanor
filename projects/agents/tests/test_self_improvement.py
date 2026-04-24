@@ -4,14 +4,19 @@ Covers:
 - AUTO-003: Forbidden file rejection in validate_proposal
 - Proposal lifecycle (create, validate, status transitions)
 - Syntax validation (Python, YAML)
-- Auto-deploy category classification
+- Conservative v1 mutation posture
+- Admission gating and backlog materialization
 """
 
 import asyncio
 import importlib.util
+import json
 import os
 import sys
+import types
 from unittest.mock import MagicMock
+from unittest.mock import AsyncMock
+from unittest.mock import patch
 
 import pytest
 
@@ -39,6 +44,18 @@ constitution = importlib.util.module_from_spec(spec)
 constitution.__package__ = "athanor_agents"
 spec.loader.exec_module(constitution)
 sys.modules["athanor_agents.constitution"] = constitution
+
+_REPO_PATHS_PATH = os.path.join(
+    os.path.dirname(__file__), "..", "src", "athanor_agents", "repo_paths.py"
+)
+spec = importlib.util.spec_from_file_location(
+    "athanor_agents.repo_paths", _REPO_PATHS_PATH,
+    submodule_search_locations=[],
+)
+repo_paths = importlib.util.module_from_spec(spec)
+repo_paths.__package__ = "athanor_agents"
+spec.loader.exec_module(repo_paths)
+sys.modules["athanor_agents.repo_paths"] = repo_paths
 
 # Set up constitution with test forbidden/allowed patterns
 constitution._constitution = {
@@ -85,7 +102,7 @@ def _make_engine():
 
 
 class TestProposalCreation:
-    """Proposal creation and auto-deploy classification."""
+    """Proposal creation and conservative v1 mutation posture."""
 
     def test_create_proposal(self):
         engine = _make_engine()
@@ -101,21 +118,21 @@ class TestProposalCreation:
         assert proposal.status == "proposed"
         assert len(proposal.id) == 8
 
-    def test_prompt_auto_deploys(self):
+    def test_prompt_no_longer_auto_deploys_in_v1(self):
         engine = _make_engine()
         proposal = _run(engine.propose_improvement(
             title="Prompt fix", description="Fix", category="prompt",
             target_files=[], proposed_changes={}, expected_improvement="",
         ))
-        assert proposal.auto_deploy is True
+        assert proposal.auto_deploy is False
 
-    def test_config_auto_deploys(self):
+    def test_config_no_longer_auto_deploys_in_v1(self):
         engine = _make_engine()
         proposal = _run(engine.propose_improvement(
             title="Config tune", description="Tune", category="config",
             target_files=[], proposed_changes={}, expected_improvement="",
         ))
-        assert proposal.auto_deploy is True
+        assert proposal.auto_deploy is False
 
     def test_code_requires_review(self):
         engine = _make_engine()
@@ -281,4 +298,269 @@ class TestImprovementStatus:
         assert si.ImprovementStatus.ROLLED_BACK.value == "rolled_back"
 
     def test_auto_deploy_categories(self):
-        assert si.SelfImprovementEngine.AUTO_DEPLOY_CATEGORIES == {"prompt", "config"}
+        assert si.SelfImprovementEngine.AUTO_DEPLOY_CATEGORIES == set()
+
+
+class _FakeRedis:
+    def __init__(self, *, report: dict | None = None, last_cycle: dict | None = None) -> None:
+        self.report = report
+        self.last_cycle = last_cycle
+        self.values: dict[str, str] = {}
+        self.history: list[str] = []
+
+    async def get(self, key: str):
+        if key == "athanor:patterns:report" and self.report is not None:
+            return json.dumps(self.report)
+        if key == "improvement:last_cycle" and self.last_cycle is not None:
+            return json.dumps(self.last_cycle)
+        return self.values.get(key)
+
+    async def set(self, key: str, value: str, ex: int | None = None):
+        self.values[key] = value
+
+    async def lpush(self, key: str, value: str):
+        if key == "improvement:cycle_history":
+            self.history.insert(0, value)
+
+    async def ltrim(self, key: str, start: int, end: int):
+        if key == "improvement:cycle_history":
+            self.history = self.history[start : end + 1]
+
+
+class TestImprovementAdmission:
+    def test_review_debt_blocks_improvement_cycle(self):
+        engine = _make_engine()
+        redis = _FakeRedis(report={"patterns": [], "recommendations": []})
+        engine._get_redis = AsyncMock(return_value=redis)
+        engine._load_value_throughput_scorecard = AsyncMock(return_value={})
+
+        governor = types.SimpleNamespace(
+            build_capacity_snapshot=AsyncMock(
+                return_value={
+                    "posture": "healthy",
+                    "queue": {"posture": "healthy"},
+                    "provider_reserve": {"posture": "healthy"},
+                    "local_compute": {
+                        "idle_harvest_slots_open": True,
+                        "harvestable_scheduler_slot_count": 2,
+                        "scheduler_slot_count": 5,
+                    },
+                }
+            )
+        )
+        execution = types.SimpleNamespace(
+            get_approval_request_stats=AsyncMock(return_value={"total": 1, "by_status": {"pending": 1}})
+        )
+        operator_state = types.SimpleNamespace(list_backlog_records=AsyncMock(return_value=[]))
+        operator_work = types.SimpleNamespace(materialize_improvement_proposal=AsyncMock())
+
+        with patch.dict(
+            sys.modules,
+            {
+                "athanor_agents.governor_backbone": governor,
+                "athanor_agents.execution_state": execution,
+                "athanor_agents.operator_state": operator_state,
+                "athanor_agents.operator_work": operator_work,
+            },
+        ):
+            result = _run(engine.run_improvement_cycle())
+
+        assert result["status"] == "blocked_by_review_debt"
+        assert result["admission_classification"] == "blocked_by_review_debt"
+        assert "review debt" in result["admission_reason"].lower()
+        assert result["proposals_generated"] == 0
+        assert result["backlog_items_created"] == 0
+
+    def test_dispatchable_product_backlog_blocks_improvement_cycle(self):
+        engine = _make_engine()
+        redis = _FakeRedis(report={"patterns": [], "recommendations": []})
+        engine._get_redis = AsyncMock(return_value=redis)
+        engine._load_value_throughput_scorecard = AsyncMock(return_value={})
+
+        governor = types.SimpleNamespace(
+            build_capacity_snapshot=AsyncMock(
+                return_value={
+                    "posture": "healthy",
+                    "queue": {"posture": "healthy"},
+                    "provider_reserve": {"posture": "healthy"},
+                    "local_compute": {
+                        "idle_harvest_slots_open": True,
+                        "harvestable_scheduler_slot_count": 2,
+                        "scheduler_slot_count": 5,
+                    },
+                }
+            )
+        )
+        execution = types.SimpleNamespace(
+            get_approval_request_stats=AsyncMock(return_value={"total": 0, "by_status": {}})
+        )
+        operator_state = types.SimpleNamespace(
+            list_backlog_records=AsyncMock(
+                return_value=[
+                    {
+                        "id": "backlog-builder-1",
+                        "title": "Builder fix",
+                        "owner_agent": "coding-agent",
+                        "work_class": "coding_implementation",
+                        "priority": 4,
+                        "status": "ready",
+                        "family": "builder",
+                        "materialization_source": "operator_request",
+                        "metadata": {},
+                    }
+                ]
+            )
+        )
+        operator_work = types.SimpleNamespace(materialize_improvement_proposal=AsyncMock())
+
+        with patch.dict(
+            sys.modules,
+            {
+                "athanor_agents.governor_backbone": governor,
+                "athanor_agents.execution_state": execution,
+                "athanor_agents.operator_state": operator_state,
+                "athanor_agents.operator_work": operator_work,
+            },
+        ):
+            result = _run(engine.run_improvement_cycle())
+
+        assert result["status"] == "blocked_by_queue_priority"
+        assert result["admission_classification"] == "blocked_by_queue_priority"
+        assert "backlog" in result["admission_reason"].lower()
+        assert result["proposals_generated"] == 0
+        assert result["backlog_items_created"] == 0
+
+    def test_value_throughput_drift_blocks_improvement_cycle(self):
+        engine = _make_engine()
+        redis = _FakeRedis(report={"patterns": [], "recommendations": []})
+        engine._get_redis = AsyncMock(return_value=redis)
+        engine._load_value_throughput_scorecard = AsyncMock(
+            return_value={
+                "degraded_sections": [],
+                "stale_claim_count": 1,
+                "reconciliation": {
+                    "issue_count": 1,
+                },
+            }
+        )
+
+        governor = types.SimpleNamespace(
+            build_capacity_snapshot=AsyncMock(
+                return_value={
+                    "posture": "healthy",
+                    "queue": {"posture": "healthy"},
+                    "provider_reserve": {"posture": "healthy"},
+                    "local_compute": {
+                        "idle_harvest_slots_open": True,
+                        "harvestable_scheduler_slot_count": 2,
+                        "scheduler_slot_count": 5,
+                    },
+                }
+            )
+        )
+        execution = types.SimpleNamespace(
+            get_approval_request_stats=AsyncMock(return_value={"total": 0, "by_status": {}})
+        )
+        operator_state = types.SimpleNamespace(list_backlog_records=AsyncMock(return_value=[]))
+        operator_work = types.SimpleNamespace(materialize_improvement_proposal=AsyncMock())
+
+        with patch.dict(
+            sys.modules,
+            {
+                "athanor_agents.governor_backbone": governor,
+                "athanor_agents.execution_state": execution,
+                "athanor_agents.operator_state": operator_state,
+                "athanor_agents.operator_work": operator_work,
+            },
+        ):
+            result = _run(engine.run_improvement_cycle())
+
+        assert result["status"] == "blocked_by_headroom"
+        assert result["admission_classification"] == "blocked_by_headroom"
+        assert "throughput" in result["admission_reason"].lower()
+        assert result["proposals_generated"] == 0
+        assert result["backlog_items_created"] == 0
+
+    def test_improvement_cycle_materializes_generated_proposals_into_backlog(self):
+        engine = _make_engine()
+        redis = _FakeRedis(
+            report={
+                "patterns": [{"id": "pattern-1"}],
+                "recommendations": ["Tighten the coding-agent handoff prompt."],
+            }
+        )
+        engine._get_redis = AsyncMock(return_value=redis)
+        engine._load_value_throughput_scorecard = AsyncMock(return_value={})
+        engine.run_benchmark_suite = AsyncMock(
+            return_value={
+                "timestamp": "2026-04-18T12:00:00Z",
+                "passed": 4,
+                "total": 5,
+                "pass_rate": 0.8,
+                "results": [],
+                "comparison": {
+                    "agent_health": {
+                        "baseline": 90.0,
+                        "new": 70.0,
+                        "delta": -20.0,
+                        "improved": False,
+                        "regressed": True,
+                    }
+                },
+            }
+        )
+
+        governor = types.SimpleNamespace(
+            build_capacity_snapshot=AsyncMock(
+                return_value={
+                    "posture": "healthy",
+                    "queue": {"posture": "healthy"},
+                    "provider_reserve": {"posture": "healthy"},
+                    "local_compute": {
+                        "idle_harvest_slots_open": True,
+                        "harvestable_scheduler_slot_count": 2,
+                        "scheduler_slot_count": 5,
+                    },
+                }
+            )
+        )
+        execution = types.SimpleNamespace(
+            get_approval_request_stats=AsyncMock(return_value={"total": 0, "by_status": {}})
+        )
+        operator_state = types.SimpleNamespace(list_backlog_records=AsyncMock(return_value=[]))
+        operator_work = types.SimpleNamespace(
+            materialize_improvement_proposal=AsyncMock(
+                side_effect=[
+                    {
+                        "status": "created",
+                        "backlog_id": "backlog-improvement-1",
+                        "family": "maintenance",
+                    },
+                    {
+                        "status": "refreshed",
+                        "backlog_id": "backlog-improvement-2",
+                        "family": "maintenance",
+                    },
+                ]
+            )
+        )
+
+        with patch.dict(
+            sys.modules,
+            {
+                "athanor_agents.governor_backbone": governor,
+                "athanor_agents.execution_state": execution,
+                "athanor_agents.operator_state": operator_state,
+                "athanor_agents.operator_work": operator_work,
+            },
+        ):
+            result = _run(engine.run_improvement_cycle())
+
+        assert result["status"] == "proposal_only"
+        assert result["admission_classification"] == "proposal_only"
+        assert result["proposals_generated"] == 2
+        assert result["backlog_items_created"] == 1
+        assert result["backlog_items_refreshed"] == 1
+        assert result["backlog_ids"] == ["backlog-improvement-1", "backlog-improvement-2"]
+        assert result["review_ids"] == []
+        assert operator_work.materialize_improvement_proposal.await_count == 2

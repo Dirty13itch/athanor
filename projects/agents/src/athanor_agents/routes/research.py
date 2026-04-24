@@ -152,7 +152,11 @@ async def execute_research_job(job_id: str, request: Request):
         action=action,
         detail=f"Executed research job {job_id}",
         target=job_id,
-        metadata={"task_id": result.get("task_id", "")},
+        metadata={
+            "backlog_id": result.get("backlog_id", ""),
+            "materialization_status": result.get("materialization_status", ""),
+            "already_materialized": result.get("already_materialized", False),
+        },
     )
     return result
 

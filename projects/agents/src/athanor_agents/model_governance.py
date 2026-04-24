@@ -377,6 +377,10 @@ def get_program_operating_system() -> dict[str, Any]:
     return _load_registry("program-operating-system.json")
 
 
+def get_completion_program_registry() -> dict[str, Any]:
+    return _load_registry("completion-program-registry.json")
+
+
 def get_coding_lane_registry() -> dict[str, Any]:
     return _load_registry("coding-lane-registry.json")
 
@@ -666,10 +670,13 @@ def _build_governance_layers_snapshot(
 
 
 def build_model_governance_snapshot() -> dict[str, Any]:
+    from .capability_intelligence import build_capability_governance_summary
+
     roles = get_model_role_registry()
     workloads = get_workload_class_registry()
     proving_ground = get_model_proving_ground()
     model_intelligence = get_model_intelligence_lane()
+    capability_intelligence = build_capability_governance_summary()
 
     role_items = roles.get("roles", [])
     champion_summary = [
@@ -748,6 +755,7 @@ def build_model_governance_snapshot() -> dict[str, Any]:
         "promotion_controls": promotion_controls,
         "retirement_controls": retirement_controls,
         "model_intelligence": model_intelligence,
+        "capability_intelligence": capability_intelligence,
         "registry_versions": _build_registry_versions(),
         "governance_layers": _build_governance_layers_snapshot(
             proving_ground_snapshot=proving_ground,
@@ -829,6 +837,7 @@ async def build_model_intelligence_snapshot() -> dict[str, Any]:
 
 
 async def build_live_model_governance_snapshot() -> dict[str, Any]:
+    from .capability_intelligence import build_live_capability_governance_snapshot
     from .proving_ground import build_proving_ground_snapshot
     from .promotion_control import build_promotion_controls_snapshot
     from .retirement_control import build_retirement_controls_snapshot
@@ -879,7 +888,7 @@ async def build_live_model_governance_snapshot() -> dict[str, Any]:
             return degraded
         return result if isinstance(result, dict) else dict(fallback)
 
-    proving_ground, model_intelligence, promotion_controls, retirement_controls = await asyncio.gather(
+    proving_ground, model_intelligence, promotion_controls, retirement_controls, capability_intelligence = await asyncio.gather(
         _await_live_component(
             "proving_ground",
             build_proving_ground_snapshot(limit=12),
@@ -899,6 +908,11 @@ async def build_live_model_governance_snapshot() -> dict[str, Any]:
             "retirement_controls",
             build_retirement_controls_snapshot(limit=12),
             dict(baseline_snapshot.get("retirement_controls") or {}),
+        ),
+        _await_live_component(
+            "capability_intelligence",
+            build_live_capability_governance_snapshot(),
+            dict(baseline_snapshot.get("capability_intelligence") or {}),
         ),
     )
 
@@ -931,6 +945,7 @@ async def build_live_model_governance_snapshot() -> dict[str, Any]:
         "promotion_controls": promotion_controls,
         "retirement_controls": retirement_controls,
         "model_intelligence": model_intelligence,
+        "capability_intelligence": capability_intelligence,
         "registry_versions": _build_registry_versions(),
         "governance_layers": _build_governance_layers_snapshot(
             proving_ground_snapshot=proving_ground,

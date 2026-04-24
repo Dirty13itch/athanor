@@ -16,9 +16,11 @@ import asyncio
 import hashlib
 import json
 import logging
+import os
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
+from pathlib import Path
 from typing import Any
 
 from langchain_core.messages import HumanMessage
@@ -31,6 +33,8 @@ from .durable_state import (
     upsert_task_snapshot,
 )
 from .execution_state import sync_task_execution_projection
+from .operator_work import sync_backlog_item_from_task
+from .repo_paths import resolve_repo_root
 from .task_store import (
     TASKS_UPDATED_KEY,
     TASK_STATUS_VALUES,
@@ -222,6 +226,22 @@ PROVIDER_EXECUTION_TASK_CLASSES = {
     "multi_file_implementation",
     "repo_wide_audit",
     "search_heavy_planning",
+}
+GOVERNED_PROOF_TIMEOUT_SECONDS = 180
+MAX_GOVERNED_PROOF_OUTPUT_CHARS = 4000
+REPO_ROOT = resolve_repo_root(__file__)
+INTERNAL_EXECUTION_PROVIDER_MODELS = {
+    "google_gemini": "gemini-sub",
+}
+ALLOWED_GOVERNED_PROOF_SCRIPTS = {
+    "scripts/run_dashboard_value_proof.py",
+    "scripts/validate_platform_contract.py",
+    "scripts/run_gpu_scheduler_baseline_eval.py",
+    "scripts/collect_capacity_telemetry.py",
+    "scripts/write_quota_truth_snapshot.py",
+    "scripts/generate_documentation_index.py",
+    "scripts/generate_project_maturity_report.py",
+    "scripts/generate_truth_inventory_reports.py",
 }
 
 
@@ -1208,6 +1228,7 @@ async def persist_task_state(task: Task, *, preserve_updated_at: bool = False):
     try:
         await upsert_task_snapshot(task.to_dict())
         await sync_task_execution_projection(task.to_dict())
+        await sync_backlog_item_from_task(task.to_dict())
     except Exception as e:
         logger.warning("Failed to update task %s in durable store: %s", task.id, e)
         if redis_error is not None:
@@ -1349,6 +1370,17 @@ def _task_execution_lease(task: Task) -> dict[str, Any]:
     return dict(lease) if isinstance(lease, dict) else {}
 
 
+def _task_execution_model_override(task: Task) -> str | None:
+    metadata = task.metadata if isinstance(task.metadata, dict) else {}
+    explicit_override = str(metadata.get("task_execution_model_override") or "").strip()
+    if explicit_override:
+        return explicit_override
+
+    lease = _task_execution_lease(task)
+    provider = str(lease.get("provider") or "").strip()
+    return INTERNAL_EXECUTION_PROVIDER_MODELS.get(provider)
+
+
 def _should_use_provider_execution(task: Task) -> bool:
     metadata = task.metadata if isinstance(task.metadata, dict) else {}
     lease = _task_execution_lease(task)
@@ -1356,11 +1388,328 @@ def _should_use_provider_execution(task: Task) -> bool:
     task_class = str(metadata.get("task_class") or lease.get("task_class") or "").strip()
     if not provider or provider == "athanor_local":
         return False
+    if _task_execution_model_override(task):
+        return False
     if task.agent not in BACKGROUND_TASK_EXECUTION_AGENTS:
         return False
     if bool(metadata.get("interactive", False)):
         return False
     return task_class in PROVIDER_EXECUTION_TASK_CLASSES
+
+
+def _normalize_governed_proof_commands(metadata: dict[str, Any]) -> list[list[str]]:
+    commands = metadata.get("proof_commands")
+    if not isinstance(commands, list):
+        return []
+    normalized: list[list[str]] = []
+    for command in commands:
+        if not isinstance(command, (list, tuple)):
+            return []
+        parts = [str(part).strip() for part in command if str(part).strip()]
+        if len(parts) < 2:
+            return []
+        script_path = parts[1].replace("\\", "/")
+        if script_path not in ALLOWED_GOVERNED_PROOF_SCRIPTS:
+            return []
+        normalized.append(parts)
+    return normalized
+
+
+def _should_use_governed_proof_execution(task: Task) -> bool:
+    metadata = dict(task.metadata or {})
+    if task.agent != "coding-agent":
+        return False
+    if str(metadata.get("source") or "").strip() != "operator_backlog":
+        return False
+    if str(metadata.get("materialization_source") or "").strip() != "governed_dispatch_state":
+        return False
+    if not bool(metadata.get("_autonomy_managed")):
+        return False
+    if bool(metadata.get("interactive", False)):
+        return False
+    return bool(_normalize_governed_proof_commands(metadata))
+
+
+def _governed_proof_execution_stage(task: Task) -> str:
+    metadata = dict(task.metadata or {})
+    explicit_stage = str(metadata.get("proof_execution_stage") or "").strip().lower()
+    if explicit_stage in {"before_agent", "after_agent"}:
+        return explicit_stage
+    if not _should_use_governed_proof_execution(task):
+        return ""
+    if str(metadata.get("preferred_lane_family") or "").strip() == "safe_surface_execution":
+        return "after_agent"
+    return "before_agent"
+
+
+def _truncate_governed_proof_output(text: str, *, limit: int = MAX_GOVERNED_PROOF_OUTPUT_CHARS) -> str:
+    normalized = str(text or "")
+    if len(normalized) <= limit:
+        return normalized
+    return normalized[:limit].rstrip() + "\n...[truncated]"
+
+
+def _governed_proof_artifact_candidates(relative_path: str, proof_environment: dict[str, str]) -> list[Path]:
+    normalized = str(relative_path or "").strip()
+    if not normalized:
+        return []
+
+    path = Path(normalized)
+    candidates = [REPO_ROOT / path]
+
+    implementation_authority = str(
+        proof_environment.get("ATHANOR_IMPLEMENTATION_AUTHORITY")
+        or os.environ.get("ATHANOR_IMPLEMENTATION_AUTHORITY")
+        or ""
+    ).strip()
+    if implementation_authority:
+        candidates.append(Path(implementation_authority) / path)
+
+    runtime_artifact_root = str(
+        proof_environment.get("ATHANOR_RUNTIME_ARTIFACT_ROOT")
+        or os.environ.get("ATHANOR_RUNTIME_ARTIFACT_ROOT")
+        or ""
+    ).strip()
+    if runtime_artifact_root:
+        candidates.append(Path(runtime_artifact_root) / path)
+
+    deduped: list[Path] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(candidate)
+    return deduped
+
+
+def _hash_governed_proof_artifact(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(65536), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _snapshot_governed_proof_artifact_state(
+    relative_paths: list[str],
+    proof_environment: dict[str, str],
+) -> dict[str, dict[str, Any]]:
+    snapshots: dict[str, dict[str, Any]] = {}
+    for artifact_path in relative_paths:
+        normalized = str(artifact_path or "").strip()
+        if not normalized or normalized in snapshots:
+            continue
+
+        snapshot: dict[str, Any] = {"exists": False}
+        for candidate in _governed_proof_artifact_candidates(normalized, proof_environment):
+            if not candidate.exists():
+                continue
+            stat = candidate.stat()
+            snapshot = {
+                "exists": True,
+                "candidate": str(candidate),
+                "sha256": _hash_governed_proof_artifact(candidate),
+                "size_bytes": int(stat.st_size),
+                "mtime_ns": int(stat.st_mtime_ns),
+            }
+            break
+        snapshots[normalized] = snapshot
+    return snapshots
+
+
+def _governed_proof_artifact_deltas(
+    baseline: dict[str, dict[str, Any]],
+    current: dict[str, dict[str, Any]],
+) -> list[str]:
+    changed: list[str] = []
+    for relative_path, current_state in current.items():
+        baseline_state = dict(baseline.get(relative_path) or {})
+        if baseline_state.get("exists") != current_state.get("exists"):
+            changed.append(relative_path)
+            continue
+        if not current_state.get("exists"):
+            continue
+        if baseline_state.get("candidate") != current_state.get("candidate"):
+            changed.append(relative_path)
+            continue
+        if baseline_state.get("sha256") != current_state.get("sha256"):
+            changed.append(relative_path)
+            continue
+    return changed
+
+
+def _governed_proof_working_root(task: Task, proof_environment: dict[str, str]) -> Path:
+    metadata = dict(task.metadata or {})
+    implementation_authority = str(
+        proof_environment.get("ATHANOR_IMPLEMENTATION_AUTHORITY")
+        or os.environ.get("ATHANOR_IMPLEMENTATION_AUTHORITY")
+        or ""
+    ).strip()
+    if implementation_authority:
+        candidate = Path(implementation_authority)
+        if candidate.exists() and (
+            str(metadata.get("proof_execution_stage") or "").strip().lower() == "after_agent"
+            or str(metadata.get("preferred_lane_family") or "").strip() == "safe_surface_execution"
+            or bool(metadata.get("requires_mutable_implementation_authority"))
+        ):
+            return candidate
+    return REPO_ROOT
+
+
+async def _execute_task_via_governed_proof_bundle(task: Task) -> bool:
+    metadata = dict(task.metadata or {})
+    commands = _normalize_governed_proof_commands(metadata)
+    if not commands:
+        return False
+
+    proof_results: list[dict[str, Any]] = []
+    artifact_refs: list[str] = []
+    report_path = str(metadata.get("report_path") or "").strip()
+    timeout_seconds = int(metadata.get("proof_timeout_seconds") or GOVERNED_PROOF_TIMEOUT_SECONDS)
+    proof_environment = {
+        str(key): str(value)
+        for key, value in dict(metadata.get("proof_environment") or {}).items()
+        if str(key).strip()
+    }
+    proof_artifact_paths = [
+        str(item).strip()
+        for item in list(metadata.get("proof_artifact_paths") or [])
+        if str(item).strip()
+    ]
+    working_root = _governed_proof_working_root(task, proof_environment)
+
+    for command in commands:
+        started_at = time.time()
+        try:
+            process = await asyncio.create_subprocess_exec(
+                *command,
+                cwd=str(working_root),
+                env={**os.environ, **proof_environment},
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout_bytes, stderr_bytes = await asyncio.wait_for(
+                process.communicate(),
+                timeout=timeout_seconds,
+            )
+            stdout_text = stdout_bytes.decode("utf-8", errors="replace")
+            stderr_text = stderr_bytes.decode("utf-8", errors="replace")
+            result = {
+                "command": command,
+                "exit_code": process.returncode,
+                "duration_ms": max(int((time.time() - started_at) * 1000), 1),
+                "stdout": _truncate_governed_proof_output(stdout_text),
+                "stderr": _truncate_governed_proof_output(stderr_text, limit=2000),
+            }
+        except asyncio.TimeoutError:
+            result = {
+                "command": command,
+                "exit_code": None,
+                "duration_ms": max(int((time.time() - started_at) * 1000), 1),
+                "stdout": "",
+                "stderr": f"Governed proof command timed out after {timeout_seconds}s.",
+            }
+        proof_results.append(result)
+        task.steps.append(
+            {
+                "index": len(task.steps),
+                "type": "governed_proof_command",
+                "command": command,
+                "exit_code": result["exit_code"],
+                "duration_ms": result["duration_ms"],
+                "timestamp": time.time(),
+            }
+        )
+        if result["exit_code"] != 0:
+            metadata["verification_passed"] = False
+            metadata["verification_status"] = "failed"
+            metadata["proof_command_results"] = proof_results
+            task.metadata = metadata
+            _stamp_task_failure(
+                task,
+                error_message=result["stderr"] or f"Governed proof command failed: {' '.join(command)}",
+                failure_type="governed_proof_failed",
+                retry_eligible=task.retry_count < MAX_TASK_RETRIES,
+                stage="governed_proof",
+            )
+            await persist_task_state(task)
+            await _maybe_retry(task)
+            return True
+
+    if report_path:
+        for candidate in _governed_proof_artifact_candidates(report_path, proof_environment):
+            if candidate.exists():
+                artifact_refs.append(report_path)
+                break
+    for artifact_path in proof_artifact_paths:
+        normalized = str(artifact_path or "").strip()
+        if not normalized or normalized in artifact_refs:
+            continue
+        for candidate in _governed_proof_artifact_candidates(normalized, proof_environment):
+            if candidate.exists():
+                artifact_refs.append(normalized)
+                break
+
+    baseline_artifact_state = {
+        str(key): dict(value)
+        for key, value in dict(metadata.get("proof_artifact_baseline") or {}).items()
+        if str(key).strip()
+    }
+    current_artifact_state = _snapshot_governed_proof_artifact_state(proof_artifact_paths, proof_environment)
+    proof_artifact_deltas = _governed_proof_artifact_deltas(baseline_artifact_state, current_artifact_state)
+    metadata["proof_artifact_state"] = current_artifact_state
+    metadata["proof_artifact_deltas"] = proof_artifact_deltas
+
+    if (
+        str(metadata.get("proof_execution_stage") or "").strip().lower() == "after_agent"
+        and proof_artifact_paths
+        and not proof_artifact_deltas
+    ):
+        metadata["verification_passed"] = False
+        metadata["verification_status"] = "failed"
+        metadata["proof_command_results"] = proof_results
+        task.metadata = metadata
+        _stamp_task_failure(
+            task,
+            error_message=(
+                "Governed proof bundle passed, but no delta was observed on required proof artifacts: "
+                + ", ".join(proof_artifact_paths)
+            ),
+            failure_type="governed_proof_missing_delta",
+            retry_eligible=task.retry_count < MAX_TASK_RETRIES,
+            stage="governed_proof",
+        )
+        await persist_task_state(task)
+        await _maybe_retry(task)
+        return True
+
+    metadata["verification_passed"] = True
+    metadata["verification_status"] = "passed"
+    metadata["proof_command_results"] = proof_results
+    metadata.pop("failure", None)
+    metadata.pop("failure_detail", None)
+    metadata.pop("failure_repair", None)
+    if artifact_refs:
+        metadata["proof_artifacts"] = artifact_refs
+    task.metadata = metadata
+    task.status = "completed"
+    task.error = ""
+    task.result = json.dumps(
+        {
+            "status": "success",
+            "message": "Governed proof bundle executed successfully.",
+            "proof_command_surface": str(metadata.get("proof_command_surface") or ""),
+            "commands": proof_results,
+            "artifacts": artifact_refs,
+        },
+        indent=2,
+        sort_keys=True,
+    )
+    task.completed_at = time.time()
+    await persist_task_state(task)
+    return True
 
 
 def _build_provider_execution_metadata(provider_result: dict[str, Any]) -> dict[str, Any]:
@@ -1548,11 +1897,17 @@ async def _execute_task(task: Task):
             task.last_heartbeat = task.started_at
             await persist_task_state(task)
 
+        proof_execution_stage = _governed_proof_execution_stage(task)
+        if proof_execution_stage == "before_agent":
+            if await _execute_task_via_governed_proof_bundle(task):
+                return
+
         if _should_use_provider_execution(task):
             if await _execute_task_via_provider(task):
                 return
 
-        agent = get_agent(task.agent)
+        model_override = _task_execution_model_override(task)
+        agent = get_agent(task.agent, model_override=model_override) if model_override else get_agent(task.agent)
         if agent is None:
             _stamp_task_failure(
                 task,
@@ -1595,6 +1950,25 @@ async def _execute_task(task: Task):
                 )
             ),
         ]
+
+        if proof_execution_stage == "after_agent":
+            metadata = dict(task.metadata or {})
+            proof_environment = {
+                str(key): str(value)
+                for key, value in dict(metadata.get("proof_environment") or {}).items()
+                if str(key).strip()
+            }
+            proof_artifact_paths = [
+                str(item).strip()
+                for item in list(metadata.get("proof_artifact_paths") or [])
+                if str(item).strip()
+            ]
+            metadata["proof_artifact_baseline"] = _snapshot_governed_proof_artifact_state(
+                proof_artifact_paths,
+                proof_environment,
+            )
+            task.metadata = metadata
+            await persist_task_state(task)
 
         thread_id = f"task-{task.id}"
         config = {
@@ -1639,27 +2013,40 @@ async def _execute_task(task: Task):
 
             if kind == "on_tool_start":
                 name = event.get("name", "unknown")
+                run_id = str(event.get("run_id") or "").strip()
                 args = event.get("data", {}).get("input", {})
                 tools_used.append(name)
-                task.steps.append({
+                step = {
                     "index": step_index,
                     "type": "tool_call",
                     "tool_name": name,
                     "tool_input": args,
                     "timestamp": time.time(),
-                })
+                }
+                if run_id:
+                    step["tool_run_id"] = run_id
+                task.steps.append(step)
                 step_index += 1
                 # Persist steps after every tool call for real-time visibility
                 await persist_task_state(task)
 
             elif kind == "on_tool_end":
                 name = event.get("name", "unknown")
+                run_id = str(event.get("run_id") or "").strip()
                 output = str(event.get("data", {}).get("output", ""))[:2000]
-                # Update the last step with output
-                for step in reversed(task.steps):
-                    if step.get("tool_name") == name and "tool_output" not in step:
-                        step["tool_output"] = output
-                        break
+                matched_step = None
+                if run_id:
+                    for step in reversed(task.steps):
+                        if step.get("tool_run_id") == run_id:
+                            matched_step = step
+                            break
+                if matched_step is None:
+                    for step in reversed(task.steps):
+                        if step.get("tool_name") == name and "tool_output" not in step:
+                            matched_step = step
+                            break
+                if matched_step is not None:
+                    matched_step["tool_output"] = output
 
             elif kind == "on_chat_model_stream":
                 chunk = event["data"]["chunk"]
@@ -1697,10 +2084,38 @@ async def _execute_task(task: Task):
 
         result_text = result_text.strip()
 
-        task.status = "completed"
-        task.result = result_text
-        task.completed_at = time.time()
-        await persist_task_state(task)
+        if proof_execution_stage == "after_agent":
+            if not any(step.get("type") == "tool_call" for step in task.steps):
+                _stamp_task_failure(
+                    task,
+                    error_message="Task produced no execution evidence before governed proof.",
+                    failure_type="no_execution_evidence",
+                    retry_eligible=task.retry_count < MAX_TASK_RETRIES,
+                    stage="execution",
+                )
+                await persist_task_state(task)
+                await _maybe_retry(task)
+                return
+
+            metadata = dict(task.metadata or {})
+            if result_text:
+                metadata["implementation_result_summary"] = result_text[:2000]
+            task.metadata = metadata
+            proof_executed = await _execute_task_via_governed_proof_bundle(task)
+            if proof_executed:
+                if task.status != "completed":
+                    return
+                result_text = str(task.result or "").strip()
+            else:
+                task.status = "completed"
+                task.result = result_text
+                task.completed_at = time.time()
+                await persist_task_state(task)
+        else:
+            task.status = "completed"
+            task.result = result_text
+            task.completed_at = time.time()
+            await persist_task_state(task)
         await _agent_breaker.record_success()
 
         logger.info(

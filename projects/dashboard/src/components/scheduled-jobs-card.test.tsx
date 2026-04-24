@@ -10,7 +10,7 @@ const { getScheduledJobs } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/api", () => ({
-  getScheduledJobs,
+  getOperatorScheduledJobs: getScheduledJobs,
 }));
 
 function buildWrapper() {
@@ -158,7 +158,7 @@ describe("ScheduledJobsCard", () => {
       ).toBeInTheDocument();
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/workforce/scheduled/agent-schedule%3Acoding-agent/run",
+      "/api/operator/scheduled/agent-schedule%3Acoding-agent/run",
       expect.objectContaining({
         method: "POST",
       }),

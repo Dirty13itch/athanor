@@ -6,7 +6,7 @@ from typing import Literal
 from .config import Settings, settings
 from .services import join_url
 
-ProjectKind = Literal["core", "tenant", "domain", "scaffold"]
+ProjectKind = Literal["core", "tenant", "domain", "scaffold", "archive"]
 ProjectLens = Literal["default", "system", "media", "creative", "eoq"]
 
 
@@ -205,40 +205,27 @@ def build_project_registry(config: Settings | None = None) -> dict[str, ProjectD
         ),
         "ulrich-energy": ProjectDefinition(
             id="ulrich-energy",
-            name="Ulrich Energy",
-            headline="Scaffolded operational tenant for field workflows, reporting, and client-facing energy work.",
+            name="Ulrich Energy (retired lineage)",
+            headline="Retired Athanor lineage retained only as historical and runtime-reference context.",
             description=(
-                "Mobile-first workflow platform for inspections, reports, project status, and energy-audit operations."
+                "Retired in-repo lineage surface for the former Ulrich Energy scaffold. The only current delivery "
+                "authority is the external Ulrich Energy Auditing Website root."
             ),
-            status="scaffolded",
-            kind="scaffold",
+            status="retired",
+            kind="archive",
             first_class=False,
             lens="default",
-            primary_route="/workplanner?project=ulrich-energy",
+            primary_route="/projects?project=ulrich-energy",
             external_url=None,
-            operators=("Claude", "coding-agent", "research-agent"),
-            agents=("coding-agent", "research-agent", "knowledge-agent"),
-            location="projects/ulrich-energy/ and docs/projects/ulrich-energy/",
-            tech="Next.js scaffold, API stubs, requirements, mobile-first PWA direction",
-            needs=(
-                ProjectNeed(
-                    type="product",
-                    description="Turn the current scaffold into a coherent operator and field workflow with concrete data contracts.",
-                    agent="coding-agent",
-                    priority="normal",
-                    output_format="Typed app scaffolding, API routes, and task-ready implementation slices",
-                ),
-                ProjectNeed(
-                    type="research",
-                    description="Refine workflow sequencing, reporting expectations, and real user/operator constraints.",
-                    agent="research-agent",
-                    priority="low",
-                    output_format="Requirements delta and workflow notes",
-                ),
-            ),
+            operators=("Shaun", "knowledge-agent"),
+            agents=("knowledge-agent",),
+            location="projects/ulrich-energy/ and docs/projects/ulrich-energy/ (retired lineage reference only)",
+            tech="Retired Next.js scaffold lineage; runtime retirement remains packet-gated on Workshop",
+            needs=(),
             constraints=(
-                "Treat this as a scaffolded tenant until Shaun promotes it into the active build lane.",
-                "Prefer platform-aligned primitives over bespoke one-off architecture.",
+                "Do not treat this surface as a live product, build lane, or delivery authority.",
+                "Keep the external Ulrich Energy Auditing Website as the only current product authority.",
+                "Any Workshop runtime removal must happen through the explicit runtime retirement packet.",
             ),
         ),
         "media": ProjectDefinition(

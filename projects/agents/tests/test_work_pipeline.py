@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -9,7 +10,7 @@ from athanor_agents.work_pipeline import _check_starvation, run_pipeline_cycle
 
 
 class WorkPipelineTaskEventTests(unittest.IsolatedAsyncioTestCase):
-    async def test_starvation_uses_canonical_task_event_helper(self) -> None:
+    async def test_starvation_materializes_canonical_backlog_work(self) -> None:
         mock_r = AsyncMock()
         stale_timestamp = time.time() - (25 * 3600)
         mock_r.hgetall = AsyncMock(
@@ -22,31 +23,32 @@ class WorkPipelineTaskEventTests(unittest.IsolatedAsyncioTestCase):
         with (
             patch("athanor_agents.work_pipeline._get_redis", return_value=mock_r),
             patch(
-                "athanor_agents.tasks.submit_governed_task",
-                AsyncMock(return_value=SimpleNamespace(task=SimpleNamespace(id="task-1"), held_for_approval=False)),
-            ) as submit_governed_task,
+                "athanor_agents.operator_work.materialize_pipeline_starvation_recovery",
+                AsyncMock(
+                    return_value={
+                        "status": "created",
+                        "backlog_id": "backlog-starvation-1",
+                        "already_materialized": False,
+                    }
+                ),
+            ) as materialize_pipeline_starvation_recovery,
             patch("athanor_agents.tasks.publish_task_event", AsyncMock()) as publish_task_event,
         ):
             await _check_starvation()
 
-        submit_governed_task.assert_awaited_once_with(
-            agent="general-assistant",
-            prompt=(
-                "Project 'project-alpha' has had no activity for over 24 hours. "
-                "Review its current status, check for blockers, and suggest "
-                "the next actionable step. Be specific and practical."
-            ),
-            priority="low",
-            metadata={"source": "pipeline", "trigger": "starvation_recovery", "project": "project-alpha", "task_class": "workplan_generation"},
-            source="pipeline",
+        materialize_pipeline_starvation_recovery.assert_awaited_once()
+        self.assertEqual(
+            "project-alpha",
+            materialize_pipeline_starvation_recovery.await_args.kwargs["project_id"],
         )
         publish_task_event.assert_awaited_once()
         payload = publish_task_event.await_args.args[0]
         self.assertEqual("starvation_detected", payload["event"])
         self.assertEqual(["project-alpha"], payload["projects"])
+        self.assertEqual(["backlog-starvation-1"], payload["backlog_ids"])
         mock_r.publish.assert_not_awaited()
 
-    async def test_run_pipeline_cycle_submits_decomposed_tasks_via_canonical_governed_helper(self) -> None:
+    async def test_run_pipeline_cycle_materializes_supported_task_specs_into_backlog(self) -> None:
         intent = SimpleNamespace(text="Fix provider drift", source="synth", priority_hint="high", metadata={})
         plan = SimpleNamespace(
             id="plan-1",
@@ -84,6 +86,17 @@ class WorkPipelineTaskEventTests(unittest.IsolatedAsyncioTestCase):
                 "athanor_agents.governor.Governor.get",
                 return_value=SimpleNamespace(gate_task_submission=gate_task_submission),
             ),
+            patch(
+                "athanor_agents.operator_work.materialize_pipeline_task_spec",
+                AsyncMock(
+                    return_value={
+                        "status": "created",
+                        "backlog_id": "backlog-plan-1",
+                        "backlog": {"id": "backlog-plan-1"},
+                        "already_materialized": False,
+                    }
+                ),
+            ) as materialize_pipeline_task_spec,
             patch("athanor_agents.tasks.submit_governed_task", AsyncMock(return_value=submission)) as submit_governed_task,
             patch("athanor_agents.work_pipeline._record_cycle", AsyncMock()),
             patch("athanor_agents.work_pipeline._check_starvation", AsyncMock()),
@@ -100,12 +113,23 @@ class WorkPipelineTaskEventTests(unittest.IsolatedAsyncioTestCase):
         plan_metadata = generate_plan_from_intent.await_args.kwargs["metadata"]
         self.assertTrue(plan_metadata["_autonomy_managed"])
         self.assertEqual("pipeline", plan_metadata["_autonomy_source"])
-        submit_governed_task.assert_awaited_once_with(
-            agent="coding-agent",
-            prompt="Close provider drift",
-            priority="high",
-            metadata={"source": "pipeline", "plan_id": "plan-1"},
-            source="pipeline",
+        materialize_pipeline_task_spec.assert_awaited_once_with(
+            plan_id="plan-1",
+            spec={
+                "agent": "coding-agent",
+                "prompt": "Close provider drift",
+                "priority": "high",
+                "metadata": {"source": "pipeline", "plan_id": "plan-1"},
+            },
         )
+        submit_governed_task.assert_not_awaited()
         self.assertEqual(0, result.tasks_submitted)
-        self.assertEqual(1, result.tasks_held)
+        self.assertEqual(0, result.tasks_held)
+        self.assertEqual(1, result.backlog_items_created)
+        self.assertEqual(0, result.backlog_items_refreshed)
+        self.assertEqual(0, result.tasks_submitted_direct)
+        self.assertEqual(0, result.tasks_skipped_out_of_scope)
+
+    def test_pipeline_source_no_longer_direct_submits_product_work(self) -> None:
+        source = (Path(__file__).resolve().parents[1] / "src" / "athanor_agents" / "work_pipeline.py").read_text(encoding="utf-8")
+        self.assertNotIn("submit_governed_task(", source)

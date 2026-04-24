@@ -15,6 +15,7 @@ When reviewing changes, ask:
 5. **Naming/organization:** Does this file belong in this directory?
 
 Key architectural decisions to maintain:
+- Durable task execution lives in the Redis task store; governor owns compatibility and posture authority.
 - Verify current registry and status surfaces before asserting where durable task truth or governor posture authority currently live.
 - Verify current registry and provider-report surfaces before assuming any specific LiteLLM or provider gateway lane is live.
 - Verify current registry and status surfaces before assuming any specific agent-orchestrator lane, host, or port is live.

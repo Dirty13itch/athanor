@@ -16,6 +16,40 @@ def _make_client() -> TestClient:
 
 
 class ModelGovernanceRouteContractTests(unittest.TestCase):
+    def test_model_capabilities_reads_canonical_snapshot(self) -> None:
+        client = _make_client()
+        snapshot = {
+            "version": "2026-04-17.1",
+            "generated_at": "2026-04-17T23:40:00Z",
+            "source_of_truth": "reports/truth-inventory/capability-intelligence.json",
+            "providers": [
+                {
+                    "subject_id": "openai_codex",
+                    "subject_kind": "provider",
+                    "task_class": "multi_file_implementation",
+                    "capability_score": 91,
+                }
+            ],
+            "local_endpoints": [
+                {
+                    "subject_id": "foundry-coder-lane",
+                    "subject_kind": "local_endpoint",
+                    "task_class": "multi_file_implementation",
+                    "capability_score": 95,
+                }
+            ],
+            "degraded_subjects": [],
+        }
+        with patch(
+            "athanor_agents.capability_intelligence.build_live_capability_snapshot",
+            AsyncMock(return_value=snapshot),
+        ) as builder:
+            response = client.get("/v1/models/capabilities")
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(snapshot, response.json())
+        builder.assert_awaited_once_with()
+
     def test_model_proving_ground_reads_canonical_builder(self) -> None:
         client = _make_client()
         snapshot = {

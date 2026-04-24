@@ -277,7 +277,8 @@ async def review_task_output(task_id: str) -> dict:
     Uses the grader model via LiteLLM to evaluate output quality.
     Records feedback for the learning loop.
     """
-    from .tasks import get_task
+    from .operator_work import sync_backlog_item_from_task
+    from .tasks import get_task, persist_task_state
 
     task = await get_task(task_id)
     if not task:
@@ -333,9 +334,30 @@ Respond with ONLY a number between 0.0 and 1.0."""
         project_id=task.metadata.get("project", "") if task.metadata else "",
     )
 
+    review_id = ""
+    backlog_status = ""
+    metadata = dict(task.metadata or {})
+    verification_status = str(metadata.get("verification_status") or "").strip().lower()
+    verification_passed = bool(
+        metadata.get("verification_passed")
+        or verification_status in {"passed", "verified", "green", "success"}
+    )
+    if str(metadata.get("backlog_id") or "").strip() and not verification_passed:
+        review_id = str(metadata.get("approval_request_id") or "").strip()
+        if not review_id:
+            review_id = f"review:{task.id}"
+            metadata["approval_request_id"] = review_id
+            metadata["review_requested_at"] = time.time()
+            task.metadata = metadata
+            await persist_task_state(task)
+        backlog = await sync_backlog_item_from_task(task.to_dict())
+        backlog_status = str((backlog or {}).get("status") or "").strip()
+
     return {
         "task_id": task_id,
         "quality_score": quality_score,
         "agent": task.agent,
         "status": task.status,
+        "review_id": review_id,
+        "backlog_status": backlog_status,
     }

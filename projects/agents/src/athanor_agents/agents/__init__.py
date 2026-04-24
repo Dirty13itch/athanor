@@ -39,7 +39,9 @@ def _init_agents():
             _AGENTS[agent_id] = factory()
 
 
-def get_agent(name: str):
+def get_agent(name: str, *, model_override: str | None = None):
+    if model_override and name == "coding-agent":
+        return create_coding_agent(model_override=model_override)
     _init_agents()
     return _AGENTS.get(name)
 

@@ -8,7 +8,7 @@ import { ErrorPanel } from "@/components/error-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getScheduledJobs } from "@/lib/api";
+import { getOperatorScheduledJobs } from "@/lib/api";
 import type { ScheduledJobRecord, ScheduledJobsResponse } from "@/lib/contracts";
 import { formatRelativeTime } from "@/lib/format";
 import { queryKeys } from "@/lib/query-client";
@@ -72,7 +72,7 @@ export function ScheduledJobsCard({
 
   const jobsQuery = useQuery({
     queryKey: queryKeys.scheduledJobs(limit),
-    queryFn: async () => getScheduledJobs(limit),
+    queryFn: async () => getOperatorScheduledJobs(limit),
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
@@ -81,7 +81,7 @@ export function ScheduledJobsCard({
     setBusy(`${jobId}:${force ? "force" : "run"}`);
     setFeedback(null);
     try {
-      const response = await fetch(`/api/workforce/scheduled/${encodeURIComponent(jobId)}/run`, {
+      const response = await fetch(`/api/operator/scheduled/${encodeURIComponent(jobId)}/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

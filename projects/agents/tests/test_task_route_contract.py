@@ -129,6 +129,46 @@ class TaskRouteContractTests(unittest.TestCase):
         self.assertEqual("/v1/tasks/dispatch", kwargs["route"])
         self.assertEqual("task-123", kwargs["target"])
 
+    def test_run_scheduled_job_surfaces_backlog_materialization_details(self) -> None:
+        client = _make_client()
+        with (
+            patch("athanor_agents.routes.tasks.emit_operator_audit_event", AsyncMock()) as audit,
+            patch(
+                "athanor_agents.scheduler.run_scheduled_job",
+                AsyncMock(
+                    return_value={
+                        "job_id": "agent-schedule:coding-agent",
+                        "status": "materialized_to_backlog",
+                        "summary": "Scheduled coding-agent loop materialized as backlog backlog-coding-1",
+                        "backlog_id": "backlog-coding-1",
+                        "materialization_status": "created",
+                        "already_materialized": False,
+                    }
+                ),
+            ) as run_scheduled_job,
+        ):
+            response = client.post(
+                "/v1/tasks/scheduled/agent-schedule:coding-agent/run",
+                json={
+                    "actor": "operator",
+                    "session_id": "sess-1",
+                    "correlation_id": "corr-1",
+                    "reason": "Run coding schedule",
+                },
+            )
+
+        self.assertEqual(200, response.status_code)
+        payload = response.json()
+        self.assertEqual("materialized_to_backlog", payload["status"])
+        self.assertEqual("backlog-coding-1", payload["backlog_id"])
+        run_scheduled_job.assert_awaited_once_with(
+            "agent-schedule:coding-agent",
+            actor="operator",
+            force=False,
+        )
+        audit.assert_awaited_once()
+        self.assertEqual("accepted", audit.await_args.kwargs["decision"])
+
     def test_cancel_task_requires_operator_action_envelope(self) -> None:
         client = _make_client()
         with (

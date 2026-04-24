@@ -120,6 +120,47 @@ class BootstrapRouteContractTests(unittest.TestCase):
         )
         audit.assert_awaited_once()
 
+    def test_nudge_can_materialize_bootstrap_follow_up_backlog(self) -> None:
+        client = _make_client()
+        result = {
+            "active_program_id": "launch-readiness-bootstrap",
+            "active_family": "project_bootstrap",
+            "recommendation": {
+                "slice_id": "slice-compatibility-retirement",
+                "host_id": "codex_external",
+                "family": "project_bootstrap",
+                "continuation_mode": "external_bootstrap",
+                "worktree_path": "/tmp/bootstrap-lane",
+            },
+        }
+        backlog = {"id": "backlog-bootstrap-1", "family": "project_bootstrap"}
+        with (
+            patch("athanor_agents.routes.bootstrap.emit_operator_audit_event", AsyncMock()) as audit,
+            patch("athanor_agents.bootstrap_state.run_bootstrap_supervisor_cycle", AsyncMock(return_value=result)) as nudge,
+            patch("athanor_agents.operator_work.materialize_bootstrap_follow_up", AsyncMock(return_value=backlog)) as materialize_bootstrap_follow_up,
+        ):
+            response = client.post(
+                "/v1/bootstrap/programs/launch-readiness-bootstrap/nudge",
+                json={
+                    "actor": "operator",
+                    "session_id": "sess-1",
+                    "correlation_id": "corr-1",
+                    "reason": "Advance supervisor",
+                    "materialize_backlog": True,
+                    "project_id": "athanor",
+                    "owner_agent": "coding-agent",
+                },
+            )
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("nudged", response.json()["status"])
+        self.assertEqual("backlog-bootstrap-1", response.json()["backlog"]["id"])
+        nudge.assert_awaited_once()
+        materialize_bootstrap_follow_up.assert_awaited_once()
+        self.assertEqual("launch-readiness-bootstrap", materialize_bootstrap_follow_up.await_args.kwargs["program_id"])
+        self.assertEqual("slice-compatibility-retirement", materialize_bootstrap_follow_up.await_args.kwargs["slice_id"])
+        audit.assert_awaited_once()
+
     def test_approve_program_packet_returns_updated_snapshot(self) -> None:
         client = _make_client()
         result = {

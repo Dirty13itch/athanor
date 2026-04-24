@@ -265,6 +265,14 @@ export async function getExecutionRuns(limit = 25): Promise<ExecutionRunsRespons
   );
 }
 
+export async function getOperatorScheduledJobs(limit = 25): Promise<ScheduledJobsResponse> {
+  return fetchJson(
+    `/api/operator/scheduled?limit=${encodeURIComponent(String(limit))}`,
+    { cache: "no-store" },
+    scheduledJobsResponseSchema
+  );
+}
+
 // Legacy workforce compatibility helpers. First-class surfaces should use
 // canonical operator routes instead of these projections.
 export async function getScheduledJobs(limit = 25): Promise<ScheduledJobsResponse> {

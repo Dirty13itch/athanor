@@ -657,6 +657,18 @@ export const config = {
       operators: ["Claude", "research-agent"],
     },
     {
+      id: "ulrich-energy",
+      name: "Ulrich Energy",
+      headline: "Business-ops tenant for field scheduling, proof tracking, and admin obligations.",
+      status: "operational",
+      kind: "tenant",
+      firstClass: false,
+      lens: "default",
+      primaryRoute: "/backlog?project=ulrich-energy",
+      externalUrl: null,
+      operators: ["Shaun", "business-ops-agent"],
+    },
+    {
       id: "media",
       name: "Media Library",
       headline: "Operational domain project spanning curation, acquisition, and catalog quality.",

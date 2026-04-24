@@ -34,6 +34,7 @@ _LLM_API_KEY = settings.llm_api_key
 
 class JobStatus(str, Enum):
     SCHEDULED = "scheduled"
+    QUEUED = "queued"
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
@@ -55,6 +56,7 @@ class ResearchJob:
     run_count: int = 0
     last_result: str = ""
     last_task_id: str = ""
+    last_backlog_id: str = ""
     error: str = ""
 
     def to_dict(self) -> dict:
@@ -71,6 +73,7 @@ class ResearchJob:
             "run_count": self.run_count,
             "last_result": self.last_result[:500],
             "last_task_id": self.last_task_id,
+            "last_backlog_id": self.last_backlog_id,
             "error": self.error,
         }
 
@@ -89,6 +92,7 @@ class ResearchJob:
             run_count=data.get("run_count", 0),
             last_result=data.get("last_result", ""),
             last_task_id=data.get("last_task_id", ""),
+            last_backlog_id=data.get("last_backlog_id", ""),
             error=data.get("error", ""),
         )
 
@@ -243,11 +247,11 @@ Time budget: {job.max_duration_minutes} minutes max."""
 
 
 async def execute_job(job_id: str, *, autonomy_managed: bool = False) -> dict:
-    """Execute a research job by submitting it to the research agent.
+    """Execute a research job by materializing canonical queue work.
 
-    Returns dict with task_id and status.
+    Returns dict with backlog_id and queue status.
     """
-    from .tasks import submit_governed_task
+    from .operator_work import materialize_research_schedule
 
     job = await get_job(job_id)
     if not job:
@@ -257,9 +261,10 @@ async def execute_job(job_id: str, *, autonomy_managed: bool = False) -> dict:
         return {"error": f"Job {job_id} is cancelled"}
 
     # Update job status
-    job.status = JobStatus.RUNNING
+    job.status = JobStatus.QUEUED
     job.last_run = time.time()
     job.run_count += 1
+    job.error = ""
 
     r = await _get_redis()
     await r.hset(RESEARCH_JOBS_KEY, job.id, json.dumps(job.to_dict()))
@@ -268,33 +273,35 @@ async def execute_job(job_id: str, *, autonomy_managed: bool = False) -> dict:
     prompt = _build_research_prompt(job)
 
     try:
-        submission = await submit_governed_task(
-            agent="research-agent",
+        materialized = await materialize_research_schedule(
+            job_id=job.id,
+            topic=job.topic,
             prompt=prompt,
-            priority="low",
+            schedule_hours=job.schedule_hours,
             metadata={
                 "source": "research_job",
                 "job_id": job.id,
                 "topic": job.topic,
                 "_autonomy_managed": autonomy_managed,
             },
-            source="research_job",
         )
-        task = submission.task
 
-        job.last_task_id = task.id
+        job.last_task_id = ""
+        job.last_backlog_id = str(materialized.get("backlog_id") or "")
         await r.hset(RESEARCH_JOBS_KEY, job.id, json.dumps(job.to_dict()))
 
         logger.info(
-            "Research job %s executing: task=%s topic=%s",
-            job.id, task.id, job.topic[:40],
+            "Research job %s queued via backlog=%s topic=%s",
+            job.id, job.last_backlog_id, job.topic[:40],
         )
 
         return {
             "job_id": job.id,
-            "task_id": task.id,
-            "status": "running",
+            "backlog_id": job.last_backlog_id,
+            "status": "queued",
             "topic": job.topic,
+            "materialization_status": str(materialized.get("status") or "created"),
+            "already_materialized": bool(materialized.get("already_materialized")),
         }
     except Exception as e:
         job.status = JobStatus.FAILED
@@ -368,13 +375,13 @@ async def _store_report(job: ResearchJob, report: str) -> None:
 # --- Scheduler Integration ---
 
 
-async def check_scheduled_jobs(*, autonomy_managed: bool = False) -> int:
-    """Check for research jobs that need to run.
-
-    Called by the scheduler loop. Returns number of jobs triggered.
-    """
+async def materialize_due_jobs(*, autonomy_managed: bool = False) -> dict[str, object]:
+    """Materialize due research jobs into the canonical backlog queue."""
     now = time.time()
     triggered = 0
+    created = 0
+    refreshed = 0
+    backlog_ids: list[str] = []
 
     try:
         jobs = await list_jobs()
@@ -389,11 +396,35 @@ async def check_scheduled_jobs(*, autonomy_managed: bool = False) -> int:
 
             # Check if interval has elapsed
             interval_seconds = job.schedule_hours * 3600
-            if now - job.last_run >= interval_seconds:
-                await execute_job(job.id, autonomy_managed=autonomy_managed)
-                triggered += 1
+            if now - job.last_run < interval_seconds:
+                continue
 
+            result = await execute_job(job.id, autonomy_managed=autonomy_managed)
+            if "error" in result:
+                continue
+            triggered += 1
+            backlog_id = str(result.get("backlog_id") or "").strip()
+            if backlog_id:
+                backlog_ids.append(backlog_id)
+            if str(result.get("materialization_status") or "") == "refreshed":
+                refreshed += 1
+            else:
+                created += 1
     except Exception as e:
         logger.warning("Research job schedule check failed: %s", e)
 
-    return triggered
+    return {
+        "triggered": triggered,
+        "created": created,
+        "refreshed": refreshed,
+        "backlog_ids": backlog_ids,
+    }
+
+
+async def check_scheduled_jobs(*, autonomy_managed: bool = False) -> int:
+    """Check for research jobs that need to run.
+
+    Called by the scheduler loop. Returns number of jobs triggered.
+    """
+    summary = await materialize_due_jobs(autonomy_managed=autonomy_managed)
+    return int(summary.get("triggered") or 0)

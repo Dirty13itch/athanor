@@ -214,7 +214,6 @@ async def _build_domain_state() -> dict:
         "eoq": "eoq",
         "media": "media",
         "athanor": "infrastructure",
-        "ulrich-energy": "ulrich_energy",
         "kindred": "kindred",
     }
 

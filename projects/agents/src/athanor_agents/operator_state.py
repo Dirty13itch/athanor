@@ -4,6 +4,7 @@ import json
 from datetime import datetime, timezone
 from typing import Any
 
+from .autonomous_queue import canonicalize_backlog_record
 from .durable_state import (
     _as_datetime,
     _as_json_value,
@@ -33,7 +34,7 @@ def _row_to_idea_record(row: dict[str, Any]) -> dict[str, Any]:
 
 
 def _row_to_backlog_record(row: dict[str, Any]) -> dict[str, Any]:
-    return {
+    record = {
         "id": str(row.get("backlog_id") or ""),
         "title": str(row.get("title") or ""),
         "prompt": str(row.get("prompt") or ""),
@@ -60,6 +61,7 @@ def _row_to_backlog_record(row: dict[str, Any]) -> dict[str, Any]:
         "updated_at": _as_timestamp(row.get("updated_at")),
         "completed_at": _as_timestamp(row.get("completed_at")),
     }
+    return canonicalize_backlog_record(record)
 
 
 async def upsert_idea_record(record: dict[str, Any]) -> bool:
@@ -190,6 +192,7 @@ async def get_idea_stats() -> dict[str, Any]:
 
 
 async def upsert_backlog_record(record: dict[str, Any]) -> bool:
+    record = canonicalize_backlog_record(record)
     query = """
         INSERT INTO work.agent_backlog (
             backlog_id,

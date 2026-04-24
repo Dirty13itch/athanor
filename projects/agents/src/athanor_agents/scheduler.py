@@ -621,11 +621,16 @@ async def _check_research_jobs():
         return
 
     try:
-        from .research_jobs import check_scheduled_jobs
+        from .research_jobs import materialize_due_jobs
 
-        triggered = await check_scheduled_jobs(autonomy_managed=True)
-        if triggered > 0:
-            logger.info("Scheduler: triggered %d research job(s)", triggered)
+        summary = await materialize_due_jobs(autonomy_managed=True)
+        if int(summary.get("triggered") or 0) > 0:
+            logger.info(
+                "Scheduler: materialized %d research job(s) into backlog (%d created, %d refreshed)",
+                int(summary.get("triggered") or 0),
+                int(summary.get("created") or 0),
+                int(summary.get("refreshed") or 0),
+            )
     except Exception as e:
         logger.warning("Scheduler: research job check failed: %s", e)
 
@@ -650,6 +655,26 @@ async def _check_benchmarks():
 
         engine = get_improvement_engine()
         await engine.load()
+        admission = await engine.evaluate_runtime_admission()
+        if not admission.get("allowed"):
+            summary = f"Benchmark cycle deferred: {str(admission.get('reason') or 'runtime headroom is unavailable')}"
+            await _emit_schedule_event(
+                event_type="schedule_skipped",
+                job_id="benchmark-cycle",
+                job_family="benchmarks",
+                owner_agent="system",
+                trigger_mode="scheduled",
+                summary=summary,
+                outcome=str(admission.get("admission_classification") or "blocked_by_headroom"),
+                metadata=_enrich_scheduled_job_payload(
+                    "benchmark-cycle",
+                    {},
+                    execution_plane="proposal_only",
+                    admission_classification=str(admission.get("admission_classification") or "blocked_by_headroom"),
+                    admission_reason=str(admission.get("reason") or ""),
+                ),
+            )
+            return
         result = await engine.run_benchmark_suite()
         r = await _get_redis()
         await r.set(BENCHMARK_KEY, str(time.time()))
@@ -659,6 +684,24 @@ async def _check_benchmarks():
         logger.info(
             "Self-improvement benchmarks: %d/%d passed (%.0f%%)",
             passed, total, result.get("pass_rate", 0) * 100,
+        )
+        await _emit_schedule_event(
+            event_type="schedule_run",
+            job_id="benchmark-cycle",
+            job_family="benchmarks",
+            owner_agent="system",
+            trigger_mode="scheduled",
+            summary=f"Benchmark cycle completed: {passed}/{total} passed",
+            outcome="completed",
+            metadata=_enrich_scheduled_job_payload(
+                "benchmark-cycle",
+                {
+                    "passed": passed,
+                    "total": total,
+                },
+                execution_plane="proposal_only",
+                admission_classification="proposal_only",
+            ),
         )
 
         # Check for regressions
@@ -744,6 +787,36 @@ async def _check_improvement_cycle():
             result.get("proposals_generated", 0),
             result.get("patterns_consumed", 0),
         )
+        blocked = str(result.get("status") or "").startswith("blocked_by_")
+        await _emit_schedule_event(
+            event_type="schedule_skipped" if blocked else "schedule_run",
+            job_id="improvement-cycle",
+            job_family="improvement_cycle",
+            owner_agent="system",
+            trigger_mode="scheduled",
+            summary=(
+                f"Improvement cycle deferred: {str(result.get('admission_reason') or result.get('status') or 'blocked')}"
+                if blocked
+                else (
+                    f"Improvement cycle generated {result.get('proposals_generated', 0)} proposals "
+                    f"from {result.get('patterns_consumed', 0)} patterns"
+                )
+            ),
+            outcome=str(result.get("status") or "proposal_only"),
+            metadata=_enrich_scheduled_job_payload(
+                "improvement-cycle",
+                {
+                    "backlog_ids": list(result.get("backlog_ids") or []),
+                    "review_ids": list(result.get("review_ids") or []),
+                    "proposals_generated": result.get("proposals_generated", 0),
+                    "backlog_items_created": result.get("backlog_items_created", 0),
+                    "backlog_items_refreshed": result.get("backlog_items_refreshed", 0),
+                },
+                execution_plane=str(result.get("execution_plane") or "proposal_only"),
+                admission_classification=str(result.get("admission_classification") or "proposal_only"),
+                admission_reason=str(result.get("admission_reason") or ""),
+            ),
+        )
     except Exception as e:
         logger.warning("Scheduler: improvement cycle failed: %s", e)
 
@@ -804,9 +877,12 @@ async def _check_work_pipeline():
         r = await _get_redis()
         await r.set(PIPELINE_KEY, str(time.time()))
         logger.info(
-            "Work pipeline cycle: mined=%d new=%d plans=%d tasks=%d duration_s=%.1f",
+            "Work pipeline cycle: mined=%d new=%d plans=%d backlog_created=%d backlog_refreshed=%d direct_tasks=%d duration_s=%.1f",
             result.intents_mined, result.intents_new,
-            result.plans_created, result.tasks_submitted,
+            result.plans_created,
+            getattr(result, "backlog_items_created", 0),
+            getattr(result, "backlog_items_refreshed", 0),
+            getattr(result, "tasks_submitted_direct", 0),
             time.monotonic() - started,
         )
         # Refresh the auto-digest after each pipeline cycle
@@ -856,6 +932,31 @@ async def _check_nightly_optimization():
 
     logger.info("Scheduler: running nightly prompt optimization")
     try:
+        from .self_improvement import get_improvement_engine
+
+        engine = get_improvement_engine()
+        await engine.load()
+        admission = await engine.evaluate_runtime_admission()
+        if not admission.get("allowed"):
+            summary = f"Nightly optimization deferred: {str(admission.get('reason') or 'runtime headroom is unavailable')}"
+            await _emit_schedule_event(
+                event_type="schedule_skipped",
+                job_id="nightly-optimization",
+                job_family="nightly_optimization",
+                owner_agent="system",
+                trigger_mode="scheduled",
+                summary=summary,
+                outcome=str(admission.get("admission_classification") or "blocked_by_headroom"),
+                metadata=_enrich_scheduled_job_payload(
+                    "nightly-optimization",
+                    {},
+                    execution_plane="proposal_only",
+                    admission_classification=str(admission.get("admission_classification") or "blocked_by_headroom"),
+                    admission_reason=str(admission.get("reason") or ""),
+                ),
+            )
+            return
+
         result = await run_nightly_optimization()
         r = await _get_redis()
         await r.set(NIGHTLY_OPTIMIZATION_KEY, now.strftime("%Y-%m-%d"))
@@ -864,6 +965,29 @@ async def _check_nightly_optimization():
             result.get("traces_analyzed", 0),
             len(result.get("underperformers", [])),
             result.get("variants_generated", 0),
+        )
+        await _emit_schedule_event(
+            event_type="schedule_run",
+            job_id="nightly-optimization",
+            job_family="nightly_optimization",
+            owner_agent="system",
+            trigger_mode="scheduled",
+            summary=(
+                f"Nightly optimization analyzed {result.get('traces_analyzed', 0)} traces, "
+                f"found {len(result.get('underperformers', []))} underperformers, and generated "
+                f"{result.get('variants_generated', 0)} variants"
+            ),
+            outcome="completed",
+            metadata=_enrich_scheduled_job_payload(
+                "nightly-optimization",
+                {
+                    "traces_analyzed": result.get("traces_analyzed", 0),
+                    "underperformer_count": len(result.get("underperformers", [])),
+                    "variants_generated": result.get("variants_generated", 0),
+                },
+                execution_plane="proposal_only",
+                admission_classification="proposal_only",
+            ),
         )
     except Exception as e:
         logger.warning("Scheduler: nightly optimization failed: %s", e)
@@ -1151,30 +1275,13 @@ async def _scheduler_loop():
                         agent, interval,
                     )
                     try:
-                        from .tasks import submit_governed_task
-
-                        submission = await submit_governed_task(
-                            agent=agent,
-                            prompt=schedule["prompt"],
-                            priority=schedule["priority"],
-                            metadata={
-                                "source": "scheduler",
-                                "interval": interval,
-                                "task_class": workload_class,
-                            },
-                            source="scheduler",
+                        await _run_agent_schedule(
+                            agent,
+                            schedule,
+                            trigger_mode="scheduler",
+                            actor="scheduler",
+                            force_override=False,
                         )
-                        task = submission.task
-                        await _set_last_run(agent, now)
-
-                        # Log schedule_run event for pattern detection
-                        from .activity import log_event
-                        asyncio.create_task(log_event(
-                            event_type="schedule_run",
-                            agent=agent,
-                            description=f"Scheduled task submitted (interval={interval}s)",
-                            data={"interval": interval, "priority": schedule["priority"]},
-                        ))
                     except Exception as e:
                         logger.warning("Scheduler: failed to submit task for %s: %s", agent, e)
 
@@ -1566,6 +1673,134 @@ async def _emit_schedule_event(
     )
 
 
+def _scheduled_agent_runs_via_backlog(agent: str) -> bool:
+    return str(agent or "").strip() == "coding-agent"
+
+
+def _scheduled_job_default_plane(job_id: str) -> str:
+    normalized = str(job_id or "").strip()
+    if _scheduled_job_execution_mode(normalized) == "materialized_to_backlog":
+        return "queue"
+    if normalized in {"benchmark-cycle", "improvement-cycle", "nightly-optimization"}:
+        return "proposal_only"
+    return "direct_control"
+
+
+def _scheduled_job_default_admission(job_id: str) -> str:
+    return _scheduled_job_default_plane(job_id)
+
+
+def _scheduled_job_default_admission_reason(job_id: str, admission_classification: str) -> str:
+    normalized = str(admission_classification or "").strip()
+    if normalized == "queue":
+        return "Scheduled product work is routed into the canonical backlog queue."
+    if normalized == "proposal_only":
+        return "This loop is allowed to gather evidence and emit proposals, but not direct mutations."
+    if normalized == "direct_control":
+        return "This loop remains a direct control-plane routine in v1."
+    if normalized == "blocked_by_headroom":
+        return "This loop is blocked because runtime headroom is not currently available."
+    if normalized == "blocked_by_queue_priority":
+        return "This loop is blocked because higher-priority queue work is dispatchable."
+    if normalized == "blocked_by_review_debt":
+        return "This loop is blocked because review debt must clear first."
+    return f"{str(job_id or '').strip()} used admission classification {normalized or 'unknown'}."
+
+
+def _enrich_scheduled_job_payload(
+    job_id: str,
+    payload: dict[str, Any] | None = None,
+    *,
+    execution_mode: str = "",
+    execution_plane: str = "",
+    admission_classification: str = "",
+    admission_reason: str = "",
+) -> dict[str, Any]:
+    enriched = dict(payload or {})
+    resolved_mode = str(execution_mode or enriched.get("execution_mode") or _scheduled_job_execution_mode(job_id))
+    resolved_plane = str(execution_plane or enriched.get("execution_plane") or _scheduled_job_default_plane(job_id))
+    resolved_admission = str(
+        admission_classification
+        or enriched.get("admission_classification")
+        or _scheduled_job_default_admission(job_id)
+    )
+    resolved_reason = str(
+        admission_reason
+        or enriched.get("admission_reason")
+        or _scheduled_job_default_admission_reason(job_id, resolved_admission)
+    )
+    enriched["execution_mode"] = resolved_mode
+    enriched["execution_plane"] = resolved_plane
+    enriched["admission_classification"] = resolved_admission
+    enriched["admission_reason"] = resolved_reason
+    return enriched
+
+
+def _scheduled_job_execution_mode(job_id: str) -> str:
+    normalized = str(job_id or "").strip()
+    if normalized == "research:scheduler":
+        return "materialized_to_backlog"
+    if normalized.startswith("research:"):
+        return "materialized_to_backlog"
+    if normalized.startswith("agent-schedule:") and _scheduled_agent_runs_via_backlog(normalized.split(":", 1)[1]):
+        return "materialized_to_backlog"
+    return "executed_directly"
+
+
+async def _submit_agent_schedule_task(
+    *,
+    agent: str,
+    prompt: str,
+    priority: str,
+    interval: int,
+) -> dict[str, Any]:
+    from .tasks import submit_governed_task
+
+    workload_class = SCHEDULED_AGENT_WORKLOADS.get(agent, "private_automation")
+    submission = await submit_governed_task(
+        agent=agent,
+        prompt=prompt,
+        priority=priority,
+        metadata={
+            "source": "scheduler",
+            "interval": interval,
+            "task_class": workload_class,
+        },
+        source="scheduler",
+    )
+    task = submission.task
+    return {
+        "task_id": task.id,
+        "status": "pending_approval" if submission.held_for_approval else "queued",
+        "held_for_approval": submission.held_for_approval,
+    }
+
+
+async def _materialize_scheduled_agent_run(
+    *,
+    agent: str,
+    prompt: str,
+    priority: str,
+    interval: int,
+    now_ts: float | None = None,
+) -> dict[str, Any]:
+    from .operator_work import materialize_scheduled_product_work
+
+    workload_class = SCHEDULED_AGENT_WORKLOADS.get(agent, "private_automation")
+    return await materialize_scheduled_product_work(
+        job_id=f"agent-schedule:{agent}",
+        agent=agent,
+        prompt=prompt,
+        priority=priority,
+        interval_seconds=interval,
+        metadata={
+            "source": "scheduler",
+            "interval": interval,
+            "task_class": workload_class,
+            "workload_class": workload_class,
+        },
+        now_ts=now_ts,
+    )
 
 
 async def _run_agent_schedule(
@@ -1576,49 +1811,89 @@ async def _run_agent_schedule(
     actor: str,
     force_override: bool,
 ) -> dict[str, Any]:
-    from .tasks import submit_governed_task
-
     interval = int(schedule.get("interval", 0) or 0)
     priority = str(schedule.get("priority") or "normal")
-    workload_class = SCHEDULED_AGENT_WORKLOADS.get(agent, "private_automation")
-    submission = await submit_governed_task(
-        agent=agent,
-        prompt=str(schedule.get("prompt") or ""),
-        priority=priority,
-        metadata={
-            "source": "scheduler",
+    prompt = str(schedule.get("prompt") or "")
+    job_id = f"agent-schedule:{agent}"
+    label = "Manual" if trigger_mode == "manual" else "Scheduled"
+    if _scheduled_agent_runs_via_backlog(agent):
+        execution = await _materialize_scheduled_agent_run(
+            agent=agent,
+            prompt=prompt,
+            priority=priority,
+            interval=interval,
+        )
+        status = "materialized_to_backlog"
+        summary = f"{label} {agent} proactive loop materialized as backlog {execution.get('backlog_id') or 'unknown'}"
+        metadata = {
+            "actor": actor,
+            "force_override": force_override,
             "interval": interval,
-            "task_class": workload_class,
-        },
-        source="scheduler",
-    )
-    task = submission.task
+            "priority": priority,
+            "backlog_id": execution.get("backlog_id"),
+            "materialization_status": execution.get("status"),
+            "already_materialized": execution.get("already_materialized"),
+            "execution_mode": "materialized_to_backlog",
+            "execution_plane": "queue",
+            "admission_classification": "queue",
+            "admission_reason": "Scheduled product work was admitted into the canonical backlog queue.",
+        }
+        result: dict[str, Any] = {
+            "job_id": job_id,
+            "status": status,
+            "summary": summary,
+            "backlog_id": execution.get("backlog_id"),
+            "materialization_status": execution.get("status"),
+            "already_materialized": bool(execution.get("already_materialized")),
+            "execution_mode": "materialized_to_backlog",
+            "execution_plane": "queue",
+            "admission_classification": "queue",
+            "admission_reason": "Scheduled product work was admitted into the canonical backlog queue.",
+        }
+    else:
+        execution = await _submit_agent_schedule_task(
+            agent=agent,
+            prompt=prompt,
+            priority=priority,
+            interval=interval,
+        )
+        status = str(execution.get("status") or "queued")
+        summary = f"{label} {agent} proactive loop submitted as task {execution.get('task_id') or 'unknown'}"
+        metadata = {
+            "actor": actor,
+            "force_override": force_override,
+            "interval": interval,
+            "priority": priority,
+            "task_id": execution.get("task_id"),
+            "held_for_approval": execution.get("held_for_approval"),
+            "execution_mode": "executed_directly",
+            "execution_plane": "direct_control",
+            "admission_classification": "direct_control",
+            "admission_reason": "This scheduled loop remains a direct control-plane routine in v1.",
+        }
+        result = {
+            "job_id": job_id,
+            "status": status,
+            "summary": summary,
+            "task_id": execution.get("task_id"),
+            "execution_mode": "executed_directly",
+            "execution_plane": "direct_control",
+            "admission_classification": "direct_control",
+            "admission_reason": "This scheduled loop remains a direct control-plane routine in v1.",
+        }
+
     await _set_last_run(agent, time.time())
-    status = "pending_approval" if submission.held_for_approval else "queued"
-    summary = f"Manual {agent} proactive loop submitted as task {task.id}"
     await _emit_schedule_event(
         event_type="schedule_run",
-        job_id=f"agent-schedule:{agent}",
+        job_id=job_id,
         job_family="agent_schedule",
         owner_agent=agent,
         trigger_mode=trigger_mode,
         summary=summary,
         outcome=status,
-        metadata={
-            "actor": actor,
-            "force_override": force_override,
-            "interval": interval,
-            "priority": priority,
-            "task_id": task.id,
-            "held_for_approval": submission.held_for_approval,
-        },
+        metadata=metadata,
     )
-    return {
-        "job_id": f"agent-schedule:{agent}",
-        "status": status,
-        "summary": summary,
-        "task_id": task.id,
-    }
+    return result
 
 
 async def _run_daily_digest(*, trigger_mode: str, actor: str, force_override: bool) -> dict[str, Any]:
@@ -1777,15 +2052,9 @@ async def run_scheduled_job(
             f"Governor deferred manual run for {job_id}: "
             f"{str(governance.get('reason') or 'not permitted under current posture')}"
         )
-        await _emit_schedule_event(
-            event_type="schedule_skipped",
-            job_id=job_id,
-            job_family=job_family,
-            owner_agent=owner_agent,
-            trigger_mode="manual",
-            summary=summary,
-            outcome="deferred",
-            metadata={
+        deferred_metadata = _enrich_scheduled_job_payload(
+            job_id,
+            {
                 "actor": actor,
                 "governor_status": governance.get("status"),
                 "presence_state": governance.get("presence_state"),
@@ -1797,14 +2066,26 @@ async def run_scheduled_job(
                 "deferred_by": governance.get("deferred_by"),
                 "force_override": False,
             },
+            admission_classification=str(governance.get("deferred_by") or "blocked_by_headroom"),
+            admission_reason=str(governance.get("reason") or ""),
         )
-        return {
+        await _emit_schedule_event(
+            event_type="schedule_skipped",
+            job_id=job_id,
+            job_family=job_family,
+            owner_agent=owner_agent,
+            trigger_mode="manual",
+            summary=summary,
+            outcome="deferred",
+            metadata=deferred_metadata,
+        )
+        return _enrich_scheduled_job_payload(job_id, {
             "job_id": job_id,
             "status": "deferred",
             "summary": summary,
             "governor_decision": governance,
             "override_available": True,
-        }
+        }, admission_classification=str(governance.get("deferred_by") or "blocked_by_headroom"), admission_reason=str(governance.get("reason") or ""))
 
     if job_id.startswith("agent-schedule:"):
         agent = job_id.split(":", 1)[1]
@@ -1899,9 +2180,14 @@ async def run_scheduled_job(
         from .work_pipeline import run_pipeline_cycle
 
         result = await asyncio.wait_for(run_pipeline_cycle(), timeout=900)
+        backlog_items_created = int(getattr(result, "backlog_items_created", 0) or 0)
+        backlog_items_refreshed = int(getattr(result, "backlog_items_refreshed", 0) or 0)
+        tasks_submitted_direct = int(getattr(result, "tasks_submitted_direct", 0) or 0)
+        tasks_skipped_out_of_scope = int(getattr(result, "tasks_skipped_out_of_scope", 0) or 0)
         summary = (
             f"Manual pipeline cycle mined {result.intents_mined} intents, created "
-            f"{result.plans_created} plans, and submitted {result.tasks_submitted} task(s)"
+            f"{result.plans_created} plans, materialized {backlog_items_created + backlog_items_refreshed} backlog item(s), "
+            f"and directly submitted {tasks_submitted_direct} task(s)"
         )
         await _emit_schedule_event(
             event_type="schedule_run",
@@ -1917,6 +2203,10 @@ async def run_scheduled_job(
                 "plans_created": result.plans_created,
                 "tasks_submitted": result.tasks_submitted,
                 "tasks_held": result.tasks_held,
+                "backlog_items_created": backlog_items_created,
+                "backlog_items_refreshed": backlog_items_refreshed,
+                "tasks_submitted_direct": tasks_submitted_direct,
+                "tasks_skipped_out_of_scope": tasks_skipped_out_of_scope,
                 "error_count": len(result.errors),
                 "actor": actor,
                 "force_override": force,
@@ -1933,6 +2223,10 @@ async def run_scheduled_job(
                 "plans_created": result.plans_created,
                 "tasks_submitted": result.tasks_submitted,
                 "tasks_held": result.tasks_held,
+                "backlog_items_created": backlog_items_created,
+                "backlog_items_refreshed": backlog_items_refreshed,
+                "tasks_submitted_direct": tasks_submitted_direct,
+                "tasks_skipped_out_of_scope": tasks_skipped_out_of_scope,
                 "errors": list(result.errors),
             },
         }
@@ -1961,10 +2255,14 @@ async def run_scheduled_job(
         return {"job_id": job_id, "status": "completed", "summary": summary}
 
     if job_id == "research:scheduler":
-        from .research_jobs import check_scheduled_jobs
+        from .research_jobs import materialize_due_jobs
 
-        triggered = await check_scheduled_jobs()
-        summary = f"Manual research scheduler run triggered {triggered} job(s)"
+        materialization = await materialize_due_jobs()
+        triggered = int(materialization.get("triggered") or 0)
+        summary = (
+            f"Manual research scheduler run materialized {triggered} job(s) "
+            f"({int(materialization.get('created') or 0)} created, {int(materialization.get('refreshed') or 0)} refreshed)"
+        )
         await _emit_schedule_event(
             event_type="schedule_run",
             job_id=job_id,
@@ -1972,10 +2270,25 @@ async def run_scheduled_job(
             owner_agent="research-agent",
             trigger_mode="manual",
             summary=summary,
-            outcome="queued" if triggered > 0 else "completed",
-            metadata={"triggered": triggered, "actor": actor, "force_override": force},
+            outcome="materialized_to_backlog" if triggered > 0 else "completed",
+            metadata=_enrich_scheduled_job_payload(job_id, {
+                "triggered": triggered,
+                "created": int(materialization.get("created") or 0),
+                "refreshed": int(materialization.get("refreshed") or 0),
+                "backlog_ids": list(materialization.get("backlog_ids") or []),
+                "actor": actor,
+                "force_override": force,
+                "execution_mode": "materialized_to_backlog",
+            }, execution_plane="queue", admission_classification="queue"),
         )
-        return {"job_id": job_id, "status": "queued" if triggered > 0 else "completed", "summary": summary}
+        return _enrich_scheduled_job_payload(job_id, {
+            "job_id": job_id,
+            "status": "materialized_to_backlog" if triggered > 0 else "completed",
+            "summary": summary,
+            "created": int(materialization.get("created") or 0),
+            "refreshed": int(materialization.get("refreshed") or 0),
+            "backlog_ids": list(materialization.get("backlog_ids") or []),
+        }, execution_mode="materialized_to_backlog", execution_plane="queue", admission_classification="queue")
 
     if job_id == "owner-model":
         from .owner_model import rebuild_full
@@ -2015,7 +2328,7 @@ async def run_scheduled_job(
             )
             return {"job_id": job_id, "status": "failed", "summary": str(result["error"])}
 
-        summary = f"Research job {research_job_id} submitted"
+        summary = f"Research job {research_job_id} materialized as backlog {result.get('backlog_id') or 'unknown'}"
         await _emit_schedule_event(
             event_type="schedule_run",
             job_id=job_id,
@@ -2023,16 +2336,63 @@ async def run_scheduled_job(
             owner_agent="research-agent",
             trigger_mode="manual",
             summary=summary,
-            outcome="queued",
-            metadata={"task_id": result.get("task_id"), "actor": actor, "force_override": force},
+            outcome="materialized_to_backlog",
+            metadata=_enrich_scheduled_job_payload(job_id, {
+                "backlog_id": result.get("backlog_id"),
+                "materialization_status": result.get("materialization_status"),
+                "already_materialized": result.get("already_materialized"),
+                "actor": actor,
+                "force_override": force,
+                "execution_mode": "materialized_to_backlog",
+            }, execution_plane="queue", admission_classification="queue"),
         )
-        return {"job_id": job_id, "status": "queued", "task_id": result.get("task_id"), "summary": summary}
+        return _enrich_scheduled_job_payload(job_id, {
+            "job_id": job_id,
+            "status": "materialized_to_backlog",
+            "backlog_id": result.get("backlog_id"),
+            "materialization_status": result.get("materialization_status"),
+            "already_materialized": result.get("already_materialized"),
+            "summary": summary,
+        }, execution_mode="materialized_to_backlog", execution_plane="queue", admission_classification="queue")
 
     if job_id == "benchmark-cycle":
         from .self_improvement import get_improvement_engine
 
         engine = get_improvement_engine()
         await engine.load()
+        admission = await engine.evaluate_runtime_admission()
+        if not admission.get("allowed"):
+            summary = f"Manual benchmark cycle deferred: {str(admission.get('reason') or 'runtime headroom is unavailable')}"
+            await _emit_schedule_event(
+                event_type="schedule_skipped",
+                job_id=job_id,
+                job_family="benchmarks",
+                owner_agent="system",
+                trigger_mode="manual",
+                summary=summary,
+                outcome=str(admission.get("admission_classification") or "blocked_by_headroom"),
+                metadata=_enrich_scheduled_job_payload(
+                    job_id,
+                    {
+                        "actor": actor,
+                        "force_override": force,
+                    },
+                    execution_plane="proposal_only",
+                    admission_classification=str(admission.get("admission_classification") or "blocked_by_headroom"),
+                    admission_reason=str(admission.get("reason") or ""),
+                ),
+            )
+            return _enrich_scheduled_job_payload(
+                job_id,
+                {
+                    "job_id": job_id,
+                    "status": str(admission.get("admission_classification") or "blocked_by_headroom"),
+                    "summary": summary,
+                },
+                execution_plane="proposal_only",
+                admission_classification=str(admission.get("admission_classification") or "blocked_by_headroom"),
+                admission_reason=str(admission.get("reason") or ""),
+            )
         result = await engine.run_benchmark_suite()
         summary = f"Manual benchmark cycle completed: {result.get('passed', 0)}/{result.get('total', 0)} passed"
         await _emit_schedule_event(
@@ -2043,14 +2403,19 @@ async def run_scheduled_job(
             trigger_mode="manual",
             summary=summary,
             outcome="completed",
-            metadata={
+            metadata=_enrich_scheduled_job_payload(job_id, {
                 "passed": result.get("passed", 0),
                 "total": result.get("total", 0),
                 "actor": actor,
                 "force_override": force,
-            },
+            }, execution_plane="proposal_only", admission_classification="proposal_only"),
         )
-        return {"job_id": job_id, "status": "completed", "summary": summary}
+        return _enrich_scheduled_job_payload(
+            job_id,
+            {"job_id": job_id, "status": "completed", "summary": summary},
+            execution_plane="proposal_only",
+            admission_classification="proposal_only",
+        )
 
     if job_id == "improvement-cycle":
         from .self_improvement import get_improvement_engine
@@ -2058,25 +2423,95 @@ async def run_scheduled_job(
         engine = get_improvement_engine()
         await engine.load()
         result = await engine.run_improvement_cycle()
+        blocked = str(result.get("status") or "").startswith("blocked_by_")
         summary = (
-            f"Manual improvement cycle generated {result.get('proposals_generated', 0)} proposals "
-            f"from {result.get('patterns_consumed', 0)} patterns"
+            f"Manual improvement cycle deferred: {str(result.get('admission_reason') or result.get('status') or 'blocked')}"
+            if blocked
+            else (
+                f"Manual improvement cycle generated {result.get('proposals_generated', 0)} proposals "
+                f"from {result.get('patterns_consumed', 0)} patterns"
+            )
         )
         await _emit_schedule_event(
-            event_type="schedule_run",
+            event_type="schedule_skipped" if blocked else "schedule_run",
             job_id=job_id,
             job_family="improvement_cycle",
             owner_agent="system",
             trigger_mode="manual",
             summary=summary,
-            outcome="completed",
-            metadata={"actor": actor, "force_override": force},
+            outcome=str(result.get("status") or "proposal_only"),
+            metadata=_enrich_scheduled_job_payload(
+                job_id,
+                {
+                    "actor": actor,
+                    "force_override": force,
+                    "backlog_ids": list(result.get("backlog_ids") or []),
+                    "review_ids": list(result.get("review_ids") or []),
+                    "proposals_generated": result.get("proposals_generated", 0),
+                    "backlog_items_created": result.get("backlog_items_created", 0),
+                    "backlog_items_refreshed": result.get("backlog_items_refreshed", 0),
+                },
+                execution_plane=str(result.get("execution_plane") or "proposal_only"),
+                admission_classification=str(result.get("admission_classification") or "proposal_only"),
+                admission_reason=str(result.get("admission_reason") or ""),
+            ),
         )
-        return {"job_id": job_id, "status": "completed", "summary": summary}
+        return _enrich_scheduled_job_payload(
+            job_id,
+            {
+                "job_id": job_id,
+                "status": str(result.get("status") or "proposal_only"),
+                "summary": summary,
+                "backlog_ids": list(result.get("backlog_ids") or []),
+                "review_ids": list(result.get("review_ids") or []),
+                "proposals_generated": result.get("proposals_generated", 0),
+                "backlog_items_created": result.get("backlog_items_created", 0),
+                "backlog_items_refreshed": result.get("backlog_items_refreshed", 0),
+            },
+            execution_plane=str(result.get("execution_plane") or "proposal_only"),
+            admission_classification=str(result.get("admission_classification") or "proposal_only"),
+            admission_reason=str(result.get("admission_reason") or ""),
+        )
 
     if job_id == "nightly-optimization":
+        from .self_improvement import get_improvement_engine
         from .prompt_optimizer import run_nightly_optimization
 
+        engine = get_improvement_engine()
+        await engine.load()
+        admission = await engine.evaluate_runtime_admission()
+        if not admission.get("allowed"):
+            summary = f"Manual nightly optimization deferred: {str(admission.get('reason') or 'runtime headroom is unavailable')}"
+            await _emit_schedule_event(
+                event_type="schedule_skipped",
+                job_id=job_id,
+                job_family="nightly_optimization",
+                owner_agent="system",
+                trigger_mode="manual",
+                summary=summary,
+                outcome=str(admission.get("admission_classification") or "blocked_by_headroom"),
+                metadata=_enrich_scheduled_job_payload(
+                    job_id,
+                    {
+                        "actor": actor,
+                        "force_override": force,
+                    },
+                    execution_plane="proposal_only",
+                    admission_classification=str(admission.get("admission_classification") or "blocked_by_headroom"),
+                    admission_reason=str(admission.get("reason") or ""),
+                ),
+            )
+            return _enrich_scheduled_job_payload(
+                job_id,
+                {
+                    "job_id": job_id,
+                    "status": str(admission.get("admission_classification") or "blocked_by_headroom"),
+                    "summary": summary,
+                },
+                execution_plane="proposal_only",
+                admission_classification=str(admission.get("admission_classification") or "blocked_by_headroom"),
+                admission_reason=str(admission.get("reason") or ""),
+            )
         result = await run_nightly_optimization()
         summary = (
             f"Manual nightly optimization analyzed {result.get('traces_analyzed', 0)} traces, "
@@ -2091,9 +2526,32 @@ async def run_scheduled_job(
             trigger_mode="manual",
             summary=summary,
             outcome="completed",
-            metadata={"actor": actor, "force_override": force},
+            metadata=_enrich_scheduled_job_payload(
+                job_id,
+                {
+                    "actor": actor,
+                    "force_override": force,
+                    "traces_analyzed": result.get("traces_analyzed", 0),
+                    "underperformer_count": len(result.get("underperformers", [])),
+                    "variants_generated": result.get("variants_generated", 0),
+                },
+                execution_plane="proposal_only",
+                admission_classification="proposal_only",
+            ),
         )
-        return {"job_id": job_id, "status": "completed", "summary": summary}
+        return _enrich_scheduled_job_payload(
+            job_id,
+            {
+                "job_id": job_id,
+                "status": "completed",
+                "summary": summary,
+                "traces_analyzed": result.get("traces_analyzed", 0),
+                "underperformer_count": len(result.get("underperformers", [])),
+                "variants_generated": result.get("variants_generated", 0),
+            },
+            execution_plane="proposal_only",
+            admission_classification="proposal_only",
+        )
 
     if job_id == "knowledge-refresh":
         from .knowledge_refresh import run_knowledge_refresh
@@ -2111,13 +2569,23 @@ async def run_scheduled_job(
             trigger_mode="manual",
             summary=summary,
             outcome="completed" if not result.get("docs_failed") else "warning",
-            metadata={"actor": actor, "force_override": force},
+            metadata=_enrich_scheduled_job_payload(
+                job_id,
+                {"actor": actor, "force_override": force},
+                execution_plane="direct_control",
+                admission_classification="direct_control",
+            ),
         )
-        return {
+        return _enrich_scheduled_job_payload(
+            job_id,
+            {
             "job_id": job_id,
             "status": "completed" if not result.get("docs_failed") else "warning",
             "summary": summary,
-        }
+            },
+            execution_plane="direct_control",
+            admission_classification="direct_control",
+        )
 
     if job_id == "weekly-dpo-training":
         now = datetime.now()

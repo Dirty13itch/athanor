@@ -4,6 +4,9 @@ Mines intent → deduplicates → generates plans → approves or queues →
 decomposes into tasks → governor gates → agents execute → feedback loops.
 
 Runs on a schedule (06:00, 12:00, 18:00) and on-demand via API.
+
+Direct task producers in this module must use tasks.submit_governed_task;
+the v1 pipeline prefers canonical backlog materialization for autonomous work.
 """
 
 import json
@@ -52,6 +55,10 @@ class CycleResult:
     plans_created: int
     tasks_submitted: int
     tasks_held: int
+    backlog_items_created: int = 0
+    backlog_items_refreshed: int = 0
+    tasks_submitted_direct: int = 0
+    tasks_skipped_out_of_scope: int = 0
     errors: list[str] = field(default_factory=list)
 
 
@@ -69,7 +76,7 @@ async def run_pipeline_cycle() -> CycleResult:
     4. Generate plans for new intents
     5. Auto-approve low-risk plans (governor Level A)
     6. Decompose approved plans into tasks
-    7. Submit tasks through governor gate
+    7. Materialize supported queue work into backlog
     8. Record cycle results
     """
     result = CycleResult(
@@ -195,23 +202,22 @@ async def run_pipeline_cycle() -> CycleResult:
         if plan.status == "approved":
             try:
                 task_specs = await decompose_plan_to_tasks(plan)
-                # 7. Submit through governor
+                # 7. Materialize supported queue work into backlog
                 for spec in task_specs:
                     try:
-                        from .tasks import submit_governed_task
+                        from .operator_work import materialize_pipeline_task_spec
 
-                        submission = await submit_governed_task(
-                            agent=spec["agent"],
-                            prompt=spec["prompt"],
-                            priority=spec.get("priority", "normal"),
-                            metadata=spec.get("metadata", {}),
-                            source="pipeline",
+                        materialized = await materialize_pipeline_task_spec(
+                            plan_id=plan.id,
+                            spec=spec,
                         )
-                        task = submission.task
-                        if submission.held_for_approval:
-                            result.tasks_held += 1
+                        materialization_status = str(materialized.get("status") or "")
+                        if materialization_status == "created":
+                            result.backlog_items_created += 1
+                        elif materialization_status == "refreshed":
+                            result.backlog_items_refreshed += 1
                         else:
-                            result.tasks_submitted += 1
+                            result.tasks_skipped_out_of_scope += 1
                     except Exception as e:
                         logger.warning("Task submission failed: %s", e)
                         result.errors.append(f"Task submit failed: {e}")
@@ -224,9 +230,10 @@ async def run_pipeline_cycle() -> CycleResult:
     await _check_starvation()
 
     logger.info(
-        "Pipeline cycle complete: mined=%d new=%d plans=%d submitted=%d held=%d",
+        "Pipeline cycle complete: mined=%d new=%d plans=%d backlog_created=%d backlog_refreshed=%d direct=%d held=%d skipped=%d",
         result.intents_mined, result.intents_new, result.plans_created,
-        result.tasks_submitted, result.tasks_held,
+        result.backlog_items_created, result.backlog_items_refreshed,
+        result.tasks_submitted_direct, result.tasks_held, result.tasks_skipped_out_of_scope,
     )
     return result
 
@@ -322,46 +329,45 @@ async def _check_starvation():
         now = time.time()
         threshold = 24 * 3600  # 24 hours
 
-        starved = []
+        starved: list[tuple[str, float]] = []
         for project_id, ts in last_tasks.items():
             pid = project_id.decode() if isinstance(project_id, bytes) else project_id
             ts_val = float(ts.decode() if isinstance(ts, bytes) else ts)
             if now - ts_val > threshold:
                 hours_idle = round((now - ts_val) / 3600, 1)
                 logger.info("Starvation detected: project %s idle for %.1f hours", pid, hours_idle)
-                starved.append(pid)
+                starved.append((pid, hours_idle))
 
-        # Auto-recovery: publish starvation event and submit a general-assistant
-        # planning task to review the starved project
+        # Auto-recovery: materialize project follow-up into canonical backlog
+        # instead of letting the pipeline own direct task execution.
         if starved:
-            from .tasks import publish_task_event, submit_governed_task
-            for pid in starved[:2]:  # Max 2 recovery tasks per cycle
+            from .operator_work import materialize_pipeline_starvation_recovery
+            from .tasks import publish_task_event
+            backlog_ids = []
+            for pid, hours_idle in starved[:2]:  # Max 2 recovery tasks per cycle
                 try:
-                    await submit_governed_task(
-                        agent="general-assistant",
-                        prompt=(
-                            f"Project '{pid}' has had no activity for over 24 hours. "
-                            f"Review its current status, check for blockers, and suggest "
-                            f"the next actionable step. Be specific and practical."
-                        ),
-                        priority="low",
-                        metadata={
-                            "source": "pipeline",
-                            "trigger": "starvation_recovery",
-                            "project": pid,
-                            "task_class": "workplan_generation",
-                        },
-                        source="pipeline",
+                    materialized = await materialize_pipeline_starvation_recovery(
+                        project_id=pid,
+                        hours_idle=hours_idle,
                     )
-                    logger.info("Starvation recovery task submitted for project %s", pid)
+                    backlog_id = str(materialized.get("backlog_id") or "").strip()
+                    if backlog_id:
+                        backlog_ids.append(backlog_id)
+                    logger.info(
+                        "Starvation recovery queue item %s for project %s (%s)",
+                        materialized.get("status"),
+                        pid,
+                        backlog_id or "no-backlog-id",
+                    )
                 except Exception as e:
-                    logger.warning("Failed to submit recovery task for %s: %s", pid, e)
+                    logger.warning("Failed to materialize starvation recovery for %s: %s", pid, e)
 
             # Publish event for dashboard visibility
             await publish_task_event(
                 {
                     "event": "starvation_detected",
-                    "projects": starved,
+                    "projects": [pid for pid, _hours_idle in starved],
+                    "backlog_ids": backlog_ids,
                     "timestamp": now,
                 }
             )

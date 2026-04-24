@@ -745,6 +745,27 @@ async def create_operator_backlog_endpoint(request: Request):
         linked_idea_id=str(body.get("linked_idea_id") or ""),
         created_by=str(body.get("actor") or action.actor or "operator"),
         origin=str(body.get("origin") or "operator"),
+        family=str(body.get("family") or ""),
+        project_id=str(body.get("project_id") or ""),
+        source_type=str(body.get("source_type") or ""),
+        source_ref=str(body.get("source_ref") or ""),
+        routing_class=str(body.get("routing_class") or ""),
+        verification_contract=str(body.get("verification_contract") or ""),
+        closure_rule=str(body.get("closure_rule") or ""),
+        materialization_source=str(body.get("materialization_source") or ""),
+        materialization_reason=str(body.get("materialization_reason") or ""),
+        recurrence_program_id=str(body.get("recurrence_program_id") or ""),
+        result_id=str(body.get("result_id") or ""),
+        review_id=str(body.get("review_id") or ""),
+        value_class=str(body.get("value_class") or ""),
+        deliverable_kind=str(body.get("deliverable_kind") or ""),
+        deliverable_refs=body.get("deliverable_refs") if isinstance(body.get("deliverable_refs"), list) else [],
+        beneficiary_surface=str(body.get("beneficiary_surface") or ""),
+        acceptance_mode=str(body.get("acceptance_mode") or ""),
+        accepted_by=str(body.get("accepted_by") or ""),
+        accepted_at=str(body.get("accepted_at") or ""),
+        acceptance_proof_refs=body.get("acceptance_proof_refs") if isinstance(body.get("acceptance_proof_refs"), list) else [],
+        operator_steered=bool(body.get("operator_steered")),
         metadata=dict(body.get("metadata") or {}) if isinstance(body.get("metadata"), dict) or body.get("metadata") is None else {},
     )
     await emit_operator_audit_event(
@@ -758,6 +779,121 @@ async def create_operator_backlog_endpoint(request: Request):
         target=backlog["id"],
     )
     return {"status": "created", "backlog": backlog}
+
+
+@router.post("/backlog/materialize-maintenance")
+async def materialize_maintenance_backlog_endpoint(request: Request):
+    from ..operator_work import materialize_maintenance_signal
+
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/v1/operator/backlog/materialize-maintenance",
+        action_class="operator",
+        default_reason="Materialized maintenance backlog item",
+    )
+    if denial:
+        return denial
+
+    title = str(body.get("title") or "").strip()
+    prompt = str(body.get("prompt") or "").strip()
+    owner_agent = str(body.get("owner_agent") or "").strip()
+    project_id = str(body.get("project_id") or "").strip()
+    source_ref = str(body.get("source_ref") or "").strip()
+    if not title or not prompt or not owner_agent or not source_ref:
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/operator/backlog/materialize-maintenance",
+            action_class="operator",
+            decision="denied",
+            status_code=400,
+            action=action,
+            detail="title, prompt, owner_agent, and source_ref are required",
+        )
+        return JSONResponse(
+            status_code=400,
+            content={"error": "title, prompt, owner_agent, and source_ref are required"},
+        )
+
+    backlog = await materialize_maintenance_signal(
+        project_id=project_id,
+        title=title,
+        prompt=prompt,
+        source_ref=source_ref,
+        owner_agent=owner_agent,
+        recurrence_program_id=str(body.get("recurrence_program_id") or ""),
+        approval_mode=str(body.get("approval_mode") or "none"),
+        metadata=dict(body.get("metadata") or {}) if isinstance(body.get("metadata"), dict) or body.get("metadata") is None else {},
+    )
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/operator/backlog/materialize-maintenance",
+        action_class="operator",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail=f"Materialized maintenance backlog item {backlog['id']}",
+        target=backlog["id"],
+    )
+    return {"status": "materialized", "backlog": backlog}
+
+
+@router.post("/backlog/materialize-bootstrap-follow-up")
+async def materialize_bootstrap_follow_up_backlog_endpoint(request: Request):
+    from ..operator_work import materialize_bootstrap_follow_up
+
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/v1/operator/backlog/materialize-bootstrap-follow-up",
+        action_class="operator",
+        default_reason="Materialized bootstrap follow-up backlog item",
+    )
+    if denial:
+        return denial
+
+    program_id = str(body.get("program_id") or "").strip()
+    slice_id = str(body.get("slice_id") or "").strip()
+    title = str(body.get("title") or "").strip()
+    prompt = str(body.get("prompt") or "").strip()
+    project_id = str(body.get("project_id") or "").strip()
+    source_ref = str(body.get("source_ref") or "").strip()
+    owner_agent = str(body.get("owner_agent") or "").strip()
+    if not program_id or not slice_id or not title or not prompt or not source_ref or not owner_agent:
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/operator/backlog/materialize-bootstrap-follow-up",
+            action_class="operator",
+            decision="denied",
+            status_code=400,
+            action=action,
+            detail="program_id, slice_id, title, prompt, source_ref, and owner_agent are required",
+        )
+        return JSONResponse(
+            status_code=400,
+            content={"error": "program_id, slice_id, title, prompt, source_ref, and owner_agent are required"},
+        )
+
+    backlog = await materialize_bootstrap_follow_up(
+        program_id=program_id,
+        slice_id=slice_id,
+        family=str(body.get("family") or "project_bootstrap"),
+        title=title,
+        prompt=prompt,
+        project_id=project_id,
+        source_ref=source_ref,
+        owner_agent=owner_agent,
+        metadata=dict(body.get("metadata") or {}) if isinstance(body.get("metadata"), dict) or body.get("metadata") is None else {},
+    )
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/operator/backlog/materialize-bootstrap-follow-up",
+        action_class="operator",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail=f"Materialized bootstrap follow-up backlog item {backlog['id']}",
+        target=backlog["id"],
+    )
+    return {"status": "materialized", "backlog": backlog}
 
 
 @router.post("/backlog/{backlog_id}/transition")
@@ -833,11 +969,24 @@ async def dispatch_operator_backlog_endpoint(backlog_id: str, request: Request):
     if denial:
         return denial
 
-    payload = await dispatch_backlog_item(
-        backlog_id,
-        lane_override=str(body.get("lane_override") or ""),
-        reason=str(body.get("reason") or ""),
-    )
+    try:
+        payload = await dispatch_backlog_item(
+            backlog_id,
+            lane_override=str(body.get("lane_override") or ""),
+            reason=str(body.get("reason") or ""),
+        )
+    except ValueError as exc:
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/operator/backlog/{backlog_id}/dispatch",
+            action_class="operator",
+            decision="denied",
+            status_code=400,
+            action=action,
+            detail=str(exc),
+            target=backlog_id,
+        )
+        return JSONResponse(status_code=400, content={"error": str(exc)})
     if not payload:
         await emit_operator_audit_event(
             service="agent-server",

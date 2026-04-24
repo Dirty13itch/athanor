@@ -81,7 +81,7 @@ PROVIDER_TO_MODEL = {
     "athanor_local": "reasoning",
     "anthropic_claude_code": "claude",
     "openai_codex": "gpt",
-    "google_gemini": "gemini",
+    "google_gemini": "gemini-sub",
     "moonshot_kimi": "kimi-k2.5",
     "zai_glm_coding": "glm-4.7",
     "deepseek_api": "deepseek",

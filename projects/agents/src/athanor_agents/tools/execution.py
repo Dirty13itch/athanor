@@ -8,7 +8,7 @@ Phase 2: Filesystem + shell (requires Docker volume mounts).
 
 Security model:
     - READ allowed from /workspace (read-only codebase), /data/personal (read-only personal data)
-    - WRITE allowed only to /output (staging area)
+    - WRITE allowed to /output (staging area) and an optional implementation-authority mount
     - Commands run in /output with timeout, blocklist enforced
     - Path traversal prevented (resolved paths must stay in allowed dirs)
 """
@@ -24,12 +24,50 @@ logger = logging.getLogger(__name__)
 
 # --- Path security ---
 
-WORKSPACE_DIR = Path("/workspace")   # Read-only mount of /opt/athanor
-OUTPUT_DIR = Path("/output")         # Writable staging area
-PERSONAL_DIR = Path("/data/personal")  # Read-only mount of personal data
 
-READ_ALLOWED = [WORKSPACE_DIR, OUTPUT_DIR, PERSONAL_DIR]
-WRITE_ALLOWED = [OUTPUT_DIR]
+def _workspace_dir() -> Path:
+    return Path("/workspace")
+
+
+def _output_dir() -> Path:
+    return Path("/output")
+
+
+def _personal_dir() -> Path:
+    return Path("/data/personal")
+
+
+def _implementation_authority_dir() -> Path | None:
+    raw = str(os.getenv("ATHANOR_IMPLEMENTATION_AUTHORITY") or "").strip()
+    if not raw:
+        return None
+    return Path(raw).resolve()
+
+
+def _writable_implementation_authority_dir() -> Path | None:
+    candidate = _implementation_authority_dir()
+    if candidate is None:
+        return None
+    workspace_dir = _workspace_dir().resolve()
+    if candidate == workspace_dir:
+        return None
+    return candidate
+
+
+def _read_allowed_dirs() -> list[Path]:
+    allowed = [_workspace_dir(), _output_dir(), _personal_dir()]
+    implementation_authority = _implementation_authority_dir()
+    if implementation_authority is not None and implementation_authority not in allowed:
+        allowed.append(implementation_authority)
+    return allowed
+
+
+def _write_allowed_dirs() -> list[Path]:
+    allowed = [_output_dir()]
+    implementation_authority = _writable_implementation_authority_dir()
+    if implementation_authority is not None and implementation_authority not in allowed:
+        allowed.append(implementation_authority)
+    return allowed
 
 # Allowlist: only these command prefixes are permitted.
 # Anything not matching is rejected. This is safer than a blocklist.
@@ -72,7 +110,8 @@ DEFAULT_COMMAND_TIMEOUT = 60
 def _validate_read_path(path_str: str) -> Path:
     """Validate and resolve a path for reading. Raises ValueError if not allowed."""
     path = Path(path_str).resolve()
-    for allowed in READ_ALLOWED:
+    allowed_dirs = _read_allowed_dirs()
+    for allowed in allowed_dirs:
         try:
             path.relative_to(allowed)
             return path
@@ -80,14 +119,15 @@ def _validate_read_path(path_str: str) -> Path:
             continue
     raise ValueError(
         f"Path '{path_str}' is outside allowed read directories. "
-        f"Allowed: {', '.join(str(d) for d in READ_ALLOWED)}"
+        f"Allowed: {', '.join(str(d) for d in allowed_dirs)}"
     )
 
 
 def _validate_write_path(path_str: str) -> Path:
     """Validate and resolve a path for writing. Raises ValueError if not allowed."""
     path = Path(path_str).resolve()
-    for allowed in WRITE_ALLOWED:
+    allowed_dirs = _write_allowed_dirs()
+    for allowed in allowed_dirs:
         try:
             path.relative_to(allowed)
             return path
@@ -95,7 +135,7 @@ def _validate_write_path(path_str: str) -> Path:
             continue
     raise ValueError(
         f"Path '{path_str}' is outside allowed write directories. "
-        f"Writable: {', '.join(str(d) for d in WRITE_ALLOWED)}"
+        f"Writable: {', '.join(str(d) for d in allowed_dirs)}"
     )
 
 
@@ -261,13 +301,13 @@ async def write_file(path: str, content: str) -> str:
     """Write content to a file in the output directory.
 
     Use this to save generated code, test files, configuration, or other
-    artifacts. Files are written to /output/ which is the writable staging
-    area. Claude Code or Shaun will review and integrate your output.
+    artifacts. Files are written to /output/ or to the writable
+    implementation-authority path when one is mounted for bounded repo work.
 
     The parent directory is created automatically if it doesn't exist.
 
     Args:
-        path: Absolute path starting with /output/ (e.g., /output/tests/test_media.py)
+        path: Absolute path starting with /output/ or the writable implementation-authority path
         content: The file content to write
     """
     try:
@@ -289,7 +329,7 @@ async def list_directory(path: str, pattern: str = "*") -> str:
     Use this to explore the codebase structure or check your output files.
 
     Args:
-        path: Directory path to list (must be under /workspace, /output, or /data/personal)
+        path: Directory path to list (must be under /workspace, /output, /data/personal, or implementation authority)
         pattern: Glob pattern to filter results (default: "*", e.g., "*.py", "test_*")
     """
     try:
@@ -327,7 +367,7 @@ async def search_files(directory: str, pattern: str, file_glob: str = "*.py") ->
     or any text pattern across the codebase.
 
     Args:
-        directory: Directory to search in (must be under /workspace, /output, or /data/personal)
+        directory: Directory to search in (must be under /workspace, /output, /data/personal, or implementation authority)
         pattern: Text pattern to search for (case-insensitive substring match)
         file_glob: Glob pattern for files to search (default: "*.py")
     """
@@ -385,10 +425,11 @@ async def run_command(command: str, working_dir: str = "/output", timeout: int =
         - run_command("python -c 'print(1+1)'")
         - run_command("ls -la /workspace/agents/src/")
         - run_command("git diff", working_dir="/workspace/agents")
+        - run_command("npx vitest run", working_dir="/implementation/projects/dashboard")
 
     Args:
         command: The shell command to execute
-        working_dir: Working directory (default: /output). Must be /workspace or /output.
+        working_dir: Working directory (default: /output). Must be under an allowed read path.
         timeout: Max seconds to run (default: 60, max: 300)
     """
     try:
@@ -404,7 +445,7 @@ async def run_command(command: str, working_dir: str = "/output", timeout: int =
         timeout = min(max(timeout, 5), MAX_COMMAND_TIMEOUT)
 
         # Ensure output dir exists
-        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        _output_dir().mkdir(parents=True, exist_ok=True)
 
         proc = await asyncio.create_subprocess_shell(
             command,

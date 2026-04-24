@@ -1,5 +1,5 @@
 version: 1
-updated: 2026-04-13
+updated: 2026-04-17
 
 providers:
   athanor_local:
@@ -7,21 +7,23 @@ providers:
     category: local
     routing_posture: ordinary_auto
     routing_reason: verified_local_runtime
-    role: default_machine_lane
+    role: owned_compute_first_reserve
     strengths:
       - privacy_sensitive
       - low_latency
       - background_automation
       - repetitive_transforms
+      - sovereign_private_coding
+      - bulk_harvest
     privacy: lan_only
-    reserve: keep_available
+    reserve: protect_then_harvest
 
   anthropic_claude_code:
     enabled: true
     category: subscription
     routing_posture: ordinary_auto
     routing_reason: verified_cli_or_recent_burn
-    role: lead_interactive_coder
+    role: premium_interactive_architect
     strengths:
       - architecture
       - multi_file_editing
@@ -35,8 +37,9 @@ providers:
     category: subscription
     routing_posture: ordinary_auto
     routing_reason: verified_cli_or_recent_burn
-    role: async_cloud_executor
+    role: default_implementation_and_async_executor
     strengths:
+      - multi_file_implementation
       - backlog_execution
       - parallel_tasks
       - pr_sized_work
@@ -82,7 +85,7 @@ providers:
       - scaffold_generation
       - overflow_capacity
     privacy: cloud
-    reserve: burn_for_bulk
+    reserve: subscription_bulk_overflow
 
 task_classes:
   interactive_architecture:
@@ -90,31 +93,32 @@ task_classes:
       - anthropic_claude_code
     fallback:
       - moonshot_kimi
+      - google_gemini
       - openai_codex
       - athanor_local
 
   multi_file_implementation:
     primary:
-      - anthropic_claude_code
-    fallback:
       - openai_codex
-      - zai_glm_coding
+    fallback:
       - athanor_local
+      - anthropic_claude_code
+      - zai_glm_coding
 
   async_backlog_execution:
     primary:
-      - zai_glm_coding
-    fallback:
       - openai_codex
-      - google_gemini
+    fallback:
       - athanor_local
+      - zai_glm_coding
+      - google_gemini
 
   repo_wide_audit:
     primary:
       - google_gemini
     fallback:
-      - anthropic_claude_code
       - athanor_local
+      - anthropic_claude_code
 
   cheap_bulk_transform:
     primary:
@@ -206,8 +210,10 @@ quota_strategy:
   observe_reset_windows: true
   record_throttling_events: true
   preserve_premium_interactive_capacity: true
-  use_free_or_cheap_lanes_first_for_bulk: true
-  schedule_overnight_quota_harvest: true
+  use_local_owned_compute_first_when_quality_sufficient: true
+  use_subscription_quota_before_metered_overflow: true
+  metered_api_is_last_resort_for_bulk: true
+  schedule_overnight_local_harvest: true
 
 telemetry:
   log_provider_choice: true

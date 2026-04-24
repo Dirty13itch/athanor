@@ -539,6 +539,7 @@ async def create_maintenance_run_endpoint(project_id: str, request: Request):
         list_maintenance_run_records,
         upsert_maintenance_run_record,
     )
+    from ..operator_work import materialize_maintenance_signal
 
     body, action, denial = await _load_operator_body(
         request,
@@ -578,6 +579,43 @@ async def create_maintenance_run_endpoint(project_id: str, request: Request):
     await upsert_maintenance_run_record(record)
     saved = await list_maintenance_run_records(project_id, limit=1)
     latest = saved[0] if saved else record
+    backlog = None
+    if bool(body.get("materialize_backlog", False)):
+        owner_agent = str(body.get("owner_agent") or "coding-agent").strip() or "coding-agent"
+        kind = str(latest.get("kind") or body.get("kind") or "maintenance").strip() or "maintenance"
+        trigger = str(latest.get("trigger") or body.get("trigger") or "manual").strip() or "manual"
+        recurrence_program_id = str(body.get("recurrence_program_id") or "").strip()
+        source_ref = str(body.get("source_ref") or "").strip()
+        if not source_ref and recurrence_program_id:
+            source_ref = f"maintenance:{project_id}:program:{recurrence_program_id}"
+        if not source_ref:
+            source_ref = f"maintenance:{project_id}:kind:{kind}:trigger:{trigger}"
+        evidence_ref = str(latest.get("evidence_ref") or "").strip()
+        title = f"Maintenance follow-up: {project_id} / {kind}"
+        prompt_lines = [
+            f"Continue maintenance work for project {project_id}.",
+            f"Kind: {kind}",
+            f"Trigger: {trigger}",
+        ]
+        if evidence_ref:
+            prompt_lines.append(f"Evidence ref: {evidence_ref}")
+        prompt_lines.append("Materialize this maintenance signal as governed queue work before execution.")
+        backlog = await materialize_maintenance_signal(
+            project_id=project_id,
+            title=title,
+            prompt="\n".join(prompt_lines),
+            source_ref=source_ref,
+            owner_agent=owner_agent,
+            recurrence_program_id=recurrence_program_id,
+            approval_mode=str(body.get("approval_mode") or "none"),
+            metadata={
+                "maintenance_run_id": str(latest.get("id") or ""),
+                "maintenance_kind": kind,
+                "maintenance_trigger": trigger,
+                "evidence_ref": evidence_ref,
+                "materialized_from": "maintenance_run",
+            },
+        )
     await emit_operator_audit_event(
         service="agent-server",
         route="/v1/projects/{project_id}/maintenance",
@@ -587,9 +625,16 @@ async def create_maintenance_run_endpoint(project_id: str, request: Request):
         action=action,
         detail=f"Recorded maintenance run for {project_id}",
         target=str(latest.get("id") or ""),
-        metadata={"project_id": project_id, "status": str(latest.get("status") or "")},
+        metadata={
+            "project_id": project_id,
+            "status": str(latest.get("status") or ""),
+            "backlog_id": (backlog or {}).get("id", ""),
+        },
     )
-    return {"status": "created", "maintenance_run": latest}
+    payload = {"status": "created", "maintenance_run": latest}
+    if backlog:
+        payload["backlog"] = backlog
+    return payload
 
 
 @router.get("/projects/{project_id}/deployments")

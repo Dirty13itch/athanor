@@ -72,6 +72,9 @@ class ModelGovernanceTests(unittest.TestCase):
         self.assertIn("promotion_controls", snapshot)
         self.assertIn("retirement_controls", snapshot)
         self.assertIn("model_intelligence", snapshot)
+        self.assertIn("capability_intelligence", snapshot)
+        self.assertIn("implementation", snapshot["capability_intelligence"])
+        self.assertIn("degraded_subject_count", snapshot["capability_intelligence"])
         self.assertIn("candidate_queue", snapshot["model_intelligence"])
         self.assertIn("next_actions", snapshot["model_intelligence"])
         self.assertIn("governance_layers", snapshot)
@@ -96,6 +99,10 @@ class ModelGovernanceTests(unittest.TestCase):
                 "athanor_agents.retirement_control.build_retirement_controls_snapshot",
                 AsyncMock(side_effect=TimeoutError("retirement controls timed out")),
             ),
+            patch(
+                "athanor_agents.capability_intelligence.build_live_capability_snapshot",
+                AsyncMock(side_effect=TimeoutError("capability intelligence timed out")),
+            ),
         ):
             snapshot = asyncio.run(build_live_model_governance_snapshot())
 
@@ -103,6 +110,8 @@ class ModelGovernanceTests(unittest.TestCase):
         self.assertEqual("degraded", snapshot["model_intelligence"]["status"])
         self.assertEqual("degraded", snapshot["promotion_controls"]["status"])
         self.assertEqual("degraded", snapshot["retirement_controls"]["status"])
+        self.assertEqual("degraded", snapshot["capability_intelligence"]["status"])
+        self.assertIn("next_actions", snapshot["capability_intelligence"])
         self.assertIn("governance_layers", snapshot)
 
     def test_registry_dir_supports_env_override(self):

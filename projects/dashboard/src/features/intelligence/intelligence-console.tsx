@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useDeferredValue, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Brain, RefreshCcw, Sparkles } from "lucide-react";
+import { Brain, ExternalLink, RefreshCcw, Sparkles } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { FamilyTabs } from "@/components/family-tabs";
@@ -16,8 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { getIntelligence } from "@/lib/api";
-import { type IntelligencePattern, type IntelligenceSnapshot } from "@/lib/contracts";
+import { getIntelligence, getReview } from "@/lib/api";
+import { type IntelligencePattern, type IntelligenceSnapshot, type ReviewItem } from "@/lib/contracts";
 import { formatRelativeTime } from "@/lib/format";
 import { queryKeys } from "@/lib/query-client";
 import { useUrlState } from "@/lib/url-state";
@@ -100,6 +101,12 @@ export function IntelligenceConsole({
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
+  const reviewQuery = useQuery({
+    queryKey: queryKeys.review,
+    queryFn: getReview,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+  });
 
   async function runAction(action: string, fn: () => Promise<void>) {
     setBusyAction(action);
@@ -149,6 +156,9 @@ export function IntelligenceConsole({
     variant === "insights"
       ? "Pattern detection and recommendations across project, agent, and severity lanes."
       : "Learning health, benchmark posture, and self-improvement telemetry.";
+  const selectedReviewTask: ReviewItem | null =
+    reviewQuery.data?.reviewItems.find((item) => item.kind === "approval" || item.kind === "result") ??
+    null;
 
   return (
     <div className="space-y-8">
@@ -270,6 +280,30 @@ export function IntelligenceConsole({
             <Metric label="Last report" value={formatRelativeTime(snapshot.report?.timestamp ?? snapshot.generatedAt)} />
             <Metric label="Benchmarks" value={`${snapshot.improvement?.benchmarkResults ?? 0}`} />
             <Metric label="Pending proposals" value={`${snapshot.improvement?.pending ?? 0}`} />
+            {selectedReviewTask ? (
+              <div className="surface-instrument rounded-xl border px-3 py-2 md:col-span-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Review lane</p>
+                    <p className="mt-1 text-sm font-medium">{selectedReviewTask.prompt}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/runs?agent=${selectedReviewTask.agentId}`}>
+                        <ExternalLink className="h-4 w-4" />
+                        Open runs
+                      </Link>
+                    </Button>
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/backlog?project=${selectedReviewTask.projectId}`}>
+                        <ExternalLink className="h-4 w-4" />
+                        Open backlog
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       </div>

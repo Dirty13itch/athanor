@@ -102,6 +102,10 @@ def _degraded_proving_ground_snapshot(detail: str) -> dict[str, Any]:
             "archive_entries": 0,
             "benchmark_results": 0,
             "latest_baseline": {},
+            "last_admission_classification": "blocked_by_headroom",
+            "last_admission_reason": detail[:160],
+            "last_backlog_ids": [],
+            "last_review_ids": [],
             "last_cycle": None,
             "detail": detail[:160],
         },
@@ -165,6 +169,13 @@ async def model_governance():
     from ..model_governance import build_live_model_governance_snapshot
 
     return await build_live_model_governance_snapshot()
+
+
+@router.get("/v1/models/capabilities")
+async def model_capabilities():
+    from ..capability_intelligence import build_live_capability_snapshot
+
+    return await build_live_capability_snapshot()
 
 
 @router.get("/v1/models/governance/promotions")

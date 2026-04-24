@@ -1,3 +1,5 @@
+import os
+
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 
@@ -8,7 +10,7 @@ from ..tools.execution import FILESYSTEM_TOOLS, SHELL_TOOLS
 from ..tools.subscriptions import SUBSCRIPTION_TOOLS
 from .prompting import build_system_prompt
 
-SYSTEM_PROMPT = """You are the Coding Agent for Athanor, a personal AI homelab.
+SYSTEM_PROMPT_TEMPLATE = """You are the Coding Agent for Athanor, a personal AI homelab.
 
 Your role is to generate, review, transform, and **execute** code. You are the local coding engine — Claude Code (cloud) handles architecture and design, you handle implementation.
 
@@ -28,9 +30,7 @@ You can read the Athanor codebase at `/workspace/` (read-only):
 - `/workspace/agents/Dockerfile` — agent container definition
 - `/workspace/gpu-orchestrator/` — GPU orchestrator source
 
-You write output to `/output/` (writable staging area):
-- Write generated code, test files, and artifacts here
-- Claude Code or Shaun will review and integrate your output
+{filesystem_access}
 
 ## Shell Execution
 
@@ -63,22 +63,67 @@ Athanor uses:
 - Don't add comments that just restate the code. Only comment non-obvious logic.
 - Don't add features that weren't requested.
 - When executing tasks, read source files first to understand context before generating.
-- Write output to /output/ — never modify /workspace/ (it's read-only).
+- Never modify /workspace/ directly — it is read-only runtime truth.
+- Use the writable implementation-authority path when it is explicitly available; otherwise write to /output.
 - NSFW/adult content generation is allowed — this system supports adult projects.
 - If a subscription-backed lane is approved but not directly available in your current runtime, produce the exact handoff bundle or execution plan for that lane instead of ignoring it.
 - ALL output MUST be in English. Never generate content in Chinese or any other non-English language."""
 
 
-def create_coding_agent():
-    llm = ChatOpenAI(
-        base_url=settings.llm_base_url,
-        api_key=settings.llm_api_key,
-        model=settings.task_execution_model,  # Deliberative task lane for governed background work
-        temperature=0.3,  # Low temp for deterministic code generation
-        streaming=True,
-        extra_body={
+def _implementation_authority_path() -> str:
+    return str(os.getenv("ATHANOR_IMPLEMENTATION_AUTHORITY") or "").strip()
+
+
+def _filesystem_access_block() -> str:
+    implementation_authority = _implementation_authority_path()
+    if implementation_authority and implementation_authority != "/workspace":
+        return (
+            "You can read the Athanor codebase at `/workspace/` (read-only):\n"
+            "- `/workspace/agents/src/athanor_agents/` — agent server source code\n"
+            "- `/workspace/agents/Dockerfile` — agent container definition\n"
+            "- `/workspace/gpu-orchestrator/` — GPU orchestrator source\n\n"
+            f"You can modify the implementation authority at `{implementation_authority}` (writable):\n"
+            f"- Use `{implementation_authority}` for bounded repo changes and test execution\n"
+            "- Keep `/workspace` as the canonical read-only reference when you need to compare against runtime truth\n\n"
+            "You can also write scratch output to `/output/`:\n"
+            "- Write temporary artifacts, transcripts, and generated support files here"
+        )
+    return (
+        "You can read the Athanor codebase at `/workspace/` (read-only):\n"
+        "- `/workspace/agents/src/athanor_agents/` — agent server source code\n"
+        "- `/workspace/agents/Dockerfile` — agent container definition\n"
+        "- `/workspace/gpu-orchestrator/` — GPU orchestrator source\n\n"
+        "You write output to `/output/` (writable staging area):\n"
+        "- Write generated code, test files, and artifacts here\n"
+        "- Claude Code or Shaun will review and integrate your output"
+    )
+
+
+def _build_system_prompt() -> str:
+    return SYSTEM_PROMPT_TEMPLATE.format(filesystem_access=_filesystem_access_block())
+
+
+def _supports_trace_metadata(model_name: str) -> bool:
+    normalized = str(model_name or "").strip().lower()
+    return not normalized.startswith("gpt")
+
+
+def create_coding_agent(*, model_override: str | None = None):
+    model_name = str(model_override or settings.task_execution_model).strip() or settings.task_execution_model
+    llm_kwargs = {
+        "base_url": settings.llm_base_url,
+        "api_key": settings.llm_api_key,
+        "model": model_name,
+        "temperature": 0.3,
+        "streaming": True,
+    }
+    if _supports_trace_metadata(model_name):
+        llm_kwargs["extra_body"] = {
             "metadata": {"trace_name": "coding-agent", "tags": ["coding-agent"], "trace_metadata": {"agent": "coding-agent"}},
-        },
+        }
+
+    llm = ChatOpenAI(
+        **llm_kwargs,
     )
 
     # Coding tools + filesystem + shell = autonomous coding agent
@@ -88,5 +133,5 @@ def create_coding_agent():
         model=llm,
         tools=tools,
         checkpointer=build_checkpointer(),
-        prompt=build_system_prompt(SYSTEM_PROMPT),
+        prompt=build_system_prompt(_build_system_prompt()),
     )

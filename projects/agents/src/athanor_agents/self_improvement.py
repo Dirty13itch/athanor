@@ -3,16 +3,14 @@ Self-Improvement Engine for Athanor.
 
 DGM-inspired (Darwin Gödel Machine) autonomous improvement loop:
 1. Run benchmarks → establish baseline
-2. Analyze failures → generate improvement proposals
-3. Test proposals in sandbox
-4. Deploy validated improvements
-5. Track improvement history for rollback
+2. Analyze failures → generate governed proposals
+3. Materialize useful proposals into backlog/review truth
+4. Track improvement history for rollback and anti-spin
 
-Since Athanor is NOT production, the safety boundaries are relaxed:
-- Auto-deploy prompt improvements without approval
-- Auto-deploy config tuning without approval
-- Code changes still require review (git diff shown)
-- Infrastructure changes (Ansible, systemd) require approval
+In Athanor v1, self-improvement is conservative:
+- Prompt/config/code changes do not auto-deploy
+- Product-work queue wins over improvement loops
+- Useful output must land as benchmark evidence, backlog work, or review pressure
 
 Ported from Hydra's self_improvement.py, adapted for Athanor:
 - Storage: Redis instead of JSON files
@@ -20,17 +18,20 @@ Ported from Hydra's self_improvement.py, adapted for Athanor:
 - All async
 """
 
+import asyncio
 import json
 import logging
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from pathlib import Path
 from typing import Any, Optional
 
 import httpx
 
 from .config import settings
+from .repo_paths import resolve_repo_root
 from .services import registry
 
 logger = logging.getLogger(__name__)
@@ -85,6 +86,29 @@ class ImprovementProposal:
     test_scores: dict[str, float] = field(default_factory=dict)
     author: str = "autonomous"
     auto_deploy: bool = False
+    queue_family: str = ""
+    backlog_id: str = ""
+    review_id: str = ""
+    execution_plane: str = "proposal_only"
+
+
+REVIEW_DEBT_THRESHOLD = 0
+ACTIVE_PRODUCT_BACKLOG_STATUSES = {
+    "captured",
+    "triaged",
+    "ready",
+    "scheduled",
+    "running",
+    "waiting_approval",
+}
+PROPOSAL_ONLY_CLASSIFICATION = "proposal_only"
+QUEUE_CLASSIFICATION = "queue"
+DIRECT_CONTROL_CLASSIFICATION = "direct_control"
+BLOCKED_BY_HEADROOM_CLASSIFICATION = "blocked_by_headroom"
+BLOCKED_BY_QUEUE_PRIORITY_CLASSIFICATION = "blocked_by_queue_priority"
+BLOCKED_BY_REVIEW_DEBT_CLASSIFICATION = "blocked_by_review_debt"
+REPO_ROOT = resolve_repo_root(__file__)
+VALUE_THROUGHPUT_SCORECARD_PATH = REPO_ROOT / "reports" / "truth-inventory" / "value-throughput-scorecard.json"
 
 
 class CapabilityBenchmarks:
@@ -333,15 +357,14 @@ class SelfImprovementEngine:
     """
     Coordinates benchmarking, proposals, testing, and deployment.
 
-    Since Athanor isn't production:
-    - Prompt improvements auto-deploy
-    - Config tuning auto-deploys
-    - Code changes require diff review
-    - Infra changes require approval
+    In Athanor v1:
+    - Improvements become governed proposals first
+    - Product-work queue wins over background improvement
+    - Mutations remain conservative and review/result-backed
     """
 
-    # Auto-deploy categories (no approval needed)
-    AUTO_DEPLOY_CATEGORIES = {"prompt", "config"}
+    # Conservative v1: no self-improvement category auto-deploys.
+    AUTO_DEPLOY_CATEGORIES: set[str] = set()
 
     def __init__(self):
         self.benchmarks = CapabilityBenchmarks()
@@ -392,6 +415,236 @@ class SelfImprovementEngine:
             )
         except Exception as e:
             logger.debug("Improvement state load/save failed: %s", e)
+
+    async def _load_last_cycle(self) -> dict[str, Any] | None:
+        r = await self._get_redis()
+        if not r:
+            return None
+        try:
+            data = await r.get("improvement:last_cycle")
+            if data:
+                payload = json.loads(data)
+                if isinstance(payload, dict):
+                    return payload
+        except Exception as e:
+            logger.debug("Improvement state load/save failed: %s", e)
+        return None
+
+    async def _store_cycle(self, cycle_log: dict[str, Any]) -> None:
+        try:
+            r = await self._get_redis()
+            if r:
+                await r.set(
+                    "improvement:last_cycle",
+                    json.dumps(cycle_log),
+                    ex=86400 * 7,
+                )
+                history_key = "improvement:cycle_history"
+                await r.lpush(history_key, json.dumps(cycle_log))
+                await r.ltrim(history_key, 0, 29)
+        except Exception as e:
+            cycle_log.setdefault("errors", []).append(f"save cycle: {e}")
+
+    async def _load_value_throughput_scorecard(self) -> dict[str, Any]:
+        if not VALUE_THROUGHPUT_SCORECARD_PATH.exists():
+            return {}
+        try:
+            text = await asyncio.to_thread(VALUE_THROUGHPUT_SCORECARD_PATH.read_text, encoding="utf-8")
+            payload = json.loads(text)
+        except Exception as e:
+            logger.debug("Improvement scorecard load failed: %s", e)
+            return {}
+        return payload if isinstance(payload, dict) else {}
+
+    async def _evaluate_cycle_admission(self) -> dict[str, Any]:
+        from .autonomous_queue import backlog_sort_key, canonicalize_backlog_record, is_v1_queue_family
+        from .execution_state import get_approval_request_stats
+        from .governor_backbone import build_capacity_snapshot
+        from .operator_state import list_backlog_records
+
+        try:
+            capacity_snapshot = await build_capacity_snapshot()
+        except Exception as e:
+            return {
+                "allowed": False,
+                "execution_plane": PROPOSAL_ONLY_CLASSIFICATION,
+                "admission_classification": BLOCKED_BY_HEADROOM_CLASSIFICATION,
+                "reason": f"Capacity truth unavailable for self-improvement admission: {e}",
+                "pending_review_count": 0,
+                "dispatchable_product_backlog_count": 0,
+                "capacity_posture": "unknown",
+                "queue_posture": "unknown",
+                "provider_posture": "unknown",
+                "harvest_ready": False,
+            }
+
+        approval_stats = await get_approval_request_stats()
+        pending_review_count = int(dict(approval_stats.get("by_status") or {}).get("pending", 0) or 0)
+        if pending_review_count > REVIEW_DEBT_THRESHOLD:
+            return {
+                "allowed": False,
+                "execution_plane": PROPOSAL_ONLY_CLASSIFICATION,
+                "admission_classification": BLOCKED_BY_REVIEW_DEBT_CLASSIFICATION,
+                "reason": (
+                    "Pending review debt must clear before self-improvement spends background capacity "
+                    f"({pending_review_count} pending review item(s))."
+                ),
+                "pending_review_count": pending_review_count,
+                "dispatchable_product_backlog_count": 0,
+                "capacity_posture": str(capacity_snapshot.get("posture") or "unknown"),
+                "queue_posture": str(dict(capacity_snapshot.get("queue") or {}).get("posture") or "unknown"),
+                "provider_posture": str(
+                    dict(capacity_snapshot.get("provider_reserve") or {}).get("posture") or "unknown"
+                ),
+                "harvest_ready": bool(dict(capacity_snapshot.get("local_compute") or {}).get("idle_harvest_slots_open")),
+            }
+
+        backlog_records = await list_backlog_records(status="", owner_agent="", limit=None)
+        ranked_backlog = sorted(backlog_records, key=backlog_sort_key)
+        dispatchable_product_backlog: list[dict[str, Any]] = []
+        for item in ranked_backlog:
+            canonical = canonicalize_backlog_record(item)
+            if str(canonical.get("status") or "") not in ACTIVE_PRODUCT_BACKLOG_STATUSES:
+                continue
+            if not is_v1_queue_family(str(canonical.get("family") or "")):
+                continue
+            if str(canonical.get("materialization_source") or "") == "self_improvement":
+                continue
+            dispatchable_product_backlog.append(canonical)
+
+        if dispatchable_product_backlog:
+            top = dispatchable_product_backlog[0]
+            return {
+                "allowed": False,
+                "execution_plane": PROPOSAL_ONLY_CLASSIFICATION,
+                "admission_classification": BLOCKED_BY_QUEUE_PRIORITY_CLASSIFICATION,
+                "reason": (
+                    "Dispatchable product backlog takes precedence over self-improvement "
+                    f"({top.get('family') or 'work'}: {top.get('title') or top.get('id') or 'queued item'})."
+                ),
+                "pending_review_count": pending_review_count,
+                "dispatchable_product_backlog_count": len(dispatchable_product_backlog),
+                "capacity_posture": str(capacity_snapshot.get("posture") or "unknown"),
+                "queue_posture": str(dict(capacity_snapshot.get("queue") or {}).get("posture") or "unknown"),
+                "provider_posture": str(
+                    dict(capacity_snapshot.get("provider_reserve") or {}).get("posture") or "unknown"
+                ),
+                "harvest_ready": bool(dict(capacity_snapshot.get("local_compute") or {}).get("idle_harvest_slots_open")),
+                "value_throughput_degraded_sections": [],
+                "stale_claim_count": 0,
+                "reconciliation_issue_count": 0,
+            }
+
+        queue_posture = str(dict(capacity_snapshot.get("queue") or {}).get("posture") or "unknown")
+        provider_posture = str(dict(capacity_snapshot.get("provider_reserve") or {}).get("posture") or "unknown")
+        capacity_posture = str(capacity_snapshot.get("posture") or "unknown")
+        local_compute = dict(capacity_snapshot.get("local_compute") or {})
+        harvest_ready = bool(local_compute.get("idle_harvest_slots_open"))
+        throughput_scorecard = await self._load_value_throughput_scorecard()
+        throughput_degraded_sections = [
+            str(item).strip()
+            for item in list(throughput_scorecard.get("degraded_sections") or [])
+            if str(item).strip()
+        ]
+        reconciliation_issue_count = int(dict(throughput_scorecard.get("reconciliation") or {}).get("issue_count") or 0)
+        stale_claim_count = int(throughput_scorecard.get("stale_claim_count") or 0)
+
+        if throughput_degraded_sections or reconciliation_issue_count > 0 or stale_claim_count > 0:
+            reasons: list[str] = []
+            if throughput_degraded_sections:
+                reasons.append("throughput truth is degraded")
+            if stale_claim_count > 0:
+                reasons.append(f"{stale_claim_count} stale claim(s) remain open")
+            if reconciliation_issue_count > 0:
+                reasons.append(f"{reconciliation_issue_count} reconciliation issue(s) remain open")
+            return {
+                "allowed": False,
+                "execution_plane": PROPOSAL_ONLY_CLASSIFICATION,
+                "admission_classification": BLOCKED_BY_HEADROOM_CLASSIFICATION,
+                "reason": "Self-improvement deferred because value-throughput repair still has priority: " + ", ".join(reasons) + ".",
+                "pending_review_count": pending_review_count,
+                "dispatchable_product_backlog_count": 0,
+                "capacity_posture": capacity_posture,
+                "queue_posture": queue_posture,
+                "provider_posture": provider_posture,
+                "harvest_ready": harvest_ready,
+                "value_throughput_degraded_sections": throughput_degraded_sections,
+                "stale_claim_count": stale_claim_count,
+                "reconciliation_issue_count": reconciliation_issue_count,
+            }
+
+        if (
+            not harvest_ready
+            or capacity_posture in {"degraded", "constrained"}
+            or queue_posture != "healthy"
+            or provider_posture != "healthy"
+        ):
+            reasons: list[str] = []
+            if not harvest_ready:
+                reasons.append("no harvest window is open")
+            if capacity_posture in {"degraded", "constrained"}:
+                reasons.append(f"capacity posture is {capacity_posture}")
+            if queue_posture != "healthy":
+                reasons.append(f"queue posture is {queue_posture}")
+            if provider_posture != "healthy":
+                reasons.append(f"provider posture is {provider_posture}")
+            return {
+                "allowed": False,
+                "execution_plane": PROPOSAL_ONLY_CLASSIFICATION,
+                "admission_classification": BLOCKED_BY_HEADROOM_CLASSIFICATION,
+                "reason": "Self-improvement deferred because " + ", ".join(reasons) + ".",
+                "pending_review_count": pending_review_count,
+                "dispatchable_product_backlog_count": 0,
+                "capacity_posture": capacity_posture,
+                "queue_posture": queue_posture,
+                "provider_posture": provider_posture,
+                "harvest_ready": harvest_ready,
+                "value_throughput_degraded_sections": throughput_degraded_sections,
+                "stale_claim_count": stale_claim_count,
+                "reconciliation_issue_count": reconciliation_issue_count,
+            }
+
+        return {
+            "allowed": True,
+            "execution_plane": PROPOSAL_ONLY_CLASSIFICATION,
+            "admission_classification": PROPOSAL_ONLY_CLASSIFICATION,
+            "reason": (
+                "Harvest window is open, queue pressure is healthy, provider posture is healthy, "
+                "and no higher-priority product backlog or review debt is blocking proposal work."
+            ),
+            "pending_review_count": pending_review_count,
+            "dispatchable_product_backlog_count": 0,
+            "capacity_posture": capacity_posture,
+            "queue_posture": queue_posture,
+            "provider_posture": provider_posture,
+            "harvest_ready": harvest_ready,
+            "value_throughput_degraded_sections": throughput_degraded_sections,
+            "stale_claim_count": stale_claim_count,
+            "reconciliation_issue_count": reconciliation_issue_count,
+        }
+
+    async def evaluate_runtime_admission(self) -> dict[str, Any]:
+        return await self._evaluate_cycle_admission()
+
+    async def _materialize_proposal(self, proposal: ImprovementProposal) -> dict[str, Any]:
+        from .operator_work import materialize_improvement_proposal
+
+        materialized = await materialize_improvement_proposal(
+            proposal_id=proposal.id,
+            title=proposal.title,
+            description=proposal.description,
+            category=proposal.category,
+            expected_improvement=proposal.expected_improvement,
+            benchmark_targets=list(proposal.benchmark_targets),
+            target_files=list(proposal.target_files),
+            proposed_changes=proposal.proposed_changes,
+            recurrence_program_id="improvement-cycle",
+        )
+        proposal.queue_family = str(materialized.get("family") or "")
+        proposal.backlog_id = str(materialized.get("backlog_id") or "")
+        proposal.review_id = str(materialized.get("review_id") or "")
+        proposal.execution_plane = str(materialized.get("execution_plane") or PROPOSAL_ONLY_CLASSIFICATION)
+        return materialized
 
     async def run_benchmark_suite(self) -> dict[str, Any]:
         """Run full benchmark suite and compare to baseline."""
@@ -523,20 +776,58 @@ class SelfImprovementEngine:
         }
 
     async def run_improvement_cycle(self) -> dict[str, Any]:
-        """Full improvement cycle: benchmarks → patterns → proposals → auto-deploy.
+        """Full improvement cycle: benchmarks → patterns → proposals → governed queue work.
 
         This is the self-feeding loop that makes Athanor an athanor.
         Runs daily after pattern detection (5:30 AM).
         """
         await self.load()
+        last_cycle = await self._load_last_cycle()
         cycle_log: dict[str, Any] = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
+            "status": PROPOSAL_ONLY_CLASSIFICATION,
+            "execution_plane": PROPOSAL_ONLY_CLASSIFICATION,
+            "admission_classification": PROPOSAL_ONLY_CLASSIFICATION,
+            "admission_reason": "",
             "benchmarks": None,
             "patterns_consumed": 0,
             "proposals_generated": 0,
+            "backlog_items_created": 0,
+            "backlog_items_refreshed": 0,
+            "backlog_ids": [],
+            "review_ids": [],
             "auto_deployed": 0,
+            "deferred_by": None,
+            "evidence_signature": "",
             "errors": [],
         }
+
+        admission = await self._evaluate_cycle_admission()
+        cycle_log["execution_plane"] = str(admission.get("execution_plane") or PROPOSAL_ONLY_CLASSIFICATION)
+        cycle_log["admission_classification"] = str(
+            admission.get("admission_classification") or PROPOSAL_ONLY_CLASSIFICATION
+        )
+        cycle_log["admission_reason"] = str(admission.get("reason") or "")
+        cycle_log["pending_review_count"] = int(admission.get("pending_review_count") or 0)
+        cycle_log["dispatchable_product_backlog_count"] = int(
+            admission.get("dispatchable_product_backlog_count") or 0
+        )
+        cycle_log["capacity_posture"] = str(admission.get("capacity_posture") or "unknown")
+        cycle_log["queue_posture"] = str(admission.get("queue_posture") or "unknown")
+        cycle_log["provider_posture"] = str(admission.get("provider_posture") or "unknown")
+        cycle_log["harvest_ready"] = bool(admission.get("harvest_ready"))
+        cycle_log["value_throughput_degraded_sections"] = [
+            str(item).strip()
+            for item in list(admission.get("value_throughput_degraded_sections") or [])
+            if str(item).strip()
+        ]
+        cycle_log["stale_claim_count"] = int(admission.get("stale_claim_count") or 0)
+        cycle_log["reconciliation_issue_count"] = int(admission.get("reconciliation_issue_count") or 0)
+        if not admission.get("allowed"):
+            cycle_log["status"] = cycle_log["admission_classification"]
+            cycle_log["deferred_by"] = cycle_log["admission_classification"]
+            await self._store_cycle(cycle_log)
+            return cycle_log
 
         # 1. Run benchmarks and compare to baseline
         try:
@@ -564,6 +855,34 @@ class SelfImprovementEngine:
         except Exception as e:
             cycle_log["errors"].append(f"patterns: {e}")
 
+        recommendations = [str(item) for item in patterns_report.get("recommendations", []) if str(item).strip()]
+        regressed_benchmarks = sorted(
+            bid for bid, comp in bench_result.get("comparison", {}).items() if comp.get("regressed")
+        )
+        evidence_signature = json.dumps(
+            {
+                "regressed_benchmarks": regressed_benchmarks,
+                "recommendations": recommendations,
+            },
+            sort_keys=True,
+        )
+        cycle_log["evidence_signature"] = evidence_signature
+        if (
+            not regressed_benchmarks
+            and not recommendations
+            and isinstance(last_cycle, dict)
+            and str(last_cycle.get("evidence_signature") or "") == evidence_signature
+            and int(last_cycle.get("proposals_generated", 0) or 0) == 0
+            and int(last_cycle.get("backlog_items_created", 0) or 0) == 0
+            and int(last_cycle.get("backlog_items_refreshed", 0) or 0) == 0
+        ):
+            cycle_log["status"] = BLOCKED_BY_HEADROOM_CLASSIFICATION
+            cycle_log["admission_classification"] = BLOCKED_BY_HEADROOM_CLASSIFICATION
+            cycle_log["admission_reason"] = "Suppressed repeat no-delta improvement cycle."
+            cycle_log["deferred_by"] = "recent_no_delta_suppressed"
+            await self._store_cycle(cycle_log)
+            return cycle_log
+
         # 3. Generate proposals from regressions
         for bid, comp in bench_result.get("comparison", {}).items():
             if comp.get("regressed"):
@@ -583,12 +902,23 @@ class SelfImprovementEngine:
                         benchmark_targets=[bid],
                     )
                     cycle_log["proposals_generated"] += 1
+                    materialized = await self._materialize_proposal(proposal)
+                    backlog_id = str(materialized.get("backlog_id") or "")
+                    review_id = str(materialized.get("review_id") or "")
+                    if str(materialized.get("status") or "") == "created" and backlog_id:
+                        cycle_log["backlog_items_created"] += 1
+                    if str(materialized.get("status") or "") == "refreshed" and backlog_id:
+                        cycle_log["backlog_items_refreshed"] += 1
+                    if backlog_id:
+                        cycle_log["backlog_ids"].append(backlog_id)
+                    if review_id:
+                        cycle_log["review_ids"].append(review_id)
                     logger.info("Improvement cycle: proposed fix for regression %s", bid)
                 except Exception as e:
                     cycle_log["errors"].append(f"proposal for {bid}: {e}")
 
         # 4. Generate proposals from pattern recommendations
-        for rec in patterns_report.get("recommendations", []):
+        for rec in recommendations:
             try:
                 proposal = await self.propose_improvement(
                     title=f"Pattern insight: {rec[:60]}",
@@ -599,32 +929,31 @@ class SelfImprovementEngine:
                     expected_improvement="Reduce failure rate / improve agent quality",
                 )
                 cycle_log["proposals_generated"] += 1
+                materialized = await self._materialize_proposal(proposal)
+                backlog_id = str(materialized.get("backlog_id") or "")
+                review_id = str(materialized.get("review_id") or "")
+                if str(materialized.get("status") or "") == "created" and backlog_id:
+                    cycle_log["backlog_items_created"] += 1
+                if str(materialized.get("status") or "") == "refreshed" and backlog_id:
+                    cycle_log["backlog_items_refreshed"] += 1
+                if backlog_id:
+                    cycle_log["backlog_ids"].append(backlog_id)
+                if review_id:
+                    cycle_log["review_ids"].append(review_id)
             except Exception as e:
                 cycle_log["errors"].append(f"pattern proposal: {e}")
 
-        # 5. Log the cycle results
-        try:
-            r = await self._get_redis()
-            if r:
-                await r.set(
-                    "improvement:last_cycle",
-                    json.dumps(cycle_log),
-                    ex=86400 * 7,
-                )
-                # Append to cycle history (keep last 30)
-                history_key = "improvement:cycle_history"
-                await r.lpush(history_key, json.dumps(cycle_log))
-                await r.ltrim(history_key, 0, 29)
-        except Exception as e:
-            cycle_log["errors"].append(f"save cycle: {e}")
+        await self.save()
+        await self._store_cycle(cycle_log)
 
         logger.info(
             "Improvement cycle complete: %d benchmarks (%d%% pass), "
-            "%d patterns consumed, %d proposals generated",
+            "%d patterns consumed, %d proposals generated, %d backlog item(s)",
             bench_result.get("total", 0),
             int(bench_result.get("pass_rate", 0) * 100),
             cycle_log["patterns_consumed"],
             cycle_log["proposals_generated"],
+            cycle_log["backlog_items_created"] + cycle_log["backlog_items_refreshed"],
         )
 
         return cycle_log
@@ -650,7 +979,17 @@ class SelfImprovementEngine:
             "failed": len([p for p in self.proposals if p.status == ImprovementStatus.FAILED.value]),
             "archive_entries": len(self.archive),
             "benchmark_results": len(self.benchmarks.results),
+            "materialized_backlog_items": len([p for p in self.proposals if p.backlog_id]),
+            "review_queue_items": len([p for p in self.proposals if p.review_id]),
             "latest_baseline": self.benchmarks.get_baseline(),
+            "last_admission_classification": (
+                str(last_cycle.get("admission_classification") or "") if isinstance(last_cycle, dict) else ""
+            ),
+            "last_admission_reason": (
+                str(last_cycle.get("admission_reason") or "") if isinstance(last_cycle, dict) else ""
+            ),
+            "last_backlog_ids": list(last_cycle.get("backlog_ids") or []) if isinstance(last_cycle, dict) else [],
+            "last_review_ids": list(last_cycle.get("review_ids") or []) if isinstance(last_cycle, dict) else [],
             "last_cycle": last_cycle,
         }
 

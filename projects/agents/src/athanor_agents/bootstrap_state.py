@@ -375,6 +375,7 @@ def _operator_summary_alignment_canonical_patterns() -> dict[str, tuple[str, ...
     return {
         "operator_summary": ('"/api/operator/summary', "'/api/operator/summary"),
         "operator_summary_helper": ("getOperatorSummaryData(",),
+        "operator_scheduled_jobs": ('"/api/operator/scheduled', "'/api/operator/scheduled", "getOperatorScheduledJobs("),
         "operator_runs": ('"/api/operator/runs', "'/api/operator/runs"),
         "operator_backlog": ('"/api/operator/backlog', "'/api/operator/backlog"),
         "operator_approvals": ('"/api/operator/approvals', "'/api/operator/approvals"),
@@ -712,7 +713,6 @@ def _operator_nav_lock_patterns() -> dict[str, dict[str, tuple[str, ...]]]:
             "required": (
                 'primaryRoute: "/backlog?project=eoq"',
                 'primaryRoute: "/backlog?project=kindred"',
-                'primaryRoute: "/backlog?project=ulrich-energy"',
             ),
             "forbidden": (
                 'primaryRoute: "/workplanner?project=eoq"',

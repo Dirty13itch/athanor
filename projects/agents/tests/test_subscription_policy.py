@@ -337,7 +337,7 @@ class SubscriptionPolicyTest(unittest.TestCase):
 
         self.assertEqual("google_gemini", lease.provider)
 
-    def test_async_coding_backlog_prefers_glm_bulk_lane(self) -> None:
+    def test_async_coding_backlog_prefers_codex_premium_async_lane(self) -> None:
         request = build_task_lease_request(
             requester="coding-agent",
             prompt="Take this backlog ticket queue and implement the next PR-sized change set in parallel.",
@@ -347,9 +347,26 @@ class SubscriptionPolicyTest(unittest.TestCase):
         lease = preview_execution_lease(request)
 
         self.assertEqual("async_backlog_execution", request.task_class)
-        self.assertEqual("zai_glm_coding", lease.provider)
+        self.assertEqual("openai_codex", lease.provider)
+        self.assertIn("zai_glm_coding", lease.fallback)
 
-    def test_bulk_transform_prefers_glm_when_observed_lane_is_ready(self) -> None:
+    def test_preferred_provider_hint_can_surface_google_gemini_for_safe_surface_work(self) -> None:
+        request = build_task_lease_request(
+            requester="coding-agent",
+            prompt="Add an autonomous value proof summary to the command-center overview.",
+            priority="normal",
+            metadata={
+                "interactive": False,
+                "preferred_provider_id": "google_gemini",
+                "preferred_lane_family": "safe_surface_execution",
+            },
+        )
+        lease = preview_execution_lease(request)
+
+        self.assertEqual("multi_file_implementation", request.task_class)
+        self.assertEqual("google_gemini", lease.provider)
+
+    def test_bulk_transform_prefers_local_harvest_before_cloud(self) -> None:
         lease = preview_execution_lease(
             LeaseRequest(
                 requester="coding-agent",
@@ -361,8 +378,8 @@ class SubscriptionPolicyTest(unittest.TestCase):
             )
         )
 
-        self.assertEqual("zai_glm_coding", lease.provider)
-        self.assertEqual("live_burn_observed_cost_unverified", lease.metadata["provider_evidence_posture"])
+        self.assertEqual("athanor_local", lease.provider)
+        self.assertEqual("local_runtime_available", lease.metadata["provider_evidence_posture"])
         self.assertEqual("ordinary_auto", lease.metadata["provider_routing_posture"])
 
     def test_multi_file_fallback_keeps_glm_when_ordinary_auto(self) -> None:
@@ -665,6 +682,282 @@ class SubscriptionPolicyTest(unittest.TestCase):
         self.assertEqual("athanor_local", lease.provider)
         self.assertNotIn("openai_codex", lease.fallback)
         self.assertTrue(lease.metadata["force_local_only"])
+
+    def test_capability_records_can_promote_local_over_policy_order(self) -> None:
+        policy = {
+            "version": 1,
+            "providers": {
+                "openai_codex": {
+                    "enabled": True,
+                    "category": "subscription",
+                    "routing_posture": "ordinary_auto",
+                    "routing_reason": "verified_cli_or_recent_burn",
+                    "privacy": "cloud",
+                    "reserve": "premium_async",
+                },
+                "athanor_local": {
+                    "enabled": True,
+                    "category": "local",
+                    "routing_posture": "ordinary_auto",
+                    "routing_reason": "verified_local_runtime",
+                    "privacy": "lan_only",
+                    "reserve": "protect_then_harvest",
+                },
+            },
+            "task_classes": {
+                "multi_file_implementation": {
+                    "primary": ["openai_codex"],
+                    "fallback": ["athanor_local"],
+                }
+            },
+            "agents": {
+                "coding-agent": {
+                    "allowed_providers": ["openai_codex", "athanor_local"],
+                }
+            },
+        }
+        catalog = {
+            "providers": [
+                {
+                    "id": "openai_codex",
+                    "access_mode": "cli",
+                    "execution_modes": ["direct_cli", "handoff_bundle"],
+                    "state_classes": ["active-routing", "active-burn"],
+                    "env_contracts": ["OPENAI_API_KEY"],
+                    "observed_runtime": {
+                        "routing_policy_enabled": True,
+                        "active_burn_observed": True,
+                        "api_configured": True,
+                    },
+                    "evidence": {
+                        "kind": "cli_subscription",
+                        "cli_probe": {
+                            "status": "installed",
+                            "expected_hosts": ["desk"],
+                            "required_commands": ["codex"],
+                            "last_verified_at": "2026-04-17T20:00:00Z",
+                            "source": "tests",
+                        },
+                    },
+                },
+                {
+                    "id": "athanor_local",
+                    "access_mode": "local",
+                    "execution_modes": ["local_runtime"],
+                    "state_classes": ["active-routing"],
+                    "env_contracts": [],
+                    "observed_runtime": {
+                        "routing_policy_enabled": True,
+                        "active_burn_observed": False,
+                        "api_configured": False,
+                        "last_verified_at": "2026-04-17T20:00:00Z",
+                    },
+                    "evidence": {},
+                },
+            ]
+        }
+        capability = {
+            "providers": [
+                {
+                    "subject_id": "openai_codex",
+                    "subject_kind": "provider",
+                    "task_class": "multi_file_implementation",
+                    "capability_score": 72,
+                    "capability_confidence": 0.74,
+                    "demotion_state": "healthy",
+                    "demotion_reason": None,
+                    "quota_window_priority": 60,
+                    "headroom_fit": 58,
+                    "evidence_sources": ["policy", "provider-catalog"],
+                    "verified_at": "2026-04-17T23:00:00Z",
+                },
+                {
+                    "subject_id": "athanor_local",
+                    "subject_kind": "provider",
+                    "task_class": "multi_file_implementation",
+                    "capability_score": 93,
+                    "capability_confidence": 0.88,
+                    "demotion_state": "healthy",
+                    "demotion_reason": None,
+                    "quota_window_priority": 82,
+                    "headroom_fit": 91,
+                    "evidence_sources": ["capacity-telemetry", "lane-selection-matrix"],
+                    "verified_at": "2026-04-17T23:00:00Z",
+                },
+            ],
+            "local_endpoints": [
+                {
+                    "subject_id": "foundry-coder-lane",
+                    "subject_kind": "local_endpoint",
+                    "task_class": "multi_file_implementation",
+                    "reserve_class": "interactive_local_reserve",
+                    "capability_score": 95,
+                    "capability_confidence": 0.9,
+                    "demotion_state": "healthy",
+                    "demotion_reason": None,
+                    "evidence_sources": ["capacity-telemetry"],
+                    "verified_at": "2026-04-17T23:00:00Z",
+                }
+            ],
+        }
+
+        with (
+            patch("athanor_agents.subscriptions.load_policy", return_value=policy),
+            patch("athanor_agents.subscriptions.get_provider_catalog_registry", return_value=catalog),
+            patch("athanor_agents.subscriptions.get_tooling_inventory_registry", return_value={"hosts": []}),
+            patch("athanor_agents.subscriptions.get_credential_surface_registry", return_value={"surfaces": []}),
+            patch("athanor_agents.subscriptions.get_capability_intelligence_artifact", return_value=capability),
+        ):
+            lease = preview_execution_lease(
+                LeaseRequest(
+                    requester="coding-agent",
+                    task_class="multi_file_implementation",
+                    sensitivity="repo_internal",
+                    interactive=False,
+                    expected_context="medium",
+                    parallelism="low",
+                )
+            )
+
+        self.assertEqual("athanor_local", lease.provider)
+        self.assertEqual(93, lease.metadata["provider_capability_score"])
+        self.assertEqual("foundry-coder-lane", lease.metadata["provider_local_endpoint_fit"]["subject_id"])
+        self.assertEqual(95, lease.metadata["provider_local_endpoint_fit"]["capability_score"])
+
+    def test_demoted_capability_provider_loses_even_if_policy_primary(self) -> None:
+        policy = {
+            "version": 1,
+            "providers": {
+                "google_gemini": {
+                    "enabled": True,
+                    "category": "subscription",
+                    "routing_posture": "ordinary_auto",
+                    "routing_reason": "verified_cli_or_recent_burn",
+                    "privacy": "cloud",
+                    "reserve": "burn_early_audit",
+                },
+                "anthropic_claude_code": {
+                    "enabled": True,
+                    "category": "subscription",
+                    "routing_posture": "ordinary_auto",
+                    "routing_reason": "verified_cli_or_recent_burn",
+                    "privacy": "cloud",
+                    "reserve": "premium_interactive",
+                },
+            },
+            "task_classes": {
+                "repo_wide_audit": {
+                    "primary": ["google_gemini"],
+                    "fallback": ["anthropic_claude_code"],
+                }
+            },
+            "agents": {
+                "research-agent": {
+                    "allowed_providers": ["google_gemini", "anthropic_claude_code"],
+                }
+            },
+        }
+        catalog = {
+            "providers": [
+                {
+                    "id": "google_gemini",
+                    "access_mode": "cli",
+                    "execution_modes": ["direct_cli", "handoff_bundle"],
+                    "state_classes": ["active-routing", "active-burn"],
+                    "env_contracts": ["GEMINI_API_KEY"],
+                    "observed_runtime": {
+                        "routing_policy_enabled": True,
+                        "active_burn_observed": True,
+                        "api_configured": True,
+                    },
+                    "evidence": {
+                        "kind": "cli_subscription",
+                        "cli_probe": {
+                            "status": "installed",
+                            "expected_hosts": ["desk"],
+                            "required_commands": ["gemini"],
+                            "last_verified_at": "2026-04-17T20:00:00Z",
+                            "source": "tests",
+                        },
+                    },
+                },
+                {
+                    "id": "anthropic_claude_code",
+                    "access_mode": "cli",
+                    "execution_modes": ["direct_cli", "handoff_bundle"],
+                    "state_classes": ["active-routing", "active-burn"],
+                    "env_contracts": ["ANTHROPIC_API_KEY"],
+                    "observed_runtime": {
+                        "routing_policy_enabled": True,
+                        "active_burn_observed": True,
+                        "api_configured": True,
+                    },
+                    "evidence": {
+                        "kind": "cli_subscription",
+                        "cli_probe": {
+                            "status": "installed",
+                            "expected_hosts": ["desk"],
+                            "required_commands": ["claude"],
+                            "last_verified_at": "2026-04-17T20:00:00Z",
+                            "source": "tests",
+                        },
+                    },
+                },
+            ]
+        }
+        capability = {
+            "providers": [
+                {
+                    "subject_id": "google_gemini",
+                    "subject_kind": "provider",
+                    "task_class": "repo_wide_audit",
+                    "capability_score": 90,
+                    "capability_confidence": 0.81,
+                    "demotion_state": "demoted",
+                    "demotion_reason": "stale_eval_freshness",
+                    "quota_window_priority": 76,
+                    "headroom_fit": 60,
+                    "evidence_sources": ["eval-run-ledger"],
+                    "verified_at": "2026-04-17T23:00:00Z",
+                },
+                {
+                    "subject_id": "anthropic_claude_code",
+                    "subject_kind": "provider",
+                    "task_class": "repo_wide_audit",
+                    "capability_score": 79,
+                    "capability_confidence": 0.78,
+                    "demotion_state": "healthy",
+                    "demotion_reason": None,
+                    "quota_window_priority": 40,
+                    "headroom_fit": 64,
+                    "evidence_sources": ["policy", "provider-catalog"],
+                    "verified_at": "2026-04-17T23:00:00Z",
+                },
+            ],
+            "local_endpoints": [],
+        }
+
+        with (
+            patch("athanor_agents.subscriptions.load_policy", return_value=policy),
+            patch("athanor_agents.subscriptions.get_provider_catalog_registry", return_value=catalog),
+            patch("athanor_agents.subscriptions.get_tooling_inventory_registry", return_value={"hosts": []}),
+            patch("athanor_agents.subscriptions.get_credential_surface_registry", return_value={"surfaces": []}),
+            patch("athanor_agents.subscriptions.get_capability_intelligence_artifact", return_value=capability),
+        ):
+            lease = preview_execution_lease(
+                LeaseRequest(
+                    requester="research-agent",
+                    task_class="repo_wide_audit",
+                    sensitivity="mixed",
+                    interactive=False,
+                    expected_context="large",
+                    parallelism="low",
+                )
+            )
+
+        self.assertEqual("anthropic_claude_code", lease.provider)
+        self.assertEqual(79, lease.metadata["provider_capability_score"])
+        self.assertEqual("healthy", lease.metadata["provider_capability_demotion_state"])
 
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@ import importlib.util
 import json
 import os
 import sys
+import tempfile
 import time
 import types
 import unittest
@@ -975,6 +976,470 @@ class TestExecuteTaskFailures(unittest.IsolatedAsyncioTestCase):
 
 
 class TestExecuteTaskProviderExecution(unittest.IsolatedAsyncioTestCase):
+    async def test_execute_task_runs_governed_proof_commands_before_agent_path(self):
+        from pathlib import Path
+
+        from athanor_agents.tasks import Task, _execute_task
+
+        breaker = types.SimpleNamespace(
+            can_execute=AsyncMock(return_value=True),
+            record_failure=AsyncMock(),
+            record_success=AsyncMock(),
+        )
+        breakers = types.SimpleNamespace(get_or_create=lambda _agent: breaker)
+        agents_stub = types.SimpleNamespace(
+            get_agent=lambda _agent: (_ for _ in ()).throw(AssertionError("local agent path should not run"))
+        )
+        context_stub = types.SimpleNamespace(enrich_context=AsyncMock(return_value=""))
+        activity_stub = types.SimpleNamespace(
+            log_activity=AsyncMock(),
+            log_event=AsyncMock(),
+            log_conversation=AsyncMock(),
+        )
+        workspace_stub = types.SimpleNamespace(post_item=AsyncMock())
+        circuit_stub = types.SimpleNamespace(get_circuit_breakers=lambda: breakers)
+
+        class FakeProcess:
+            returncode = 0
+
+            async def communicate(self, _stdin=None):
+                return (b"validation passed", b"")
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            workspace_root = Path(temp_dir) / "workspace"
+            artifact_root = Path(temp_dir) / "output"
+            artifact_path = artifact_root / "reports" / "truth-inventory" / "governed-dispatch-state.json"
+            artifact_path.parent.mkdir(parents=True, exist_ok=True)
+            artifact_path.write_text("{}", encoding="utf-8")
+
+            task = Task(
+                id="proof-task-1",
+                agent="coding-agent",
+                prompt="Advance the governed dispatch claim for validation.",
+                status="running",
+                started_at=time.time(),
+                last_heartbeat=time.time(),
+                metadata={
+                    "source": "operator_backlog",
+                    "materialization_source": "governed_dispatch_state",
+                    "_autonomy_managed": True,
+                    "proof_commands": [[sys.executable, "scripts/validate_platform_contract.py"]],
+                    "proof_environment": {
+                        "ATHANOR_RUNTIME_PROOF_CONTEXT": "1",
+                        "ATHANOR_RUNTIME_ARTIFACT_ROOT": str(artifact_root),
+                        "ATHANOR_IMPLEMENTATION_AUTHORITY": "/workspace",
+                    },
+                    "proof_command_surface": f"{sys.executable} scripts/validate_platform_contract.py",
+                    "verification_contract": "maintenance_proof",
+                    "report_path": "reports/truth-inventory/governed-dispatch-state.json",
+                },
+            )
+
+            with (
+                patch.dict(
+                    sys.modules,
+                    {
+                        "athanor_agents.agents": agents_stub,
+                        "athanor_agents.context": context_stub,
+                        "athanor_agents.activity": activity_stub,
+                        "athanor_agents.workspace": workspace_stub,
+                        "athanor_agents.circuit_breaker": circuit_stub,
+                    },
+                ),
+                patch("athanor_agents.tasks.persist_task_state", AsyncMock()) as persist_task_state,
+                patch("athanor_agents.tasks._release_task_claim", AsyncMock()),
+                patch("athanor_agents.tasks._record_skill_execution_for_task", AsyncMock()),
+                patch("athanor_agents.tasks.REPO_ROOT", workspace_root),
+                patch("athanor_agents.tasks.asyncio.create_subprocess_exec", AsyncMock(return_value=FakeProcess())) as create_subprocess_exec,
+            ):
+                await _execute_task(task)
+
+        persisted_task = persist_task_state.await_args.args[0]
+        self.assertEqual("completed", persisted_task.status)
+        self.assertTrue(persisted_task.metadata["verification_passed"])
+        self.assertEqual("passed", persisted_task.metadata["verification_status"])
+        self.assertEqual(
+            "1",
+            create_subprocess_exec.await_args.kwargs["env"]["ATHANOR_RUNTIME_PROOF_CONTEXT"],
+        )
+        self.assertEqual(
+            str(artifact_root),
+            create_subprocess_exec.await_args.kwargs["env"]["ATHANOR_RUNTIME_ARTIFACT_ROOT"],
+        )
+        self.assertEqual(
+            ["reports/truth-inventory/governed-dispatch-state.json"],
+            persisted_task.metadata["proof_artifacts"],
+        )
+        self.assertNotIn("failure", persisted_task.metadata)
+        self.assertEqual("", persisted_task.error)
+        self.assertIn("validate_platform_contract.py", persisted_task.result)
+        self.assertEqual(str(workspace_root), create_subprocess_exec.await_args.kwargs["cwd"])
+
+    async def test_execute_task_runs_safe_surface_proof_after_agent_path(self):
+        from pathlib import Path
+
+        from athanor_agents.tasks import Task, _execute_task
+
+        breaker = types.SimpleNamespace(
+            can_execute=AsyncMock(return_value=True),
+            record_failure=AsyncMock(),
+            record_success=AsyncMock(),
+        )
+        breakers = types.SimpleNamespace(get_or_create=lambda _agent: breaker)
+
+        class FakeAgent:
+            async def astream_events(self, *_args, **_kwargs):
+                yield {
+                    "event": "on_tool_start",
+                    "name": "write_file",
+                    "data": {
+                        "input": {
+                            "path": "/implementation/projects/dashboard/src/features/overview/command-center.tsx",
+                            "content": "patched",
+                        }
+                    },
+                }
+                yield {
+                    "event": "on_tool_end",
+                    "name": "write_file",
+                    "data": {"output": "Written 7 bytes"},
+                }
+                yield {
+                    "event": "on_chat_model_stream",
+                    "data": {"chunk": type("Chunk", (), {"content": "Implemented the dashboard proof card."})()},
+                }
+
+        agents_stub = types.SimpleNamespace(get_agent=lambda _agent, model_override=None: FakeAgent())
+        context_stub = types.SimpleNamespace(enrich_context=AsyncMock(return_value=""))
+        activity_stub = types.SimpleNamespace(
+            log_activity=AsyncMock(),
+            log_event=AsyncMock(),
+            log_conversation=AsyncMock(),
+        )
+        workspace_stub = types.SimpleNamespace(post_item=AsyncMock())
+        escalation_stub = types.SimpleNamespace(add_notification=MagicMock())
+        circuit_stub = types.SimpleNamespace(get_circuit_breakers=lambda: breakers)
+
+        def _close_coro(coro):
+            try:
+                coro.close()
+            except Exception:
+                pass
+            return MagicMock()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            workspace_root = Path(temp_dir) / "workspace"
+            implementation_root = Path(temp_dir) / "implementation"
+            artifact_root = Path(temp_dir) / "output"
+            (workspace_root / "config" / "automation-backbone").mkdir(parents=True, exist_ok=True)
+            artifact_path = implementation_root / "projects" / "dashboard" / "src" / "features" / "overview" / "command-center.tsx"
+            artifact_path.parent.mkdir(parents=True, exist_ok=True)
+            artifact_path.write_text("before", encoding="utf-8")
+
+            class FakeProcess:
+                returncode = 0
+
+                async def communicate(self, _stdin=None):
+                    artifact_path.write_text("after", encoding="utf-8")
+                    return (b"dashboard proof passed", b"")
+
+            task = Task(
+                id="proof-task-2",
+                agent="coding-agent",
+                prompt="Ship the dashboard-visible-proof canary.",
+                status="running",
+                started_at=time.time(),
+                last_heartbeat=time.time(),
+                metadata={
+                    "source": "operator_backlog",
+                    "materialization_source": "governed_dispatch_state",
+                    "_autonomy_managed": True,
+                    "preferred_lane_family": "safe_surface_execution",
+                    "proof_execution_stage": "after_agent",
+                    "proof_commands": [[sys.executable, "scripts/run_dashboard_value_proof.py", "--surface", "dashboard_overview"]],
+                    "proof_environment": {
+                        "ATHANOR_RUNTIME_PROOF_CONTEXT": "1",
+                        "ATHANOR_RUNTIME_ARTIFACT_ROOT": str(artifact_root),
+                        "ATHANOR_IMPLEMENTATION_AUTHORITY": str(implementation_root),
+                    },
+                    "proof_command_surface": "python3 scripts/run_dashboard_value_proof.py --surface dashboard_overview",
+                    "proof_artifact_paths": ["projects/dashboard/src/features/overview/command-center.tsx"],
+                    "verification_contract": "maintenance_proof",
+                },
+            )
+
+            with (
+                patch.dict(
+                    sys.modules,
+                    {
+                        "athanor_agents.agents": agents_stub,
+                        "athanor_agents.context": context_stub,
+                        "athanor_agents.activity": activity_stub,
+                        "athanor_agents.workspace": workspace_stub,
+                        "athanor_agents.escalation": escalation_stub,
+                        "athanor_agents.circuit_breaker": circuit_stub,
+                    },
+                ),
+                patch("athanor_agents.tasks.persist_task_state", AsyncMock()) as persist_task_state,
+                patch("athanor_agents.tasks._release_task_claim", AsyncMock()),
+                patch("athanor_agents.tasks._record_skill_execution_for_task", AsyncMock()),
+                patch("athanor_agents.tasks.asyncio.create_task", side_effect=_close_coro),
+                patch("athanor_agents.tasks.REPO_ROOT", workspace_root),
+                patch("athanor_agents.tasks.asyncio.create_subprocess_exec", AsyncMock(return_value=FakeProcess())) as create_subprocess_exec,
+            ):
+                await _execute_task(task)
+
+        persisted_task = persist_task_state.await_args.args[0]
+        self.assertEqual("completed", persisted_task.status)
+        self.assertEqual("passed", persisted_task.metadata["verification_status"])
+        self.assertEqual(
+            str(implementation_root),
+            create_subprocess_exec.await_args.kwargs["cwd"],
+        )
+        self.assertEqual(
+            ["projects/dashboard/src/features/overview/command-center.tsx"],
+            persisted_task.metadata["proof_artifacts"],
+        )
+        self.assertEqual(
+            "Implemented the dashboard proof card.",
+            persisted_task.metadata["implementation_result_summary"],
+        )
+        self.assertEqual(
+            ["projects/dashboard/src/features/overview/command-center.tsx"],
+            persisted_task.metadata["proof_artifact_deltas"],
+        )
+
+    async def test_execute_task_fails_governed_proof_when_required_artifact_has_no_delta(self):
+        from pathlib import Path
+
+        from athanor_agents.tasks import Task, _execute_task
+
+        breaker = types.SimpleNamespace(
+            can_execute=AsyncMock(return_value=True),
+            record_failure=AsyncMock(),
+            record_success=AsyncMock(),
+        )
+        breakers = types.SimpleNamespace(get_or_create=lambda _agent: breaker)
+
+        class FakeAgent:
+            async def astream_events(self, *_args, **_kwargs):
+                yield {
+                    "event": "on_tool_start",
+                    "name": "read_file",
+                    "run_id": "tool-run-a",
+                    "data": {"input": {"path": "/implementation/projects/dashboard/src/features/operator/operator-console.tsx"}},
+                }
+                yield {
+                    "event": "on_tool_end",
+                    "name": "read_file",
+                    "run_id": "tool-run-a",
+                    "data": {"output": "existing operator console"},
+                }
+                yield {
+                    "event": "on_chat_model_stream",
+                    "data": {"chunk": type("Chunk", (), {"content": "Attempted builder proof update."})()},
+                }
+
+        agents_stub = types.SimpleNamespace(get_agent=lambda _agent, model_override=None: FakeAgent())
+        context_stub = types.SimpleNamespace(enrich_context=AsyncMock(return_value=""))
+        activity_stub = types.SimpleNamespace(
+            log_activity=AsyncMock(),
+            log_event=AsyncMock(),
+            log_conversation=AsyncMock(),
+        )
+        workspace_stub = types.SimpleNamespace(post_item=AsyncMock())
+        escalation_stub = types.SimpleNamespace(add_notification=MagicMock())
+        circuit_stub = types.SimpleNamespace(get_circuit_breakers=lambda: breakers)
+
+        def _close_coro(coro):
+            try:
+                coro.close()
+            except Exception:
+                pass
+            return MagicMock()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            workspace_root = Path(temp_dir) / "workspace"
+            implementation_root = Path(temp_dir) / "implementation"
+            artifact_root = Path(temp_dir) / "output"
+            (workspace_root / "config" / "automation-backbone").mkdir(parents=True, exist_ok=True)
+            artifact_path = implementation_root / "projects" / "dashboard" / "src" / "features" / "operator" / "operator-console.tsx"
+            artifact_path.parent.mkdir(parents=True, exist_ok=True)
+            artifact_path.write_text("preexisting autonomous value proof surface", encoding="utf-8")
+
+            class FakeProcess:
+                returncode = 0
+
+                async def communicate(self, _stdin=None):
+                    return (b"builder proof passed", b"")
+
+            task = Task(
+                id="proof-task-no-delta",
+                agent="coding-agent",
+                prompt="Ship the builder front-door value proof canary.",
+                status="running",
+                started_at=time.time(),
+                last_heartbeat=time.time(),
+                metadata={
+                    "source": "operator_backlog",
+                    "materialization_source": "governed_dispatch_state",
+                    "_autonomy_managed": True,
+                    "preferred_lane_family": "safe_surface_execution",
+                    "proof_execution_stage": "after_agent",
+                    "proof_commands": [[sys.executable, "scripts/run_dashboard_value_proof.py", "--surface", "builder_operator_surface"]],
+                    "proof_environment": {
+                        "ATHANOR_RUNTIME_PROOF_CONTEXT": "1",
+                        "ATHANOR_RUNTIME_ARTIFACT_ROOT": str(artifact_root),
+                        "ATHANOR_IMPLEMENTATION_AUTHORITY": str(implementation_root),
+                    },
+                    "proof_command_surface": "python3 scripts/run_dashboard_value_proof.py --surface builder_operator_surface",
+                    "proof_artifact_paths": ["projects/dashboard/src/features/operator/operator-console.tsx"],
+                    "verification_contract": "maintenance_proof",
+                },
+            )
+
+            with (
+                patch.dict(
+                    sys.modules,
+                    {
+                        "athanor_agents.agents": agents_stub,
+                        "athanor_agents.context": context_stub,
+                        "athanor_agents.activity": activity_stub,
+                        "athanor_agents.workspace": workspace_stub,
+                        "athanor_agents.escalation": escalation_stub,
+                        "athanor_agents.circuit_breaker": circuit_stub,
+                    },
+                ),
+                patch("athanor_agents.tasks.persist_task_state", AsyncMock()) as persist_task_state,
+                patch("athanor_agents.tasks._release_task_claim", AsyncMock()),
+                patch("athanor_agents.tasks._record_skill_execution_for_task", AsyncMock()),
+                patch("athanor_agents.tasks._maybe_retry", AsyncMock()) as maybe_retry,
+                patch("athanor_agents.tasks.asyncio.create_task", side_effect=_close_coro),
+                patch("athanor_agents.tasks.REPO_ROOT", workspace_root),
+                patch("athanor_agents.tasks.asyncio.create_subprocess_exec", AsyncMock(return_value=FakeProcess())),
+            ):
+                await _execute_task(task)
+
+        persisted_task = persist_task_state.await_args.args[0]
+        self.assertEqual("failed", persisted_task.status)
+        self.assertEqual("failed", persisted_task.metadata["verification_status"])
+        self.assertEqual([], persisted_task.metadata["proof_artifact_deltas"])
+        self.assertEqual(
+            "governed_proof_missing_delta",
+            persisted_task.metadata["failure"]["type"],
+        )
+        maybe_retry.assert_awaited_once()
+
+    async def test_execute_task_uses_internal_model_override_for_google_gemini_lease(self):
+        from athanor_agents.tasks import Task, _task_execution_model_override
+
+        task = Task(
+            agent="coding-agent",
+            metadata={
+                "execution_lease": {
+                    "provider": "google_gemini",
+                }
+            },
+        )
+
+        self.assertEqual("gemini-sub", _task_execution_model_override(task))
+
+    async def test_execute_task_matches_same_tool_outputs_by_run_id(self):
+        from athanor_agents.tasks import Task, _execute_task
+
+        breaker = types.SimpleNamespace(
+            can_execute=AsyncMock(return_value=True),
+            record_failure=AsyncMock(),
+            record_success=AsyncMock(),
+        )
+        breakers = types.SimpleNamespace(get_or_create=lambda _agent: breaker)
+
+        class FakeAgent:
+            async def astream_events(self, *_args, **_kwargs):
+                yield {
+                    "event": "on_tool_start",
+                    "name": "read_file",
+                    "run_id": "tool-run-a",
+                    "data": {"input": {"path": "/implementation/file-a.ts"}},
+                }
+                yield {
+                    "event": "on_tool_start",
+                    "name": "read_file",
+                    "run_id": "tool-run-b",
+                    "data": {"input": {"path": "/implementation/file-b.ts"}},
+                }
+                yield {
+                    "event": "on_tool_end",
+                    "name": "read_file",
+                    "run_id": "tool-run-b",
+                    "data": {"output": "content from b"},
+                }
+                yield {
+                    "event": "on_tool_end",
+                    "name": "read_file",
+                    "run_id": "tool-run-a",
+                    "data": {"output": "content from a"},
+                }
+                yield {
+                    "event": "on_chat_model_stream",
+                    "data": {"chunk": type("Chunk", (), {"content": "done"})()},
+                }
+
+        agents_stub = types.SimpleNamespace(get_agent=lambda _agent, model_override=None: FakeAgent())
+        context_stub = types.SimpleNamespace(enrich_context=AsyncMock(return_value=""))
+        activity_stub = types.SimpleNamespace(
+            log_activity=AsyncMock(),
+            log_event=AsyncMock(),
+            log_conversation=AsyncMock(),
+        )
+        workspace_stub = types.SimpleNamespace(post_item=AsyncMock())
+        escalation_stub = types.SimpleNamespace(add_notification=MagicMock())
+        circuit_stub = types.SimpleNamespace(get_circuit_breakers=lambda: breakers)
+
+        def _close_coro(coro):
+            try:
+                coro.close()
+            except Exception:
+                pass
+            return MagicMock()
+
+        task = Task(
+            id="tool-run-match-task",
+            agent="coding-agent",
+            prompt="Inspect matching tool outputs",
+            status="running",
+            started_at=time.time(),
+            last_heartbeat=time.time(),
+            metadata={"source": "operator_backlog"},
+        )
+
+        with (
+            patch.dict(
+                sys.modules,
+                {
+                    "athanor_agents.agents": agents_stub,
+                    "athanor_agents.context": context_stub,
+                    "athanor_agents.activity": activity_stub,
+                    "athanor_agents.workspace": workspace_stub,
+                    "athanor_agents.escalation": escalation_stub,
+                    "athanor_agents.circuit_breaker": circuit_stub,
+                },
+            ),
+            patch("athanor_agents.tasks.persist_task_state", AsyncMock()) as persist_task_state,
+            patch("athanor_agents.tasks._release_task_claim", AsyncMock()),
+            patch("athanor_agents.tasks._record_skill_execution_for_task", AsyncMock()),
+            patch("athanor_agents.tasks.asyncio.create_task", side_effect=_close_coro),
+        ):
+            await _execute_task(task)
+
+        persisted_task = persist_task_state.await_args.args[0]
+        read_steps = [step for step in persisted_task.steps if step.get("tool_name") == "read_file"]
+        self.assertEqual(2, len(read_steps))
+        self.assertEqual("tool-run-a", read_steps[0]["tool_run_id"])
+        self.assertEqual("tool-run-b", read_steps[1]["tool_run_id"])
+        self.assertEqual("content from a", read_steps[0]["tool_output"])
+        self.assertEqual("content from b", read_steps[1]["tool_output"])
+
     async def test_execute_task_routes_async_backlog_leases_to_provider_execution(self):
         from athanor_agents.tasks import Task, _execute_task
 
@@ -1797,6 +2262,33 @@ class TestDurableTaskPersistence(unittest.IsolatedAsyncioTestCase):
             await persist_task_state(task)
 
         upsert_task_snapshot.assert_awaited_once()
+
+    async def test_persist_task_state_syncs_backlog_queue_projection(self):
+        from athanor_agents.tasks import Task, persist_task_state
+
+        task = Task(
+            id="dual-backlog",
+            agent="coding-agent",
+            prompt="Finish the queue refactor",
+            status="pending_approval",
+            metadata={
+                "backlog_id": "backlog-queue-1",
+                "approval_request_id": "approval-queue-1",
+                "execution_run_id": "run-queue-1",
+            },
+        )
+        mock_r = _mock_redis()
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.write_task_record", AsyncMock(return_value=task.to_dict())),
+            patch("athanor_agents.tasks.upsert_task_snapshot", AsyncMock(return_value=True)),
+            patch("athanor_agents.tasks.sync_task_execution_projection", AsyncMock(return_value=None)),
+            patch("athanor_agents.tasks.sync_backlog_item_from_task", AsyncMock(return_value={"id": "backlog-queue-1"})) as sync_backlog_item_from_task,
+        ):
+            await persist_task_state(task)
+
+        sync_backlog_item_from_task.assert_awaited_once()
 
     async def test_repair_legacy_failed_task_details_backfills_durable_metadata(self):
         from athanor_agents.tasks import LEGACY_FAILED_TASK_DETAIL, Task, repair_legacy_failed_task_details

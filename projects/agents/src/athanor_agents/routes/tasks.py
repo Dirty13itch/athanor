@@ -251,6 +251,12 @@ async def run_scheduled_job_endpoint(job_id: str, request: Request):
             "force": force,
             "result_status": result.get("status"),
             "override_available": result.get("override_available"),
+            "backlog_id": result.get("backlog_id"),
+            "materialization_status": result.get("materialization_status"),
+            "execution_mode": result.get("execution_mode"),
+            "execution_plane": result.get("execution_plane"),
+            "admission_classification": result.get("admission_classification"),
+            "admission_reason": result.get("admission_reason"),
         },
     )
     return result

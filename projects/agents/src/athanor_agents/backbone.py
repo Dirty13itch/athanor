@@ -59,6 +59,10 @@ from .scheduler import (
     WORKPLAN_REFILL_INTERVAL,
     WORKPLAN_REFILL_KEY,
     _get_redis,
+    _scheduled_job_default_admission,
+    _scheduled_job_default_admission_reason,
+    _scheduled_job_default_plane,
+    _scheduled_job_execution_mode,
     get_schedule_control_scope,
     get_schedule_status,
 )
@@ -465,6 +469,16 @@ async def build_scheduled_job_records(limit: int = 50) -> list[dict[str, Any]]:
         )
         paused = global_paused or (control_scope in paused_lanes if control_scope else False)
         current_state = "paused" if paused else ("deferred" if not governance["allowed"] else "scheduled")
+        admission_classification = str(
+            event_data.get("admission_classification")
+            or (governance.get("deferred_by") if current_state == "deferred" else "")
+            or _scheduled_job_default_admission(job_id)
+        ) or None
+        admission_reason = str(
+            event_data.get("admission_reason")
+            or (governance.get("reason") if current_state == "deferred" else "")
+            or _scheduled_job_default_admission_reason(job_id, admission_classification or "")
+        ) or None
         jobs.append(
             {
                 "id": job_id,
@@ -501,6 +515,12 @@ async def build_scheduled_job_records(limit: int = 50) -> list[dict[str, Any]]:
                 "last_actor": str(event_data.get("actor") or "") or None,
                 "last_force_override": bool(event_data.get("force_override", False)),
                 "last_task_id": str(event_data.get("task_id") or "") or None,
+                "last_backlog_id": str(event_data.get("backlog_id") or "") or None,
+                "last_execution_mode": str(event_data.get("execution_mode") or _scheduled_job_execution_mode(job_id)) or None,
+                "last_execution_plane": str(event_data.get("execution_plane") or _scheduled_job_default_plane(job_id)) or None,
+                "last_admission_classification": admission_classification,
+                "last_admission_reason": admission_reason,
+                "last_materialization_status": str(event_data.get("materialization_status") or "") or None,
                 "last_plan_id": str(event_data.get("plan_id") or "") or None,
             }
         )
@@ -693,6 +713,16 @@ async def build_scheduled_job_records(limit: int = 50) -> list[dict[str, Any]]:
             capacity_snapshot=capacity_snapshot,
         )
         paused = global_paused or (control_scope in paused_lanes if control_scope else False)
+        admission_classification = str(
+            event_data.get("admission_classification")
+            or (governance.get("deferred_by") if not paused and not governance["allowed"] else "")
+            or _scheduled_job_default_admission(definition["id"])
+        ) or None
+        admission_reason = str(
+            event_data.get("admission_reason")
+            or (governance.get("reason") if not paused and not governance["allowed"] else "")
+            or _scheduled_job_default_admission_reason(definition["id"], admission_classification or "")
+        ) or None
         jobs.append(
             {
                 "id": definition["id"],
@@ -735,6 +765,12 @@ async def build_scheduled_job_records(limit: int = 50) -> list[dict[str, Any]]:
                 "last_actor": str(event_data.get("actor") or "") or None,
                 "last_force_override": bool(event_data.get("force_override", False)),
                 "last_task_id": str(event_data.get("task_id") or "") or None,
+                "last_backlog_id": str(event_data.get("backlog_id") or "") or None,
+                "last_execution_mode": str(event_data.get("execution_mode") or _scheduled_job_execution_mode(definition["id"])) or None,
+                "last_execution_plane": str(event_data.get("execution_plane") or _scheduled_job_default_plane(definition["id"])) or None,
+                "last_admission_classification": admission_classification,
+                "last_admission_reason": admission_reason,
+                "last_materialization_status": str(event_data.get("materialization_status") or "") or None,
                 "last_plan_id": str(event_data.get("plan_id") or "") or None,
             }
         )
@@ -760,6 +796,16 @@ async def build_scheduled_job_records(limit: int = 50) -> list[dict[str, Any]]:
             current_state = "paused"
         elif not governance["allowed"] and current_state != "running":
             current_state = "deferred"
+        admission_classification = str(
+            event_data.get("admission_classification")
+            or (governance.get("deferred_by") if current_state == "deferred" else "")
+            or _scheduled_job_default_admission(job_id)
+        ) or None
+        admission_reason = str(
+            event_data.get("admission_reason")
+            or (governance.get("reason") if current_state == "deferred" else "")
+            or _scheduled_job_default_admission_reason(job_id, admission_classification or "")
+        ) or None
         jobs.append(
             {
                 "id": job_id,
@@ -794,6 +840,12 @@ async def build_scheduled_job_records(limit: int = 50) -> list[dict[str, Any]]:
                 "last_actor": str(event_data.get("actor") or "") or None,
                 "last_force_override": bool(event_data.get("force_override", False)),
                 "last_task_id": str(event_data.get("task_id") or "") or None,
+                "last_backlog_id": str(event_data.get("backlog_id") or job.get("last_backlog_id") or "") or None,
+                "last_execution_mode": str(event_data.get("execution_mode") or _scheduled_job_execution_mode(job_id)) or None,
+                "last_execution_plane": str(event_data.get("execution_plane") or _scheduled_job_default_plane(job_id)) or None,
+                "last_admission_classification": admission_classification,
+                "last_admission_reason": admission_reason,
+                "last_materialization_status": str(event_data.get("materialization_status") or job.get("last_materialization_status") or "") or None,
                 "last_plan_id": str(event_data.get("plan_id") or "") or None,
             }
         )

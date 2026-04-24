@@ -204,6 +204,213 @@ class OperatorWorkRouteContractTests(unittest.TestCase):
         self.assertEqual([], payload["backlog"])
         self.assertEqual(0, payload["count"])
 
+    def test_create_backlog_accepts_canonical_queue_fields(self) -> None:
+        client = _make_client()
+        backlog = {
+            "id": "backlog-queue-1",
+            "title": "Packet maintenance",
+            "family": "maintenance",
+            "project_id": "kindred",
+            "source_type": "program_signal",
+            "source_ref": "project-packet:kindred:weekly",
+            "routing_class": "private_but_cloud_allowed",
+            "verification_contract": "maintenance_proof",
+            "closure_rule": "proof_or_review_required",
+            "materialization_source": "project_packet_cadence",
+            "materialization_reason": "Recurring maintenance signal emitted governed queue work.",
+            "recurrence_program_id": "weekly-kindred-maintenance",
+            "result_id": "",
+            "review_id": "",
+        }
+        with (
+            patch("athanor_agents.routes.operator_work.emit_operator_audit_event", AsyncMock()) as audit,
+            patch("athanor_agents.operator_work.create_backlog_item", AsyncMock(return_value=backlog)) as create_backlog_item,
+        ):
+            response = client.post(
+                "/v1/operator/backlog",
+                json={
+                    "actor": "operator",
+                    "session_id": "sess-1",
+                    "correlation_id": "corr-1",
+                    "reason": "Create backlog",
+                    "title": "Packet maintenance",
+                    "prompt": "Refresh maintenance evidence.",
+                    "owner_agent": "coding-agent",
+                    "family": "maintenance",
+                    "project_id": "kindred",
+                    "source_type": "program_signal",
+                    "source_ref": "project-packet:kindred:weekly",
+                    "routing_class": "private_but_cloud_allowed",
+                    "verification_contract": "maintenance_proof",
+                    "closure_rule": "proof_or_review_required",
+                    "materialization_source": "project_packet_cadence",
+                    "materialization_reason": "Recurring maintenance signal emitted governed queue work.",
+                    "recurrence_program_id": "weekly-kindred-maintenance",
+                },
+            )
+
+        self.assertEqual(200, response.status_code)
+        create_backlog_item.assert_awaited_once()
+        self.assertEqual("maintenance", create_backlog_item.await_args.kwargs["family"])
+        self.assertEqual("kindred", create_backlog_item.await_args.kwargs["project_id"])
+        self.assertEqual("program_signal", create_backlog_item.await_args.kwargs["source_type"])
+        self.assertEqual("project_packet_cadence", create_backlog_item.await_args.kwargs["materialization_source"])
+        audit.assert_awaited_once()
+        self.assertEqual("accepted", audit.await_args.kwargs["decision"])
+
+    def test_create_backlog_accepts_autonomous_value_fields(self) -> None:
+        client = _make_client()
+        backlog = {
+            "id": "backlog-value-1",
+            "title": "Accepted operator-value proof",
+            "family": "research_audit",
+            "value_class": "operator_value",
+            "deliverable_kind": "report",
+            "deliverable_refs": ["docs/operations/REPO-ROOTS-REPORT.md"],
+            "beneficiary_surface": "athanor_core",
+            "acceptance_mode": "automated",
+            "accepted_by": "system",
+            "accepted_at": "2026-04-20T05:00:00+00:00",
+            "acceptance_proof_refs": ["reports/truth-inventory/autonomous-value-acceptance/backlog-1.json"],
+            "operator_steered": False,
+        }
+        with (
+            patch("athanor_agents.routes.operator_work.emit_operator_audit_event", AsyncMock()) as audit,
+            patch("athanor_agents.operator_work.create_backlog_item", AsyncMock(return_value=backlog)) as create_backlog_item,
+        ):
+            response = client.post(
+                "/v1/operator/backlog",
+                json={
+                    "actor": "codex",
+                    "session_id": "sess-1",
+                    "correlation_id": "corr-1",
+                    "reason": "Create autonomous value acceptance backlog",
+                    "title": "Accepted operator-value proof",
+                    "prompt": "Persist the accepted autonomous value proof.",
+                    "owner_agent": "research-agent",
+                    "family": "research_audit",
+                    "value_class": "operator_value",
+                    "deliverable_kind": "report",
+                    "deliverable_refs": ["docs/operations/REPO-ROOTS-REPORT.md"],
+                    "beneficiary_surface": "athanor_core",
+                    "acceptance_mode": "automated",
+                    "accepted_by": "system",
+                    "accepted_at": "2026-04-20T05:00:00+00:00",
+                    "acceptance_proof_refs": ["reports/truth-inventory/autonomous-value-acceptance/backlog-1.json"],
+                    "operator_steered": False,
+                },
+            )
+
+        self.assertEqual(200, response.status_code)
+        create_backlog_item.assert_awaited_once()
+        self.assertEqual("operator_value", create_backlog_item.await_args.kwargs["value_class"])
+        self.assertEqual("report", create_backlog_item.await_args.kwargs["deliverable_kind"])
+        self.assertEqual(
+            ["docs/operations/REPO-ROOTS-REPORT.md"],
+            create_backlog_item.await_args.kwargs["deliverable_refs"],
+        )
+        self.assertEqual("athanor_core", create_backlog_item.await_args.kwargs["beneficiary_surface"])
+        self.assertEqual("automated", create_backlog_item.await_args.kwargs["acceptance_mode"])
+        self.assertEqual("system", create_backlog_item.await_args.kwargs["accepted_by"])
+        self.assertEqual(
+            "2026-04-20T05:00:00+00:00",
+            create_backlog_item.await_args.kwargs["accepted_at"],
+        )
+        self.assertEqual(
+            ["reports/truth-inventory/autonomous-value-acceptance/backlog-1.json"],
+            create_backlog_item.await_args.kwargs["acceptance_proof_refs"],
+        )
+        self.assertIs(False, create_backlog_item.await_args.kwargs["operator_steered"])
+        audit.assert_awaited_once()
+        self.assertEqual("accepted", audit.await_args.kwargs["decision"])
+
+    def test_materialize_maintenance_backlog_endpoint_uses_canonical_materializer(self) -> None:
+        client = _make_client()
+        backlog = {
+            "id": "backlog-maint-1",
+            "family": "maintenance",
+            "project_id": "kindred",
+            "source_type": "program_signal",
+        }
+        with (
+            patch("athanor_agents.routes.operator_work.emit_operator_audit_event", AsyncMock()) as audit,
+            patch("athanor_agents.operator_work.materialize_maintenance_signal", AsyncMock(return_value=backlog)) as materialize_maintenance_signal,
+        ):
+            response = client.post(
+                "/v1/operator/backlog/materialize-maintenance",
+                json={
+                    "actor": "operator",
+                    "session_id": "sess-1",
+                    "correlation_id": "corr-1",
+                    "reason": "Materialize maintenance",
+                    "project_id": "kindred",
+                    "title": "Weekly packet maintenance",
+                    "prompt": "Refresh project maintenance evidence.",
+                    "source_ref": "project-packet:kindred:weekly",
+                    "owner_agent": "coding-agent",
+                    "recurrence_program_id": "weekly-kindred-maintenance",
+                },
+            )
+
+        self.assertEqual(200, response.status_code)
+        materialize_maintenance_signal.assert_awaited_once_with(
+            project_id="kindred",
+            title="Weekly packet maintenance",
+            prompt="Refresh project maintenance evidence.",
+            source_ref="project-packet:kindred:weekly",
+            owner_agent="coding-agent",
+            recurrence_program_id="weekly-kindred-maintenance",
+            approval_mode="none",
+            metadata={},
+        )
+        audit.assert_awaited_once()
+        self.assertEqual("accepted", audit.await_args.kwargs["decision"])
+
+    def test_materialize_bootstrap_follow_up_endpoint_uses_canonical_materializer(self) -> None:
+        client = _make_client()
+        backlog = {
+            "id": "backlog-bootstrap-1",
+            "family": "project_bootstrap",
+            "project_id": "athanor",
+            "source_type": "bootstrap_follow_up",
+        }
+        with (
+            patch("athanor_agents.routes.operator_work.emit_operator_audit_event", AsyncMock()) as audit,
+            patch("athanor_agents.operator_work.materialize_bootstrap_follow_up", AsyncMock(return_value=backlog)) as materialize_bootstrap_follow_up,
+        ):
+            response = client.post(
+                "/v1/operator/backlog/materialize-bootstrap-follow-up",
+                json={
+                    "actor": "operator",
+                    "session_id": "sess-1",
+                    "correlation_id": "corr-1",
+                    "reason": "Materialize bootstrap follow-up",
+                    "program_id": "launch-readiness-bootstrap",
+                    "slice_id": "slice-foundry-completion",
+                    "family": "project_bootstrap",
+                    "title": "Follow up foundry completion slice",
+                    "prompt": "Convert the foundry completion bootstrap slice into governed queue work.",
+                    "project_id": "athanor",
+                    "source_ref": "bootstrap:launch-readiness-bootstrap:slice-foundry-completion",
+                    "owner_agent": "coding-agent",
+                },
+            )
+
+        self.assertEqual(200, response.status_code)
+        materialize_bootstrap_follow_up.assert_awaited_once_with(
+            program_id="launch-readiness-bootstrap",
+            slice_id="slice-foundry-completion",
+            family="project_bootstrap",
+            title="Follow up foundry completion slice",
+            prompt="Convert the foundry completion bootstrap slice into governed queue work.",
+            project_id="athanor",
+            source_ref="bootstrap:launch-readiness-bootstrap:slice-foundry-completion",
+            owner_agent="coding-agent",
+            metadata={},
+        )
+        audit.assert_awaited_once()
+        self.assertEqual("accepted", audit.await_args.kwargs["decision"])
+
     def test_approve_operator_approval_bridges_to_task_approval(self) -> None:
         client = _make_client()
         approval = {"id": "approval-1", "status": "pending", "related_task_id": "task-7", "related_run_id": "run-1"}

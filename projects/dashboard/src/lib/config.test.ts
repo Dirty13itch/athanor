@@ -33,10 +33,10 @@ describe("config helpers", () => {
     expect(resolveChatModel("foundry-coordinator", "custom-model")).toBe("/models/custom-model");
   });
 
-  it("keeps the fallback project registry aligned with active tenants and excludes retired lineage", () => {
+  it("keeps the fallback project registry aligned with active tenants", () => {
     expect(getProjectById("athanor")?.firstClass).toBe(true);
     expect(getProjectById("eoq")?.firstClass).toBe(true);
-    expect(getProjectById("ulrich-energy")).toBeNull();
+    expect(getProjectById("ulrich-energy")?.primaryRoute).toBe("/backlog?project=ulrich-energy");
   });
 
   it("uses registry-backed canonical front-door and launchpad URLs", () => {

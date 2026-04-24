@@ -35,6 +35,13 @@ async def build_proving_ground_snapshot(limit: int = 12) -> dict[str, Any]:
             "pass_rate": summary["last_cycle"].get("benchmarks", {}).get("pass_rate", 0.0),
             "patterns_consumed": summary["last_cycle"].get("patterns_consumed", 0),
             "proposals_generated": summary["last_cycle"].get("proposals_generated", 0),
+            "backlog_items_created": summary["last_cycle"].get("backlog_items_created", 0),
+            "backlog_items_refreshed": summary["last_cycle"].get("backlog_items_refreshed", 0),
+            "backlog_ids": list(summary["last_cycle"].get("backlog_ids", [])),
+            "review_ids": list(summary["last_cycle"].get("review_ids", [])),
+            "execution_plane": summary["last_cycle"].get("execution_plane"),
+            "admission_classification": summary["last_cycle"].get("admission_classification"),
+            "admission_reason": summary["last_cycle"].get("admission_reason"),
             "errors": summary["last_cycle"].get("errors", []),
             "source": "improvement_cycle",
         }

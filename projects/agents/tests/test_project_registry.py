@@ -56,12 +56,13 @@ class ProjectRegistryTest(unittest.TestCase):
 
         self.assertEqual("tenant", summaries["eoq"]["kind"])
         self.assertEqual("eoq", summaries["eoq"]["lens"])
-        self.assertEqual("/workplanner?project=ulrich-energy", summaries["ulrich-energy"]["primary_route"])
+        self.assertEqual("/projects?project=ulrich-energy", summaries["ulrich-energy"]["primary_route"])
         self.assertIsNotNone(detail)
         assert detail is not None
-        self.assertEqual("scaffold", detail["kind"])
-        self.assertEqual(2, len(detail["needs"]))
-        self.assertIn("coding-agent", detail["operators"])
+        self.assertEqual("archive", detail["kind"])
+        self.assertEqual("retired", detail["status"])
+        self.assertEqual(0, len(detail["needs"]))
+        self.assertIn("knowledge-agent", detail["operators"])
 
 
 if __name__ == "__main__":
