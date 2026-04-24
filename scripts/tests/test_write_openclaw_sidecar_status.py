@@ -80,7 +80,19 @@ def test_node_summary_requires_connected_desk_system_node() -> None:
                 "connected": True,
                 "platform": "win32",
                 "commands": ["browser.proxy", "system.run", "system.run.prepare", "system.which"],
-            }
+            },
+            {
+                "displayName": "FOUNDRY",
+                "connected": True,
+                "platform": "linux",
+                "commands": ["browser.proxy", "system.run", "system.run.prepare", "system.which"],
+            },
+            {
+                "displayName": "WORKSHOP",
+                "connected": True,
+                "platform": "linux",
+                "commands": ["browser.proxy", "system.run", "system.run.prepare", "system.which"],
+            },
         ]
     }
 
@@ -88,7 +100,9 @@ def test_node_summary_requires_connected_desk_system_node() -> None:
 
     assert summary["ok"] is True
     assert summary["desk_connected"] is True
-    assert summary["connected_count"] == 1
+    assert summary["connected_count"] == 3
+    assert summary["connected_expected_nodes"] == ["desk", "foundry", "workshop"]
+    assert summary["read_probe_ready"] == {"DESK": True, "FOUNDRY": True, "WORKSHOP": True}
 
 
 def test_channel_summary_requires_configured_running_telegram_account() -> None:

@@ -164,22 +164,46 @@ def _summarize_nodes(value: Any) -> dict[str, Any]:
     payload = value if isinstance(value, dict) else {}
     nodes = payload.get("nodes") if isinstance(payload.get("nodes"), list) else []
     connected = [node for node in nodes if isinstance(node, dict) and bool(node.get("connected"))]
-    desk = next(
-        (
-            node
-            for node in connected
-            if str(node.get("displayName") or "").lower() == "desk"
-            or str(node.get("platform") or "").lower() == "win32"
-        ),
+    names_by_node = {
+        str(node.get("displayName") or "").lower(): node
+        for node in connected
+        if str(node.get("displayName") or "").strip()
+    }
+    desk = names_by_node.get("desk") or next(
+        (node for node in connected if str(node.get("platform") or "").lower() == "win32"),
         None,
     )
-    commands = set(str(command) for command in (desk or {}).get("commands", []) if str(command).strip())
+    expected_nodes = {"desk", "foundry", "workshop"}
+    connected_expected = expected_nodes.intersection(names_by_node)
+    commands_by_name = {
+        str(node.get("displayName") or "").upper(): sorted(
+            str(command) for command in node.get("commands", []) if str(command).strip()
+        )
+        for node in connected
+        if str(node.get("displayName") or "").strip()
+    }
+    desk_commands = set(str(command) for command in (desk or {}).get("commands", []) if str(command).strip())
+    read_probe_ready = {
+        name.upper(): "system.which" in set(commands)
+        for name, commands in commands_by_name.items()
+        if name.lower() in expected_nodes
+    }
+    mutation_capable = {
+        name: [command for command in commands if command in {"system.run", "system.run.prepare", "browser.proxy"}]
+        for name, commands in commands_by_name.items()
+        if any(command in {"system.run", "system.run.prepare", "browser.proxy"} for command in commands)
+    }
     return {
-        "ok": bool(desk) and {"system.which", "system.run", "system.run.prepare"}.issubset(commands),
+        "ok": expected_nodes.issubset(connected_expected) and all(read_probe_ready.values()),
         "count": len(nodes),
         "connected_count": len(connected),
         "desk_connected": bool(desk),
-        "desk_commands": sorted(commands),
+        "expected_nodes": sorted(expected_nodes),
+        "connected_expected_nodes": sorted(connected_expected),
+        "commands_by_name": commands_by_name,
+        "read_probe_ready": read_probe_ready,
+        "mutation_capable_commands": mutation_capable,
+        "desk_commands": sorted(desk_commands),
     }
 
 

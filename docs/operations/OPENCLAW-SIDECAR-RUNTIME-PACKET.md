@@ -22,6 +22,7 @@ OpenClaw is a DEV-hosted sidecar operator layer for local personal operations. I
 - Exec policy is `cautious`: allowlist execution, ask on miss, deny fallback.
 - DESK has an isolated `openclaw --profile dev` profile for the tunneled gateway.
 - DESK is paired as the first OpenClaw node and has proved harmless `system.which` execution through the approval-gated path.
+- FOUNDRY and WORKSHOP are paired through per-node restricted SSH tunnels to the DEV loopback Gateway and have proved harmless `system.which` execution.
 - The first report-only cron job is installed for a daily OpenClaw model/scheduler heartbeat.
 - Telegram credential installation is repeatable through `scripts/configure_openclaw_telegram.py`; no token is stored in the repo.
 - VAULT is intentionally not a writable OpenClaw node.
@@ -30,7 +31,7 @@ OpenClaw is a DEV-hosted sidecar operator layer for local personal operations. I
 
 - Telegram must be configured with a BotFather token, numeric allowlisted chats, and explicit approver IDs before mobile delivery or approvals are enabled.
 - Telegram must prove one DM approval round trip before it becomes an operational approval path.
-- FOUNDRY and WORKSHOP node pairing must start read-only.
+- FOUNDRY and WORKSHOP mutation must stay packet-gated; their initial proof is visibility plus harmless diagnostics only.
 - VAULT node pairing or write access requires a separate runtime packet.
 
 ## Verification

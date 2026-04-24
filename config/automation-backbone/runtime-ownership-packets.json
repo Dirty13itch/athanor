@@ -1006,7 +1006,11 @@
         "openclaw-gateway.service",
         "/home/shaun/.openclaw",
         "DESK OpenClaw dev profile",
-        "DESK SSH tunnel to DEV 127.0.0.1:18789"
+        "DESK SSH tunnel to DEV 127.0.0.1:18789",
+        "FOUNDRY openclaw-dev-tunnel.service",
+        "FOUNDRY openclaw-node.service",
+        "WORKSHOP openclaw-dev-tunnel.service",
+        "WORKSHOP openclaw-node.service"
       ],
       "backup_root": "/home/shaun/.openclaw/openclaw.json.bak plus systemd unit backups created by OpenClaw install",
       "preflight_commands": [
@@ -1022,6 +1026,7 @@
         "Create isolated OpenClaw agents for operator, coder, cluster, creative, research, and home-media with separate workspaces under /home/shaun/.openclaw/workspaces.",
         "Apply the cautious exec policy so command execution is allowlist-based with ask-on-miss and deny fallback.",
         "Configure DESK profile `openclaw --profile dev` to use ws://127.0.0.1:18789 through the SSH tunnel.",
+        "Install OpenClaw user-local on FOUNDRY and WORKSHOP, create restricted SSH forwarding keys limited to DEV 127.0.0.1:18789, and run node hosts behind per-node localhost tunnels.",
         "Keep Telegram delivery and inline approvals blocked until the BotFather token plus numeric allowlist/approver IDs are installed in OpenClaw channel state and verified."
       ],
       "verification_commands": [
@@ -1030,6 +1035,9 @@
         "ssh dev \"export PATH=\\\"$HOME/.local/npm-global/bin:$PATH\\\"; openclaw models status --check --probe --json\"",
         "ssh dev \"export PATH=\\\"$HOME/.local/npm-global/bin:$PATH\\\"; openclaw channels status --probe --json\"",
         "ssh dev \"export PATH=\\\"$HOME/.local/npm-global/bin:$PATH\\\"; openclaw agents list --bindings --json\"",
+        "ssh dev \"export PATH=\\\"$HOME/.local/npm-global/bin:$PATH\\\"; openclaw nodes status --json\"",
+        "ssh dev \"export PATH=\\\"$HOME/.local/npm-global/bin:$PATH\\\"; openclaw nodes invoke --node FOUNDRY --command system.which --params '{\\\"bins\\\":[\\\"bash\\\"]}' --json\"",
+        "ssh dev \"export PATH=\\\"$HOME/.local/npm-global/bin:$PATH\\\"; openclaw nodes invoke --node WORKSHOP --command system.which --params '{\\\"bins\\\":[\\\"bash\\\"]}' --json\"",
         "ssh dev \"export PATH=\\\"$HOME/.local/npm-global/bin:$PATH\\\"; openclaw exec-policy show\"",
         "python scripts/write_openclaw_sidecar_status.py --write",
         "python scripts/validate_platform_contract.py"
@@ -1047,7 +1055,7 @@
         "config/automation-backbone/operator-surface-registry.json",
         "config/automation-backbone/runtime-ownership-contract.json"
       ],
-      "next_action": "Model auth, DESK tunnel/profile, DESK node pairing, cautious exec policy, isolated agents, and the first report-only cron are verified; install the Telegram BotFather token plus numeric allowlist/approver IDs next, then prove one DM approval round trip before any FOUNDRY, WORKSHOP, or VAULT node widening."
+      "next_action": "Model auth, DESK tunnel/profile, DESK node pairing, FOUNDRY/WORKSHOP tunneled node pairing, cautious exec policy, isolated agents, and the first report-only cron are verified; install the Telegram BotFather token plus numeric allowlist/approver IDs next, then prove one DM approval round trip before any mutation-capable FOUNDRY, WORKSHOP, or VAULT widening."
     },
     {
       "id": "foundry-agents-runtime-alignment-packet",
