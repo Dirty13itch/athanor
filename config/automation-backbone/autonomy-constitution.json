@@ -1,0 +1,55 @@
+{
+  "version": "2026-04-19.1",
+  "updated_at": "2026-04-19T08:30:00+00:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/autonomy-constitution.json",
+  "primary_controller_host": "dev",
+  "primary_execution_host": "foundry",
+  "authoring_surface_host": "desk",
+  "current_mutation_posture": "repo_safe_only",
+  "allowed_automatic_mutations": [
+    "repo_safe_control_plane",
+    "repo_safe_coding",
+    "repo_safe_docs_and_reports"
+  ],
+  "always_approval_gated_mutations": [
+    "auth_repairs",
+    "provider_secret_changes",
+    "host_access_changes",
+    "network_storage_changes",
+    "destructive_cleanup",
+    "runtime_ownership_changes"
+  ],
+  "typed_brake_classes": [
+    "approval_gated_runtime_packet",
+    "external_dependency_blocked",
+    "proof_workspace_drift",
+    "runtime_ownership_drift",
+    "validator_red",
+    "provider_secret_gate",
+    "manual_pause",
+    "result_credit_path_broken"
+  ],
+  "forced_pause_conditions": [
+    "manual_pause",
+    "approval_gated_runtime_packet",
+    "external_dependency_blocked"
+  ],
+  "forced_rollback_conditions": [
+    "runtime_ownership_drift",
+    "validator_red"
+  ],
+  "proof_gate_open_conditions": [
+    "stable_operating_day",
+    "stale_claim_failures",
+    "result_backed_threshold",
+    "runtime_parity",
+    "validator_and_contract_healer"
+  ],
+  "widening_conditions": [
+    "proof_gate_open",
+    "required_now_capabilities_green",
+    "clean_repo_runtime_parity"
+  ],
+  "post_gate_runtime_mutation_rule": "Reversible runtime and deploy mutations may auto-execute only after proof gate opens and the rollback path is explicit."
+}

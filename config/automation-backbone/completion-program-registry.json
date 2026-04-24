@@ -311,21 +311,122 @@
         "disposition": "deferred_out_of_sequence",
         "execution_class": "program_slice",
         "execution_rank": 6,
-        "id": "control-plane-follow-on",
-        "next_action": "Break the broad control-plane tail into explicit follow-on publication slices before any wider checkpoint publish.",
+        "id": "control-plane-registry-and-routing",
+        "next_action": "Isolate registry, routing, and dispatch policy residue into a bounded publication-ready tranche.",
         "owner_workstreams": [
           "authority-and-mainline",
           "validation-and-publication"
         ],
         "path_hints": [
-          "config/automation-backbone/",
-          "scripts/",
-          "projects/agents/",
-          "docs/operations/"
+          "config/automation-backbone/docs-lifecycle-registry.json",
+          "config/automation-backbone/economic-dispatch-ledger.json",
+          "config/automation-backbone/executive-kernel-registry.json",
+          "config/automation-backbone/lane-selection-matrix.json",
+          "projects/agents/config/subscription-routing-policy.yaml",
+          "projects/agents/src/athanor_agents/backbone.py",
+          "projects/agents/src/athanor_agents/model_governance.py",
+          "projects/agents/src/athanor_agents/subscriptions.py",
+          "projects/agents/tests/test_model_governance.py",
+          "projects/agents/tests/test_subscription_policy.py"
         ],
-        "scope": "Implementation-authority control-plane, agent-runtime, and operations packet work that is real but intentionally outside the six ready checkpoint slices.",
-        "success_condition": "Control-plane residue is no longer one deferred mass; it is decomposed into explicit publication-ready tranches.",
-        "title": "Control-Plane Follow-on"
+        "scope": "Implementation-authority registry, routing, and dispatch policy surfaces that should publish as one bounded control-plane tranche instead of riding inside a generic residual bucket.",
+        "success_condition": "Registry and routing policy residue is isolated, packet-backed where needed, and ready for bounded publication.",
+        "title": "Control-Plane Registry and Routing"
+      },
+      {
+        "disposition": "deferred_out_of_sequence",
+        "execution_class": "program_slice",
+        "execution_rank": 7,
+        "id": "agent-execution-kernel-follow-on",
+        "next_action": "Bound the execution-kernel, queue, scheduler, and proving logic into an explicit follow-on publication tranche.",
+        "owner_workstreams": [
+          "authority-and-mainline",
+          "validation-and-publication"
+        ],
+        "path_hints": [
+          "projects/agents/src/athanor_agents/operator_state.py",
+          "projects/agents/src/athanor_agents/operator_work.py",
+          "projects/agents/src/athanor_agents/tasks.py",
+          "projects/agents/src/athanor_agents/autonomous_queue.py",
+          "projects/agents/src/athanor_agents/scheduler.py",
+          "projects/agents/src/athanor_agents/self_improvement.py",
+          "projects/agents/src/athanor_agents/research_jobs.py",
+          "projects/agents/src/athanor_agents/work_pipeline.py",
+          "projects/agents/src/athanor_agents/proving_ground.py",
+          "projects/agents/src/athanor_agents/capability_intelligence.py",
+          "projects/agents/src/athanor_agents/repo_paths.py",
+          "projects/agents/tests/test_operator_work.py",
+          "projects/agents/tests/test_scheduler.py",
+          "projects/agents/tests/test_self_improvement.py",
+          "projects/agents/tests/test_tasks.py",
+          "projects/agents/tests/test_work_pipeline.py",
+          "projects/agents/tests/test_research_jobs.py",
+          "projects/agents/tests/test_repo_paths.py"
+        ],
+        "scope": "Agent execution-kernel, queue, scheduler, and proving surfaces that remain active implementation authority but should no longer hide inside one broad control-plane tail.",
+        "success_condition": "Execution-kernel residue is isolated into a bounded follow-on tranche with explicit closure proof and replay boundaries.",
+        "title": "Agent Execution Kernel Follow-on"
+      },
+      {
+        "disposition": "deferred_out_of_sequence",
+        "execution_class": "program_slice",
+        "execution_rank": 8,
+        "id": "agent-route-contract-follow-on",
+        "next_action": "Split route surfaces and route-contract verification into a dedicated publication-ready follow-on tranche.",
+        "owner_workstreams": [
+          "authority-and-mainline",
+          "validation-and-publication"
+        ],
+        "path_hints": [
+          "projects/agents/src/athanor_agents/routes/",
+          "projects/agents/tests/test_bootstrap_route_contract.py",
+          "projects/agents/tests/test_foundry_route_contract.py",
+          "projects/agents/tests/test_model_governance_route_contract.py",
+          "projects/agents/tests/test_operator_work_route_contract.py",
+          "projects/agents/tests/test_task_route_contract.py",
+          "scripts/tests/test_cli_router_contracts.py"
+        ],
+        "scope": "Agent HTTP route and route-contract surfaces that should move as one bounded contract tranche instead of blending with runtime kernel work.",
+        "success_condition": "Route and route-contract residue is isolated, contract-tested, and ready for bounded publication.",
+        "title": "Agent Route Contract Follow-on"
+      },
+      {
+        "disposition": "deferred_out_of_sequence",
+        "execution_class": "program_slice",
+        "execution_rank": 9,
+        "id": "control-plane-proof-and-ops-follow-on",
+        "next_action": "Isolate proof-generation, control-plane ops, and deployment helper residue into a bounded follow-on tranche.",
+        "owner_workstreams": [
+          "authority-and-mainline",
+          "validation-and-publication"
+        ],
+        "path_hints": [
+          "projects/agents/docker-compose.yml",
+          "scripts/deploy-agents.sh",
+          "scripts/.cluster_config.unix.sh",
+          "scripts/.deploy-agents.unix.sh",
+          "scripts/run_ralph_loop_pass.py",
+          "scripts/sync_github_portfolio_registry.py",
+          "scripts/truth_inventory.py",
+          "scripts/write_steady_state_status.py",
+          "scripts/write_current_tree_partition.py",
+          "scripts/write_value_throughput_scorecard.py",
+          "scripts/generate_capability_intelligence.py",
+          "scripts/probe_openhands_bounded_worker.py",
+          "scripts/proof_workspace_contract.py",
+          "scripts/tests/test_ralph_loop_contracts.py",
+          "scripts/tests/test_validate_platform_contract_monitoring_contracts.py",
+          "scripts/tests/test_write_steady_state_status.py",
+          "scripts/tests/test_capability_intelligence_contracts.py",
+          "scripts/tests/test_proof_workspace_contract.py",
+          "scripts/tests/test_sync_github_portfolio_registry.py",
+          "scripts/tests/test_truth_inventory_path_overrides.py",
+          "scripts/tests/test_write_current_tree_partition.py",
+          "scripts/tests/test_write_value_throughput_scorecard.py"
+        ],
+        "scope": "Control-plane proof scripts, deployment helpers, and ops automation surfaces that still matter to live closure but should no longer appear as one undifferentiated residual family.",
+        "success_condition": "Proof and ops residue is isolated, verified, and publishable without hiding behind a generic control-plane bucket.",
+        "title": "Control-Plane Proof and Ops Follow-on"
       },
       {
         "disposition": "deferred_out_of_sequence",
@@ -507,6 +608,15 @@
           "projects/agents/config/automation-backbone/contract-registry.json",
           "scripts/layered_master_plan.py",
           "scripts/triage_publication_tranche.py",
+          "docs/archive/plans/2026-04-19-athanor-blocker-closure-program.md",
+          "docs/operations/REFERENCE-AND-ARCHIVE-PRUNE-PACKET.md",
+          "docs/SERVICES.md",
+          "docs/SYSTEM-SPEC.md",
+          "docs/design/project-platform-architecture.md",
+          "docs/operations/PROJECT-MATURITY-REPORT.md",
+          "docs/projects/PORTFOLIO-REGISTRY.md",
+          "docs/projects/ulrich-energy/REQUIREMENTS.md",
+          "docs/projects/ulrich-energy/WORKFLOWS.md",
           "config/automation-backbone/completion-program-registry.json",
           "scripts/validate_platform_contract.py",
           "scripts/generate_publication_deferred_family_queue.py"
@@ -539,6 +649,16 @@
           "scripts/layered_master_plan.py",
           "scripts/triage_publication_tranche.py",
           "scripts/tests/test_publication_tranche_triage.py",
+          "docs/superpowers/",
+          "docs/archive/plans/2026-04-19-athanor-blocker-closure-program.md",
+          "docs/operations/REFERENCE-AND-ARCHIVE-PRUNE-PACKET.md",
+          "docs/SERVICES.md",
+          "docs/SYSTEM-SPEC.md",
+          "docs/design/project-platform-architecture.md",
+          "docs/operations/PROJECT-MATURITY-REPORT.md",
+          "docs/projects/PORTFOLIO-REGISTRY.md",
+          "docs/projects/ulrich-energy/REQUIREMENTS.md",
+          "docs/projects/ulrich-energy/WORKFLOWS.md",
           "docs/operations/PUBLICATION-PROVENANCE-REPORT.md",
           "docs/operations/SURFACE-OWNER-MATRIX.md",
           "config/automation-backbone/completion-program-registry.json",
@@ -584,6 +704,20 @@
           "config/automation-backbone/credential-surface-registry.json",
           "config/automation-backbone/reconciliation-source-registry.json",
           "config/automation-backbone/repo-roots-registry.json",
+          "ansible/host_vars/vault.yml",
+          "ansible/roles/dashboard/defaults/main.yml",
+          "ansible/roles/dashboard/tasks/main.yml",
+          "ansible/roles/dashboard/templates/docker-compose.yml.j2",
+          "ansible/roles/open-webui/defaults/main.yml",
+          "ansible/roles/open-webui/templates/docker-compose.yml.j2",
+          "ansible/roles/comfyui/defaults/main.yml",
+          "ansible/roles/comfyui/templates/docker-compose.yml.j2",
+          "ansible/roles/eoq/defaults/main.yml",
+          "ansible/roles/eoq/templates/docker-compose.yml.j2",
+          "ansible/roles/ulrich-energy/defaults/main.yml",
+          "ansible/roles/ulrich-energy/templates/docker-compose.yml.j2",
+          "reports/rendered/workshop-dashboard.rendered.yml",
+          "reports/live/workshop-dashboard.live.yml",
           "scripts/generate_truth_inventory_reports.py",
           "scripts/collect_truth_inventory.py",
           "scripts/probe_provider_usage_evidence.py",
@@ -596,6 +730,10 @@
           "docs/operations/REPO-ROOTS-REPORT.md",
           "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
           "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+          "docs/operations/WORKSHOP-OPEN-WEBUI-COMPOSE-RECONCILIATION-PACKET.md",
+          "docs/operations/WORKSHOP-COMFYUI-COMPOSE-RECONCILIATION-PACKET.md",
+          "docs/operations/WORKSHOP-EOQ-COMPOSE-RECONCILIATION-PACKET.md",
+          "docs/operations/WORKSHOP-ULRICH-ENERGY-COMPOSE-RECONCILIATION-PACKET.md",
           "docs/operations/PROVIDER-CATALOG-REPORT.md",
           "docs/operations/SECRET-SURFACE-REPORT.md",
           "docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md",
@@ -618,6 +756,21 @@
           "config/automation-backbone/credential-surface-registry.json",
           "config/automation-backbone/reconciliation-source-registry.json",
           "config/automation-backbone/repo-roots-registry.json",
+          "ansible/host_vars/vault.yml",
+          "ansible/roles/dashboard/defaults/main.yml",
+          "ansible/roles/dashboard/tasks/main.yml",
+          "ansible/roles/dashboard/templates/docker-compose.yml.j2",
+          "ansible/roles/open-webui/defaults/main.yml",
+          "ansible/roles/open-webui/templates/docker-compose.yml.j2",
+          "ansible/roles/comfyui/defaults/main.yml",
+          "ansible/roles/comfyui/templates/docker-compose.yml.j2",
+          "ansible/roles/eoq/defaults/main.yml",
+          "ansible/roles/eoq/templates/docker-compose.yml.j2",
+          "ansible/roles/ulrich-energy/defaults/main.yml",
+          "ansible/roles/ulrich-energy/templates/docker-compose.yml.j2",
+          "reports/rendered/workshop-dashboard.rendered.yml",
+          "reports/live/workshop-dashboard.live.yml",
+          "reports/deployment-drift/",
           "scripts/generate_truth_inventory_reports.py",
           "scripts/collect_truth_inventory.py",
           "scripts/probe_provider_usage_evidence.py",
@@ -630,6 +783,10 @@
           "docs/operations/REPO-ROOTS-REPORT.md",
           "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
           "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+          "docs/operations/WORKSHOP-OPEN-WEBUI-COMPOSE-RECONCILIATION-PACKET.md",
+          "docs/operations/WORKSHOP-COMFYUI-COMPOSE-RECONCILIATION-PACKET.md",
+          "docs/operations/WORKSHOP-EOQ-COMPOSE-RECONCILIATION-PACKET.md",
+          "docs/operations/WORKSHOP-ULRICH-ENERGY-COMPOSE-RECONCILIATION-PACKET.md",
           "docs/operations/PROVIDER-CATALOG-REPORT.md",
           "docs/operations/SECRET-SURFACE-REPORT.md",
           "docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md",
@@ -845,6 +1002,662 @@
           "projects/dashboard/",
           "reports/master-atlas/latest.json",
           "docs/operations/ATHANOR-TOTAL-COMPLETION-PROGRAM.md"
+        ]
+      },
+      {
+        "blocking_gate": "depends_on_prior_slices",
+        "dependencies": [
+          "backbone-contracts-and-truth-writers",
+          "runtime-ownership-provider-truth-and-reconciliation",
+          "pilot-eval-substrate-and-operator-test-machinery",
+          "graphrag-promotion-wave",
+          "gpu-scheduler-extension-wave",
+          "forge-atlas-dashboard-and-startup-truth"
+        ],
+        "generated_artifacts": [
+          "reports/truth-inventory/publication-deferred-family-queue.json",
+          "reports/truth-inventory/blocker-execution-plan.json"
+        ],
+        "git_commit_range": null,
+        "id": "control-plane-registry-ledgers-and-matrices",
+        "included_capability_ids": [],
+        "included_packet_ids": [],
+        "order": 7,
+        "owner_workstreams": [
+          "authority-and-mainline",
+          "validation-and-publication"
+        ],
+        "publication_artifact_refs": [
+          "config/automation-backbone/docs-lifecycle-registry.json",
+          "config/automation-backbone/economic-dispatch-ledger.json",
+          "config/automation-backbone/lane-selection-matrix.json",
+          "config/automation-backbone/executive-kernel-registry.json",
+          "docs/operations/CONTROL-PLANE-REGISTRY-LEDGERS-AND-MATRICES-PACKET.md"
+        ],
+        "published_at": null,
+        "rollback_reference": "git restore listed artifact refs and rerun publication queue plus blocker execution writers",
+        "scope": "First bounded control-plane routing tranche: the docs lifecycle registry, dispatch economics ledger, lane-selection matrix, executive-kernel registry, and the packet doc that make this registry-ledger residue explicit instead of anonymous deferred-family debt.",
+        "status": "active",
+        "title": "Control-Plane Registry Ledgers and Matrices",
+        "validator_run_set": [
+          "python scripts/validate_platform_contract.py",
+          "python scripts/generate_publication_deferred_family_queue.py --check",
+          "python scripts/write_blocker_execution_plan.py --check"
+        ],
+        "working_tree_path_hints": [
+          "config/automation-backbone/docs-lifecycle-registry.json",
+          "config/automation-backbone/economic-dispatch-ledger.json",
+          "config/automation-backbone/lane-selection-matrix.json",
+          "config/automation-backbone/executive-kernel-registry.json",
+          "docs/operations/CONTROL-PLANE-REGISTRY-LEDGERS-AND-MATRICES-PACKET.md"
+        ]
+      },
+      {
+        "blocking_gate": "depends_on_prior_slices",
+        "dependencies": [
+          "backbone-contracts-and-truth-writers",
+          "runtime-ownership-provider-truth-and-reconciliation",
+          "pilot-eval-substrate-and-operator-test-machinery",
+          "graphrag-promotion-wave",
+          "gpu-scheduler-extension-wave",
+          "forge-atlas-dashboard-and-startup-truth",
+          "control-plane-registry-ledgers-and-matrices"
+        ],
+        "generated_artifacts": [
+          "reports/truth-inventory/publication-deferred-family-queue.json",
+          "reports/truth-inventory/blocker-execution-plan.json"
+        ],
+        "git_commit_range": null,
+        "id": "control-plane-routing-policy-and-subscription-lane",
+        "included_capability_ids": [],
+        "included_packet_ids": [],
+        "order": 8,
+        "owner_workstreams": [
+          "authority-and-mainline",
+          "validation-and-publication"
+        ],
+        "publication_artifact_refs": [
+          "projects/agents/config/subscription-routing-policy.yaml",
+          "projects/agents/src/athanor_agents/backbone.py",
+          "projects/agents/src/athanor_agents/model_governance.py",
+          "projects/agents/src/athanor_agents/subscriptions.py",
+          "projects/agents/tests/test_model_governance.py",
+          "projects/agents/tests/test_subscription_policy.py",
+          "docs/operations/CONTROL-PLANE-ROUTING-POLICY-AND-SUBSCRIPTION-LANE-PACKET.md"
+        ],
+        "published_at": null,
+        "rollback_reference": "git restore listed artifact refs and rerun publication queue plus blocker execution writers",
+        "scope": "Second bounded control-plane routing tranche: subscription routing policy, routing-aware runtime surfaces, and proof tests that close the remaining control-plane registry-and-routing family.",
+        "status": "active",
+        "title": "Control-Plane Routing Policy and Subscription Lane",
+        "validator_run_set": [
+          "python scripts/validate_platform_contract.py",
+          "python scripts/generate_publication_deferred_family_queue.py --check",
+          "python scripts/write_blocker_execution_plan.py --check"
+        ],
+        "working_tree_path_hints": [
+          "projects/agents/config/subscription-routing-policy.yaml",
+          "projects/agents/src/athanor_agents/backbone.py",
+          "projects/agents/src/athanor_agents/model_governance.py",
+          "projects/agents/src/athanor_agents/subscriptions.py",
+          "projects/agents/tests/test_model_governance.py",
+          "projects/agents/tests/test_subscription_policy.py",
+          "docs/operations/CONTROL-PLANE-ROUTING-POLICY-AND-SUBSCRIPTION-LANE-PACKET.md"
+        ]
+      },
+      {
+        "blocking_gate": "depends_on_prior_slices",
+        "dependencies": [
+          "backbone-contracts-and-truth-writers",
+          "runtime-ownership-provider-truth-and-reconciliation",
+          "pilot-eval-substrate-and-operator-test-machinery",
+          "graphrag-promotion-wave",
+          "gpu-scheduler-extension-wave",
+          "forge-atlas-dashboard-and-startup-truth",
+          "control-plane-registry-ledgers-and-matrices",
+          "control-plane-routing-policy-and-subscription-lane"
+        ],
+        "generated_artifacts": [
+          "reports/truth-inventory/publication-deferred-family-queue.json",
+          "reports/truth-inventory/blocker-execution-plan.json",
+          "reports/truth-inventory/blocker-map.json",
+          "reports/truth-inventory/steady-state-status.json"
+        ],
+        "git_commit_range": null,
+        "id": "agent-execution-kernel-operator-queue-state",
+        "included_capability_ids": [],
+        "included_packet_ids": [],
+        "order": 9,
+        "owner_workstreams": [
+          "authority-and-mainline",
+          "validation-and-publication"
+        ],
+        "publication_artifact_refs": [
+          "projects/agents/src/athanor_agents/operator_state.py",
+          "projects/agents/src/athanor_agents/operator_work.py",
+          "projects/agents/src/athanor_agents/tasks.py",
+          "projects/agents/tests/test_operator_work.py",
+          "projects/agents/tests/test_tasks.py",
+          "docs/operations/AGENT-EXECUTION-KERNEL-OPERATOR-QUEUE-STATE-PACKET.md"
+        ],
+        "published_at": null,
+        "rollback_reference": "git restore listed artifact refs and rerun publication queue plus blocker and steady-state writers",
+        "scope": "First bounded agent-execution-kernel tranche: queue-state, operator work materialization, task closure sync, and the proof tests that own canonical backlog/task truth.",
+        "status": "active",
+        "title": "Agent Execution Kernel Operator Queue State",
+        "validator_run_set": [
+          "python scripts/validate_platform_contract.py",
+          "cd projects/agents && TMPDIR=/tmp uv run --with pytest pytest tests/test_operator_work.py tests/test_tasks.py -q",
+          "python scripts/generate_publication_deferred_family_queue.py --check",
+          "python scripts/write_blocker_map.py --check",
+          "python scripts/write_blocker_execution_plan.py --check"
+        ],
+        "working_tree_path_hints": [
+          "projects/agents/src/athanor_agents/operator_state.py",
+          "projects/agents/src/athanor_agents/operator_work.py",
+          "projects/agents/src/athanor_agents/tasks.py",
+          "projects/agents/tests/test_operator_work.py",
+          "projects/agents/tests/test_tasks.py",
+          "docs/operations/AGENT-EXECUTION-KERNEL-OPERATOR-QUEUE-STATE-PACKET.md"
+        ]
+      },
+      {
+        "blocking_gate": "depends_on_prior_slices",
+        "dependencies": [
+          "backbone-contracts-and-truth-writers",
+          "runtime-ownership-provider-truth-and-reconciliation",
+          "pilot-eval-substrate-and-operator-test-machinery",
+          "graphrag-promotion-wave",
+          "gpu-scheduler-extension-wave",
+          "forge-atlas-dashboard-and-startup-truth",
+          "control-plane-registry-ledgers-and-matrices",
+          "control-plane-routing-policy-and-subscription-lane",
+          "agent-execution-kernel-operator-queue-state"
+        ],
+        "generated_artifacts": [
+          "reports/truth-inventory/publication-deferred-family-queue.json",
+          "reports/truth-inventory/blocker-execution-plan.json",
+          "reports/truth-inventory/blocker-map.json",
+          "reports/truth-inventory/steady-state-status.json"
+        ],
+        "git_commit_range": null,
+        "id": "agent-execution-kernel-scheduler-and-research-loop",
+        "included_capability_ids": [],
+        "included_packet_ids": [],
+        "order": 10,
+        "owner_workstreams": [
+          "authority-and-mainline",
+          "validation-and-publication"
+        ],
+        "publication_artifact_refs": [
+          "projects/agents/src/athanor_agents/research_jobs.py",
+          "projects/agents/src/athanor_agents/scheduler.py",
+          "projects/agents/src/athanor_agents/work_pipeline.py",
+          "projects/agents/tests/test_research_jobs.py",
+          "projects/agents/tests/test_scheduler.py",
+          "projects/agents/tests/test_work_pipeline.py",
+          "docs/operations/AGENT-EXECUTION-KERNEL-SCHEDULER-AND-RESEARCH-LOOP-PACKET.md"
+        ],
+        "published_at": null,
+        "rollback_reference": "git restore listed artifact refs and rerun publication queue plus blocker and steady-state writers",
+        "scope": "Second bounded agent-execution-kernel tranche: scheduler recurrence, research loop refresh, work-pipeline surfaces, and the regression tests that prove those loops stay coherent.",
+        "status": "active",
+        "title": "Agent Execution Kernel Scheduler and Research Loop",
+        "validator_run_set": [
+          "python scripts/validate_platform_contract.py",
+          "cd projects/agents && TMPDIR=/tmp uv run --with pytest pytest tests/test_research_jobs.py tests/test_scheduler.py tests/test_work_pipeline.py -q",
+          "python scripts/generate_publication_deferred_family_queue.py --check",
+          "python scripts/write_blocker_map.py --check",
+          "python scripts/write_blocker_execution_plan.py --check"
+        ],
+        "working_tree_path_hints": [
+          "projects/agents/src/athanor_agents/research_jobs.py",
+          "projects/agents/src/athanor_agents/scheduler.py",
+          "projects/agents/src/athanor_agents/work_pipeline.py",
+          "projects/agents/tests/test_research_jobs.py",
+          "projects/agents/tests/test_scheduler.py",
+          "projects/agents/tests/test_work_pipeline.py",
+          "docs/operations/AGENT-EXECUTION-KERNEL-SCHEDULER-AND-RESEARCH-LOOP-PACKET.md"
+        ]
+      },
+      {
+        "blocking_gate": "depends_on_prior_slices",
+        "dependencies": [
+          "backbone-contracts-and-truth-writers",
+          "runtime-ownership-provider-truth-and-reconciliation",
+          "pilot-eval-substrate-and-operator-test-machinery",
+          "graphrag-promotion-wave",
+          "gpu-scheduler-extension-wave",
+          "forge-atlas-dashboard-and-startup-truth",
+          "control-plane-registry-ledgers-and-matrices",
+          "control-plane-routing-policy-and-subscription-lane",
+          "agent-execution-kernel-operator-queue-state",
+          "agent-execution-kernel-scheduler-and-research-loop"
+        ],
+        "generated_artifacts": [
+          "reports/truth-inventory/publication-deferred-family-queue.json",
+          "reports/truth-inventory/blocker-execution-plan.json",
+          "reports/truth-inventory/blocker-map.json",
+          "reports/truth-inventory/steady-state-status.json"
+        ],
+        "git_commit_range": null,
+        "id": "agent-execution-kernel-self-improvement-and-proving",
+        "included_capability_ids": [],
+        "included_packet_ids": [],
+        "order": 11,
+        "owner_workstreams": [
+          "authority-and-mainline",
+          "validation-and-publication"
+        ],
+        "publication_artifact_refs": [
+          "projects/agents/src/athanor_agents/proving_ground.py",
+          "projects/agents/src/athanor_agents/self_improvement.py",
+          "projects/agents/tests/test_self_improvement.py",
+          "docs/operations/AGENT-EXECUTION-KERNEL-SELF-IMPROVEMENT-AND-PROVING-PACKET.md"
+        ],
+        "published_at": null,
+        "rollback_reference": "git restore listed artifact refs and rerun publication queue plus blocker and steady-state writers",
+        "scope": "Third bounded agent-execution-kernel tranche: self-improvement admission, proving-ground logic, and the proof tests that keep proposal-first improvement conservative.",
+        "status": "active",
+        "title": "Agent Execution Kernel Self-Improvement and Proving",
+        "validator_run_set": [
+          "python scripts/validate_platform_contract.py",
+          "cd projects/agents && TMPDIR=/tmp uv run --with pytest pytest tests/test_self_improvement.py -q",
+          "python scripts/generate_publication_deferred_family_queue.py --check",
+          "python scripts/write_blocker_map.py --check",
+          "python scripts/write_blocker_execution_plan.py --check"
+        ],
+        "working_tree_path_hints": [
+          "projects/agents/src/athanor_agents/proving_ground.py",
+          "projects/agents/src/athanor_agents/self_improvement.py",
+          "projects/agents/tests/test_self_improvement.py",
+          "docs/operations/AGENT-EXECUTION-KERNEL-SELF-IMPROVEMENT-AND-PROVING-PACKET.md"
+        ]
+      },
+      {
+        "blocking_gate": "depends_on_prior_slices",
+        "dependencies": [
+          "backbone-contracts-and-truth-writers",
+          "runtime-ownership-provider-truth-and-reconciliation",
+          "pilot-eval-substrate-and-operator-test-machinery",
+          "graphrag-promotion-wave",
+          "gpu-scheduler-extension-wave",
+          "forge-atlas-dashboard-and-startup-truth",
+          "control-plane-registry-ledgers-and-matrices",
+          "control-plane-routing-policy-and-subscription-lane",
+          "agent-execution-kernel-operator-queue-state",
+          "agent-execution-kernel-scheduler-and-research-loop",
+          "agent-execution-kernel-self-improvement-and-proving"
+        ],
+        "generated_artifacts": [
+          "reports/truth-inventory/publication-deferred-family-queue.json",
+          "reports/truth-inventory/blocker-execution-plan.json",
+          "reports/truth-inventory/blocker-map.json",
+          "reports/truth-inventory/steady-state-status.json"
+        ],
+        "git_commit_range": null,
+        "id": "agent-execution-kernel-support-and-tests",
+        "included_capability_ids": [],
+        "included_packet_ids": [],
+        "order": 12,
+        "owner_workstreams": [
+          "authority-and-mainline",
+          "validation-and-publication"
+        ],
+        "publication_artifact_refs": [
+          "projects/agents/src/athanor_agents/autonomous_queue.py",
+          "projects/agents/src/athanor_agents/capability_intelligence.py",
+          "projects/agents/src/athanor_agents/repo_paths.py",
+          "projects/agents/tests/test_repo_paths.py",
+          "docs/operations/AGENT-EXECUTION-KERNEL-SUPPORT-AND-TESTS-PACKET.md"
+        ],
+        "published_at": null,
+        "rollback_reference": "git restore listed artifact refs and rerun publication queue plus blocker and steady-state writers",
+        "scope": "Final bounded agent-execution-kernel tranche: autonomous-queue support code, capability intelligence, repo-path helpers, and their explicit regression proof so the family can fall to zero.",
+        "status": "active",
+        "title": "Agent Execution Kernel Support and Tests",
+        "validator_run_set": [
+          "python scripts/validate_platform_contract.py",
+          "cd projects/agents && TMPDIR=/tmp uv run --with pytest pytest tests/test_repo_paths.py -q",
+          "python scripts/generate_publication_deferred_family_queue.py --check",
+          "python scripts/write_blocker_map.py --check",
+          "python scripts/write_blocker_execution_plan.py --check"
+        ],
+        "working_tree_path_hints": [
+          "projects/agents/src/athanor_agents/autonomous_queue.py",
+          "projects/agents/src/athanor_agents/capability_intelligence.py",
+          "projects/agents/src/athanor_agents/repo_paths.py",
+          "projects/agents/tests/test_repo_paths.py",
+          "docs/operations/AGENT-EXECUTION-KERNEL-SUPPORT-AND-TESTS-PACKET.md"
+        ]
+      },
+      {
+        "blocking_gate": "depends_on_prior_slices",
+        "dependencies": [
+          "backbone-contracts-and-truth-writers",
+          "runtime-ownership-provider-truth-and-reconciliation",
+          "pilot-eval-substrate-and-operator-test-machinery",
+          "graphrag-promotion-wave",
+          "gpu-scheduler-extension-wave",
+          "forge-atlas-dashboard-and-startup-truth",
+          "control-plane-registry-ledgers-and-matrices",
+          "control-plane-routing-policy-and-subscription-lane",
+          "agent-execution-kernel-operator-queue-state",
+          "agent-execution-kernel-scheduler-and-research-loop",
+          "agent-execution-kernel-self-improvement-and-proving",
+          "agent-execution-kernel-support-and-tests"
+        ],
+        "generated_artifacts": [
+          "reports/truth-inventory/publication-deferred-family-queue.json",
+          "reports/truth-inventory/blocker-execution-plan.json",
+          "reports/truth-inventory/blocker-map.json",
+          "reports/truth-inventory/steady-state-status.json"
+        ],
+        "git_commit_range": null,
+        "id": "agent-route-contract-surface-code",
+        "included_capability_ids": [],
+        "included_packet_ids": [],
+        "order": 13,
+        "owner_workstreams": [
+          "authority-and-mainline",
+          "validation-and-publication"
+        ],
+        "publication_artifact_refs": [
+          "projects/agents/src/athanor_agents/routes/bootstrap.py",
+          "projects/agents/src/athanor_agents/routes/model_governance.py",
+          "projects/agents/src/athanor_agents/routes/operator_work.py",
+          "projects/agents/src/athanor_agents/routes/plans.py",
+          "projects/agents/src/athanor_agents/routes/projects.py",
+          "projects/agents/src/athanor_agents/routes/research.py",
+          "projects/agents/src/athanor_agents/routes/tasks.py",
+          "docs/operations/AGENT-ROUTE-SURFACE-CODE-PACKET.md"
+        ],
+        "published_at": null,
+        "rollback_reference": "git restore listed artifact refs and rerun publication queue plus blocker and steady-state writers",
+        "scope": "First bounded route-contract tranche: route implementation surfaces only, separated cleanly from route and CLI contract tests.",
+        "status": "active",
+        "title": "Agent Route Surface Code",
+        "validator_run_set": [
+          "python scripts/validate_platform_contract.py",
+          "python scripts/generate_publication_deferred_family_queue.py --check",
+          "python scripts/write_blocker_map.py --check",
+          "python scripts/write_blocker_execution_plan.py --check"
+        ],
+        "working_tree_path_hints": [
+          "projects/agents/src/athanor_agents/routes/bootstrap.py",
+          "projects/agents/src/athanor_agents/routes/model_governance.py",
+          "projects/agents/src/athanor_agents/routes/operator_work.py",
+          "projects/agents/src/athanor_agents/routes/plans.py",
+          "projects/agents/src/athanor_agents/routes/projects.py",
+          "projects/agents/src/athanor_agents/routes/research.py",
+          "projects/agents/src/athanor_agents/routes/tasks.py",
+          "docs/operations/AGENT-ROUTE-SURFACE-CODE-PACKET.md"
+        ]
+      },
+      {
+        "blocking_gate": "depends_on_prior_slices",
+        "dependencies": [
+          "backbone-contracts-and-truth-writers",
+          "runtime-ownership-provider-truth-and-reconciliation",
+          "pilot-eval-substrate-and-operator-test-machinery",
+          "graphrag-promotion-wave",
+          "gpu-scheduler-extension-wave",
+          "forge-atlas-dashboard-and-startup-truth",
+          "control-plane-registry-ledgers-and-matrices",
+          "control-plane-routing-policy-and-subscription-lane",
+          "agent-execution-kernel-operator-queue-state",
+          "agent-execution-kernel-scheduler-and-research-loop",
+          "agent-execution-kernel-self-improvement-and-proving",
+          "agent-execution-kernel-support-and-tests",
+          "agent-route-contract-surface-code"
+        ],
+        "generated_artifacts": [
+          "reports/truth-inventory/publication-deferred-family-queue.json",
+          "reports/truth-inventory/blocker-execution-plan.json",
+          "reports/truth-inventory/blocker-map.json",
+          "reports/truth-inventory/steady-state-status.json"
+        ],
+        "git_commit_range": null,
+        "id": "agent-route-contract-tests",
+        "included_capability_ids": [],
+        "included_packet_ids": [],
+        "order": 14,
+        "owner_workstreams": [
+          "authority-and-mainline",
+          "validation-and-publication"
+        ],
+        "publication_artifact_refs": [
+          "projects/agents/tests/test_bootstrap_route_contract.py",
+          "projects/agents/tests/test_foundry_route_contract.py",
+          "projects/agents/tests/test_model_governance_route_contract.py",
+          "projects/agents/tests/test_operator_work_route_contract.py",
+          "projects/agents/tests/test_task_route_contract.py",
+          "scripts/tests/test_cli_router_contracts.py",
+          "docs/operations/AGENT-ROUTE-CONTRACT-AND-CLI-TESTS-PACKET.md"
+        ],
+        "published_at": null,
+        "rollback_reference": "git restore listed artifact refs and rerun publication queue plus blocker and steady-state writers",
+        "scope": "Final bounded route-contract tranche: route contract regressions and CLI router contract proof as one explicit packet.",
+        "status": "active",
+        "title": "Agent Route Contract and CLI Tests",
+        "validator_run_set": [
+          "python scripts/validate_platform_contract.py",
+          "TMPDIR=/tmp uv run --with pytest pytest scripts/tests/test_cli_router_contracts.py -q",
+          "python scripts/generate_publication_deferred_family_queue.py --check",
+          "python scripts/write_blocker_map.py --check",
+          "python scripts/write_blocker_execution_plan.py --check"
+        ],
+        "working_tree_path_hints": [
+          "projects/agents/tests/test_bootstrap_route_contract.py",
+          "projects/agents/tests/test_foundry_route_contract.py",
+          "projects/agents/tests/test_model_governance_route_contract.py",
+          "projects/agents/tests/test_operator_work_route_contract.py",
+          "projects/agents/tests/test_task_route_contract.py",
+          "scripts/tests/test_cli_router_contracts.py",
+          "docs/operations/AGENT-ROUTE-CONTRACT-AND-CLI-TESTS-PACKET.md"
+        ]
+      },
+      {
+        "blocking_gate": "depends_on_prior_slices",
+        "dependencies": [
+          "backbone-contracts-and-truth-writers",
+          "runtime-ownership-provider-truth-and-reconciliation",
+          "pilot-eval-substrate-and-operator-test-machinery",
+          "graphrag-promotion-wave",
+          "gpu-scheduler-extension-wave",
+          "forge-atlas-dashboard-and-startup-truth",
+          "control-plane-registry-ledgers-and-matrices",
+          "control-plane-routing-policy-and-subscription-lane",
+          "agent-execution-kernel-operator-queue-state",
+          "agent-execution-kernel-scheduler-and-research-loop",
+          "agent-execution-kernel-self-improvement-and-proving",
+          "agent-execution-kernel-support-and-tests",
+          "agent-route-contract-surface-code",
+          "agent-route-contract-tests"
+        ],
+        "generated_artifacts": [
+          "reports/truth-inventory/publication-deferred-family-queue.json",
+          "reports/truth-inventory/blocker-execution-plan.json",
+          "reports/truth-inventory/blocker-map.json",
+          "reports/truth-inventory/steady-state-status.json"
+        ],
+        "git_commit_range": null,
+        "id": "control-plane-ralph-and-truth-writers",
+        "included_capability_ids": [],
+        "included_packet_ids": [],
+        "order": 15,
+        "owner_workstreams": [
+          "authority-and-mainline",
+          "validation-and-publication"
+        ],
+        "publication_artifact_refs": [
+          "scripts/run_ralph_loop_pass.py",
+          "scripts/truth_inventory.py",
+          "scripts/write_steady_state_status.py",
+          "scripts/write_current_tree_partition.py",
+          "scripts/write_value_throughput_scorecard.py",
+          "scripts/tests/test_ralph_loop_contracts.py",
+          "scripts/tests/test_truth_inventory_path_overrides.py",
+          "scripts/tests/test_write_current_tree_partition.py",
+          "scripts/tests/test_write_steady_state_status.py",
+          "scripts/tests/test_write_value_throughput_scorecard.py",
+          "docs/operations/CONTROL-PLANE-RALPH-AND-TRUTH-WRITERS-PACKET.md"
+        ],
+        "published_at": null,
+        "rollback_reference": "git restore listed artifact refs and rerun publication queue plus blocker and steady-state writers",
+        "scope": "First bounded proof-and-ops tranche: Ralph, truth inventory, steady-state writing, current-tree partition, throughput writing, and the core truth-writer regression tests.",
+        "status": "active",
+        "title": "Control-Plane Ralph and Truth Writers",
+        "validator_run_set": [
+          "python scripts/validate_platform_contract.py",
+          "python scripts/generate_publication_deferred_family_queue.py --check",
+          "python scripts/write_blocker_map.py --check",
+          "python scripts/write_blocker_execution_plan.py --check"
+        ],
+        "working_tree_path_hints": [
+          "scripts/run_ralph_loop_pass.py",
+          "scripts/truth_inventory.py",
+          "scripts/write_steady_state_status.py",
+          "scripts/write_current_tree_partition.py",
+          "scripts/write_value_throughput_scorecard.py",
+          "scripts/tests/test_ralph_loop_contracts.py",
+          "scripts/tests/test_truth_inventory_path_overrides.py",
+          "scripts/tests/test_write_current_tree_partition.py",
+          "scripts/tests/test_write_steady_state_status.py",
+          "scripts/tests/test_write_value_throughput_scorecard.py",
+          "docs/operations/CONTROL-PLANE-RALPH-AND-TRUTH-WRITERS-PACKET.md"
+        ]
+      },
+      {
+        "blocking_gate": "depends_on_prior_slices",
+        "dependencies": [
+          "backbone-contracts-and-truth-writers",
+          "runtime-ownership-provider-truth-and-reconciliation",
+          "pilot-eval-substrate-and-operator-test-machinery",
+          "graphrag-promotion-wave",
+          "gpu-scheduler-extension-wave",
+          "forge-atlas-dashboard-and-startup-truth",
+          "control-plane-registry-ledgers-and-matrices",
+          "control-plane-routing-policy-and-subscription-lane",
+          "agent-execution-kernel-operator-queue-state",
+          "agent-execution-kernel-scheduler-and-research-loop",
+          "agent-execution-kernel-self-improvement-and-proving",
+          "agent-execution-kernel-support-and-tests",
+          "agent-route-contract-surface-code",
+          "agent-route-contract-tests",
+          "control-plane-ralph-and-truth-writers"
+        ],
+        "generated_artifacts": [
+          "reports/truth-inventory/publication-deferred-family-queue.json",
+          "reports/truth-inventory/blocker-execution-plan.json",
+          "reports/truth-inventory/blocker-map.json",
+          "reports/truth-inventory/steady-state-status.json"
+        ],
+        "git_commit_range": null,
+        "id": "control-plane-proof-generators-and-validators",
+        "included_capability_ids": [],
+        "included_packet_ids": [],
+        "order": 16,
+        "owner_workstreams": [
+          "authority-and-mainline",
+          "validation-and-publication"
+        ],
+        "publication_artifact_refs": [
+          "scripts/generate_capability_intelligence.py",
+          "scripts/probe_openhands_bounded_worker.py",
+          "scripts/proof_workspace_contract.py",
+          "scripts/sync_github_portfolio_registry.py",
+          "scripts/tests/test_capability_intelligence_contracts.py",
+          "scripts/tests/test_proof_workspace_contract.py",
+          "scripts/tests/test_sync_github_portfolio_registry.py",
+          "scripts/tests/test_validate_platform_contract_monitoring_contracts.py",
+          "docs/operations/CONTROL-PLANE-PROOF-GENERATORS-AND-VALIDATORS-PACKET.md"
+        ],
+        "published_at": null,
+        "rollback_reference": "git restore listed artifact refs and rerun publication queue plus blocker and steady-state writers",
+        "scope": "Second bounded proof-and-ops tranche: capability intelligence, workspace proof contracts, GitHub portfolio proof refresh, and the validator-side regression coverage for those helpers.",
+        "status": "active",
+        "title": "Control-Plane Proof Generators and Validators",
+        "validator_run_set": [
+          "python scripts/validate_platform_contract.py",
+          "TMPDIR=/tmp uv run --with pytest pytest scripts/tests/test_capability_intelligence_contracts.py scripts/tests/test_proof_workspace_contract.py scripts/tests/test_sync_github_portfolio_registry.py scripts/tests/test_validate_platform_contract_monitoring_contracts.py -q",
+          "python scripts/generate_publication_deferred_family_queue.py --check",
+          "python scripts/write_blocker_map.py --check",
+          "python scripts/write_blocker_execution_plan.py --check"
+        ],
+        "working_tree_path_hints": [
+          "scripts/generate_capability_intelligence.py",
+          "scripts/probe_openhands_bounded_worker.py",
+          "scripts/proof_workspace_contract.py",
+          "scripts/sync_github_portfolio_registry.py",
+          "scripts/tests/test_capability_intelligence_contracts.py",
+          "scripts/tests/test_proof_workspace_contract.py",
+          "scripts/tests/test_sync_github_portfolio_registry.py",
+          "scripts/tests/test_validate_platform_contract_monitoring_contracts.py",
+          "docs/operations/CONTROL-PLANE-PROOF-GENERATORS-AND-VALIDATORS-PACKET.md"
+        ]
+      },
+      {
+        "blocking_gate": "depends_on_prior_slices",
+        "dependencies": [
+          "backbone-contracts-and-truth-writers",
+          "runtime-ownership-provider-truth-and-reconciliation",
+          "pilot-eval-substrate-and-operator-test-machinery",
+          "graphrag-promotion-wave",
+          "gpu-scheduler-extension-wave",
+          "forge-atlas-dashboard-and-startup-truth",
+          "control-plane-registry-ledgers-and-matrices",
+          "control-plane-routing-policy-and-subscription-lane",
+          "agent-execution-kernel-operator-queue-state",
+          "agent-execution-kernel-scheduler-and-research-loop",
+          "agent-execution-kernel-self-improvement-and-proving",
+          "agent-execution-kernel-support-and-tests",
+          "agent-route-contract-surface-code",
+          "agent-route-contract-tests",
+          "control-plane-ralph-and-truth-writers",
+          "control-plane-proof-generators-and-validators"
+        ],
+        "generated_artifacts": [
+          "reports/truth-inventory/publication-deferred-family-queue.json",
+          "reports/truth-inventory/blocker-execution-plan.json",
+          "reports/truth-inventory/blocker-map.json",
+          "reports/truth-inventory/steady-state-status.json"
+        ],
+        "git_commit_range": null,
+        "id": "control-plane-deploy-and-runtime-ops-helpers",
+        "included_capability_ids": [],
+        "included_packet_ids": [],
+        "order": 17,
+        "owner_workstreams": [
+          "authority-and-mainline",
+          "validation-and-publication"
+        ],
+        "publication_artifact_refs": [
+          "projects/agents/docker-compose.yml",
+          "ansible/roles/agents/templates/docker-compose.yml.j2",
+          "scripts/.cluster_config.unix.sh",
+          "scripts/.deploy-agents.unix.sh",
+          "scripts/deploy-agents.sh",
+          "docs/operations/CONTROL-PLANE-DEPLOY-AND-RUNTIME-OPS-HELPERS-PACKET.md"
+        ],
+        "published_at": null,
+        "rollback_reference": "git restore listed artifact refs and rerun publication queue plus blocker and steady-state writers",
+        "scope": "Final bounded proof-and-ops tranche: deploy/runtime helper residue that must stay packet-backed without widening live runtime mutation scope.",
+        "status": "active",
+        "title": "Control-Plane Deploy and Runtime Ops Helpers",
+        "validator_run_set": [
+          "python scripts/validate_platform_contract.py",
+          "python scripts/generate_publication_deferred_family_queue.py --check",
+          "python scripts/write_blocker_map.py --check",
+          "python scripts/write_blocker_execution_plan.py --check"
+        ],
+        "working_tree_path_hints": [
+          "projects/agents/docker-compose.yml",
+          "ansible/roles/agents/templates/docker-compose.yml.j2",
+          "scripts/.cluster_config.unix.sh",
+          "scripts/.deploy-agents.unix.sh",
+          "scripts/deploy-agents.sh",
+          "docs/operations/CONTROL-PLANE-DEPLOY-AND-RUNTIME-OPS-HELPERS-PACKET.md"
         ]
       }
     ],

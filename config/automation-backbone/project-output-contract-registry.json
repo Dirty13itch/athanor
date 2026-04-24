@@ -1,0 +1,405 @@
+{
+  "version": "2026-04-20.2",
+  "updated_at": "2026-04-20T18:32:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/project-output-contract-registry.json",
+  "strategy": {
+    "creative_first": true,
+    "expansion_mode": "project_by_project",
+    "broad_portfolio_default_execution": false,
+    "queue_order": [
+      "eoq",
+      "lawnsignal",
+      "ulrich-website",
+      "field-inspect",
+      "med-tracker",
+      "mood-tracker",
+      "cannabis-journal",
+      "food-truck-finder",
+      "buffalo-rating",
+      "todo-almanac"
+    ]
+  },
+  "permanent_structure": {
+    "authority_precedence": [
+      "live_athanor_truth_and_probes",
+      "athanor_adopted_docs_and_registries",
+      "devstack_board_atlas_packets_and_lane_registry",
+      "operator_local_and_archive_evidence"
+    ],
+    "loops": [
+      {
+        "id": "athanor_core_loop",
+        "scope": "continuity, proof gate, validator/healer, runtime truth, operator front door"
+      },
+      {
+        "id": "devstack_forge_loop",
+        "scope": "packets, board/atlas, claim audit, migration hygiene, readiness calculation"
+      },
+      {
+        "id": "project_factory_loop",
+        "scope": "project-output contract execution on explicitly admitted project roots only"
+      }
+    ],
+    "expert_roster": [
+      "Executive / COO",
+      "Runtime SRE",
+      "Truth / Publication",
+      "Sovereign Creative Director",
+      "Web / Front Door Lead",
+      "Mobile / App Lead",
+      "Business Product Operator",
+      "Portfolio Factory PM",
+      "Eval / Audit"
+    ],
+    "tool_roster": [
+      "Codex",
+      "Aider",
+      "Gemini",
+      "Goose",
+      "sovereign_coder",
+      "sovereign_bulk",
+      "sovereign_supervisor"
+    ],
+    "anti_shadow_control_plane_rules": [
+      "No strategic or startup doc may act as queue authority.",
+      "No operator-local helper may become sole adopted truth.",
+      "No pilot may become a second control plane.",
+      "No external Codex automation may mutate Athanor runtime truth."
+    ]
+  },
+  "projects": [
+    {
+      "project_id": "eoq",
+      "label": "Empire of Broken Queens",
+      "canonical_root": "C:\\Athanor\\projects\\eoq",
+      "legacy_project_ids": [],
+      "project_class": "sovereign_creative_runtime_product",
+      "platform_class": "creative_runtime",
+      "authority_class": "athanor_in_repo_project",
+      "routing_class": "sovereign_only",
+      "safe_surface_expectation": "not_applicable",
+      "first_output_target": "Reproducible scene pack or character bundle with manifest, workflow refs, and acceptance refs.",
+      "verification_bundle": [
+        "npm run build",
+        "creative asset manifest integrity",
+        "workflow reproducibility checks"
+      ],
+      "acceptance_bundle": [
+        "Accepted creative artifact refs",
+        "Prompt/workflow refs",
+        "Manifest and output packaging"
+      ],
+      "approval_posture": "hybrid",
+      "rollback_or_archive_rule": "Restore the prior tenant bundle and invalidate the promoted candidate.",
+      "autonomy_scope_state": "governed_in_repo_project",
+      "factory_priority": 10,
+      "next_tranche": "Produce the first accepted EOQ scene pack now that the local Next.js toolchain builds cleanly in-workspace.",
+      "observed_baseline": {
+        "build_state": "passed",
+        "detail": "Current workspace `npm run build` passes after installing the local Next.js toolchain."
+      },
+      "sibling_roots": []
+    },
+    {
+      "project_id": "lawnsignal",
+      "label": "LawnSignal",
+      "canonical_root": "C:\\LawnSignal",
+      "legacy_project_ids": [],
+      "project_class": "web_plus_mobile_consumer_product",
+      "platform_class": "web_plus_mobile",
+      "authority_class": "external_repo_current_authority",
+      "routing_class": "private_but_cloud_allowed",
+      "safe_surface_expectation": "allowlisted",
+      "first_output_target": "One shipped nationwide web tranche under the existing build/test/e2e gate, then a governed mobile-shell tranche.",
+      "verification_bundle": [
+        "npm run build",
+        "existing web verification bundle",
+        "Expo/mobile shell verification"
+      ],
+      "acceptance_bundle": [
+        "User-facing shipped tranche",
+        "Verification refs",
+        "Acceptance refs"
+      ],
+      "approval_posture": "hybrid",
+      "rollback_or_archive_rule": "Revert the shipped tranche and restore the prior mobile shell state.",
+      "autonomy_scope_state": "allowlisted_external_delivery",
+      "factory_priority": 20,
+      "next_tranche": "Run LawnSignal's existing local verification gate against the current nationwide tranche, then stage the first governed output without overriding the repo's local product cadence.",
+      "observed_baseline": {
+        "build_state": "passed",
+        "detail": "LawnSignal is admitted into the governed safe surface and the current nationwide companion tranche now passes the full local gate: lint, typecheck, Vitest, engine tests, Next build, and Playwright smoke. Production deploy remains a separate approval boundary."
+      },
+      "sibling_roots": []
+    },
+    {
+      "project_id": "ulrich-website",
+      "label": "Ulrich Energy Auditing Website",
+      "canonical_root": "C:\\Users\\Shaun\\Ulrich Energy Auditing Website",
+      "app_root_relative_path": "ulrich-energy-auditing",
+      "legacy_project_ids": [
+        "ulrich-energy"
+      ],
+      "project_class": "business_website_external_delivery",
+      "platform_class": "website",
+      "authority_class": "external_repo_current_authority",
+      "routing_class": "private_but_cloud_allowed",
+      "safe_surface_expectation": "allowlisted",
+      "first_output_target": "One real business-facing site release on the live external website root.",
+      "verification_bundle": [
+        "website build/test bundle",
+        "safe-surface verification",
+        "live website smoke"
+      ],
+      "acceptance_bundle": [
+        "Accepted live website tranche",
+        "Business-facing deliverable refs",
+        "Verification refs"
+      ],
+      "approval_posture": "hybrid",
+      "rollback_or_archive_rule": "Keep the live external root as delivery authority until a deliberate cutover exists; revert shipped tranche on failure.",
+      "autonomy_scope_state": "allowlisted_external_delivery",
+      "factory_priority": 30,
+      "next_tranche": "Ship one real business-facing release on the current live website root and keep the Athanor sibling as retired lineage unless a separate runtime retirement or cutover packet lands.",
+      "observed_baseline": {
+        "build_state": "passed",
+        "detail": "The external website app root now passes `npm run build`, `npm run type-check`, and `CI=1 npx jest --runInBand` after the root-scoping fix. A builder-intake contact tranche is staged as the next governed external output."
+      },
+      "sibling_roots": [
+        {
+          "path": "C:\\Athanor\\projects\\ulrich-energy",
+          "disposition": "retired_lineage_reference",
+          "reason": "Retain the Athanor sibling only as runtime lineage and rollback evidence until an explicit Workshop runtime retirement or cutover packet lands."
+        }
+      ]
+    },
+    {
+      "project_id": "field-inspect",
+      "label": "Field Inspect",
+      "canonical_root": "C:\\Field Inspect",
+      "legacy_project_ids": [],
+      "project_class": "saas_plus_mobile_business_product",
+      "platform_class": "web_plus_mobile",
+      "authority_class": "external_repo_current_authority",
+      "routing_class": "private_but_cloud_allowed",
+      "safe_surface_expectation": "denied_by_policy",
+      "first_output_target": "One shipped owner-facing workflow tranche from the live product queue.",
+      "verification_bundle": [
+        "npm run build",
+        "existing app test band",
+        "deployment or runtime reprobe"
+      ],
+      "acceptance_bundle": [
+        "Accepted owner-facing feature tranche",
+        "Verification refs",
+        "Runtime reprobe refs"
+      ],
+      "approval_posture": "hybrid",
+      "rollback_or_archive_rule": "Field Inspect remains external implementation authority until explicit admission; revert bounded tranche on failure.",
+      "autonomy_scope_state": "explicit_admission_required",
+      "factory_priority": 40,
+      "next_tranche": "Create an explicit project-output contract and widen safe-surface only if Shaun intentionally admits this repo.",
+      "observed_baseline": {
+        "build_state": "failed",
+        "detail": "Current workspace build probe fails at missing `prisma` CLI resolution."
+      },
+      "sibling_roots": []
+    },
+    {
+      "project_id": "med-tracker",
+      "label": "Medication Tracker",
+      "canonical_root": "C:\\Meds",
+      "legacy_project_ids": [],
+      "project_class": "web_pwa_product_baseline",
+      "platform_class": "web_pwa",
+      "authority_class": "external_repo_current_authority",
+      "routing_class": "private_but_cloud_allowed",
+      "safe_surface_expectation": "not_allowlisted",
+      "first_output_target": "One useful medication PWA tranche, then a decision on real Android promotion.",
+      "verification_bundle": [
+        "web/PWA build",
+        "PWA smoke"
+      ],
+      "acceptance_bundle": [
+        "Accepted PWA tranche",
+        "Verification refs"
+      ],
+      "approval_posture": "hybrid",
+      "rollback_or_archive_rule": "Revert the accepted PWA tranche if it fails utility or verification.",
+      "autonomy_scope_state": "contract_defined_pending_admission",
+      "factory_priority": 50,
+      "next_tranche": "Clean the canonical root and ship one useful PWA deliverable before any Android claim.",
+      "observed_baseline": {
+        "build_state": "not_recently_probed",
+        "detail": "Static PWA baseline with a dirty authority root."
+      },
+      "sibling_roots": []
+    },
+    {
+      "project_id": "mood-tracker",
+      "label": "Mood Tracking",
+      "canonical_root": "C:\\Users\\Shaun\\dev\\portfolio\\mood-compass-whisperer",
+      "legacy_project_ids": [],
+      "project_class": "web_pwa_product_baseline",
+      "platform_class": "web_pwa",
+      "authority_class": "external_repo_current_authority",
+      "routing_class": "private_but_cloud_allowed",
+      "safe_surface_expectation": "not_allowlisted",
+      "first_output_target": "One useful mood-tracking PWA tranche, then a decision on real Android promotion.",
+      "verification_bundle": [
+        "web/PWA build",
+        "PWA smoke"
+      ],
+      "acceptance_bundle": [
+        "Accepted PWA tranche",
+        "Verification refs"
+      ],
+      "approval_posture": "hybrid",
+      "rollback_or_archive_rule": "Revert the accepted PWA tranche if it fails utility or verification.",
+      "autonomy_scope_state": "contract_defined_pending_admission",
+      "factory_priority": 60,
+      "next_tranche": "Ship one useful PWA tranche before deciding whether Android promotion is justified.",
+      "observed_baseline": {
+        "build_state": "not_recently_probed",
+        "detail": "Runnable web baseline with a clean root."
+      },
+      "sibling_roots": []
+    },
+    {
+      "project_id": "cannabis-journal",
+      "label": "Cannabis Journal and Rating",
+      "canonical_root": "C:\\Users\\Shaun\\dev\\portfolio\\Reverie",
+      "legacy_project_ids": [],
+      "project_class": "web_pwa_product_baseline",
+      "platform_class": "web_pwa",
+      "authority_class": "external_repo_current_authority",
+      "routing_class": "private_but_cloud_allowed",
+      "safe_surface_expectation": "not_allowlisted",
+      "first_output_target": "One canonical journal/rating PWA tranche, then a decision on real Android promotion.",
+      "verification_bundle": [
+        "web/PWA build",
+        "PWA smoke"
+      ],
+      "acceptance_bundle": [
+        "Accepted journal tranche",
+        "Verification refs"
+      ],
+      "approval_posture": "hybrid",
+      "rollback_or_archive_rule": "Revert the accepted tranche and keep the sibling repo reference-only if no merge path is chosen.",
+      "autonomy_scope_state": "contract_defined_pending_admission",
+      "factory_priority": 70,
+      "next_tranche": "Keep Reverie canonical, clean the root, and resolve the sibling repo into merge-or-reference-only posture.",
+      "observed_baseline": {
+        "build_state": "not_recently_probed",
+        "detail": "Runnable web baseline with a duplicate sibling repo and a dirty authority root."
+      },
+      "sibling_roots": [
+        {
+          "path": "C:\\Users\\Shaun\\dev\\portfolio\\reverie-dream-journal",
+          "disposition": "reference_only",
+          "reason": "Duplicate family root; keep reference-only until an explicit merge or promotion decision lands."
+        }
+      ]
+    },
+    {
+      "project_id": "food-truck-finder",
+      "label": "Food Truck Finder",
+      "canonical_root": "C:\\Users\\Shaun\\dev\\portfolio\\savor-street-symphony",
+      "legacy_project_ids": [],
+      "project_class": "web_pwa_product_baseline",
+      "platform_class": "web_pwa",
+      "authority_class": "external_repo_current_authority",
+      "routing_class": "private_but_cloud_allowed",
+      "safe_surface_expectation": "not_allowlisted",
+      "first_output_target": "One canonical consumer food-truck PWA tranche, then a decision on Android or broader platform promotion.",
+      "verification_bundle": [
+        "web/PWA build",
+        "PWA smoke"
+      ],
+      "acceptance_bundle": [
+        "Accepted consumer tranche",
+        "Verification refs"
+      ],
+      "approval_posture": "hybrid",
+      "rollback_or_archive_rule": "Revert the accepted tranche; keep the broader platform lane subordinate until explicitly promoted.",
+      "autonomy_scope_state": "contract_defined_pending_admission",
+      "factory_priority": 80,
+      "next_tranche": "Treat the consumer root as canonical and keep the broader platform lane subordinate until explicitly promoted.",
+      "observed_baseline": {
+        "build_state": "not_recently_probed",
+        "detail": "Runnable consumer web baseline; broader sibling platform lane also exists."
+      },
+      "sibling_roots": [
+        {
+          "path": "C:\\Users\\Shaun\\dev\\portfolio\\truck-trail-finder-app",
+          "disposition": "merge_candidate",
+          "reason": "Broader platform line; keep subordinate to the canonical consumer product until explicitly promoted."
+        }
+      ]
+    },
+    {
+      "project_id": "buffalo-rating",
+      "label": "Buffalo Wild Wings Rating by Location by Meal",
+      "canonical_root": "C:\\Users\\Shaun\\dev\\portfolio\\Buffalog",
+      "legacy_project_ids": [],
+      "project_class": "web_pwa_product_baseline",
+      "platform_class": "web_pwa",
+      "authority_class": "external_repo_current_authority",
+      "routing_class": "private_but_cloud_allowed",
+      "safe_surface_expectation": "not_allowlisted",
+      "first_output_target": "One canonical Buffalo rating/review history PWA tranche, then a decision on Android promotion.",
+      "verification_bundle": [
+        "web/PWA build",
+        "PWA smoke"
+      ],
+      "acceptance_bundle": [
+        "Accepted rating tranche",
+        "Verification refs"
+      ],
+      "approval_posture": "hybrid",
+      "rollback_or_archive_rule": "Revert the accepted tranche and keep sibling references non-authoritative.",
+      "autonomy_scope_state": "contract_defined_pending_admission",
+      "factory_priority": 90,
+      "next_tranche": "Keep Buffalog canonical, resolve the sibling repo to reference-only or archive, and ship one useful PWA tranche.",
+      "observed_baseline": {
+        "build_state": "not_recently_probed",
+        "detail": "Runnable web baseline with a duplicate sibling and a dirty authority root."
+      },
+      "sibling_roots": [
+        {
+          "path": "C:\\Users\\Shaun\\dev\\portfolio\\buff-wrap-inspector",
+          "disposition": "reference_only",
+          "reason": "Duplicate family root; keep reference-only unless explicitly promoted instead of Buffalog."
+        }
+      ]
+    },
+    {
+      "project_id": "todo-almanac",
+      "label": "To-do / Personal Almanac",
+      "canonical_root": "needs_root",
+      "legacy_project_ids": [],
+      "project_class": "unformed_product_slot",
+      "platform_class": "unknown",
+      "authority_class": "needs_root",
+      "routing_class": "private_but_cloud_allowed",
+      "safe_surface_expectation": "not_allowlisted",
+      "first_output_target": "Create the canonical repository and first scaffold.",
+      "verification_bundle": [],
+      "acceptance_bundle": [
+        "Canonical repo created",
+        "Initial scaffold present"
+      ],
+      "approval_posture": "hybrid",
+      "rollback_or_archive_rule": "Archive the scaffold if the slot is abandoned before product formation.",
+      "autonomy_scope_state": "needs_root",
+      "factory_priority": 100,
+      "next_tranche": "Create the canonical root and project contract before any output claim.",
+      "observed_baseline": {
+        "build_state": "not_started",
+        "detail": "No active canonical root was found during the portfolio audit."
+      },
+      "sibling_roots": []
+    }
+  ]
+}

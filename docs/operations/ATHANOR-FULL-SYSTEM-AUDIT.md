@@ -4,10 +4,10 @@
 ## Executive Summary
 
 - Adopted live system posture: closure=`repo_safe_complete` | runtime_packets=`0` | attention=`No action needed` | live_dispatch_surface=`/mnt/c/Athanor/reports/truth-inventory/steady-state-live.md`
-- Build/proving posture: turnover=`ready_for_low_touch_execution` | forge_top_lane=`letta-memory-plane` | atlas_top_lane=`letta-memory-plane` | atlas_routing_lane=`codex_cloudsafe`
+- Build/proving posture: turnover=`devstack_primary_build_and_shadow` | forge_top_lane=`migration-hygiene` | atlas_top_lane=`migration-hygiene` | atlas_routing_lane=`codex_cloudsafe`
 - Validator status: Athanor=`pass` | Devstack=`pass`
 - Git posture evidence: `reports/truth-inventory/full-system-audit-index.json` and `reports/truth-inventory/full-system-audit-findings.json`
-- Findings: critical=`0` | high=`0` | medium=`0` | low=`0`
+- Findings: critical=`0` | high=`1` | medium=`0` | low=`0`
 
 ## Audit Coverage
 
@@ -15,7 +15,7 @@
 - Authority layers covered: `['adopted_live_system', 'build_proving_system', 'membrane_and_adoption_boundary', 'strategic_reservoir']`
 - Authority layer counts: `{'adopted_live_system': 10, 'build_proving_system': 3, 'membrane_and_adoption_boundary': 1, 'strategic_reservoir': 1}`
 - Athanor major subsystem paths present: `{'dashboard': True, 'agents': True, 'gpu_orchestrator': True, 'ws_pty_bridge': True, 'legacy_services': True}`
-- Devstack major subsystem paths present: `{'forge_board': True, 'master_atlas': True, 'promotion_packets': True, 'services': True, 'research': True, 'designs': True}`
+- Devstack major subsystem paths present: `{'forge_board': True, 'master_atlas': False, 'promotion_packets': True, 'services': True, 'research': True, 'designs': True}`
 
 ## Source Layers
 
@@ -49,17 +49,17 @@
 | `Legacy and shared service surfaces` | `adopted_live_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
 | `Providers, routing, and secrets` | `adopted_live_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
 | `Scripts, validators, generators, and tooling` | `adopted_live_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
-| `Devstack forge, atlas, and queue truth` | `build_proving_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
-| `Devstack services and proving workflows` | `build_proving_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
-| `Devstack packets and promotion surfaces` | `build_proving_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
-| `Adoption membrane between devstack and Athanor` | `membrane_and_adoption_boundary` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
+| `Devstack forge, atlas, and queue truth` | `build_proving_system` | `4.4` | `3.5` | `5.0` | `5.0` | `5.0` | `low` | `high` |
+| `Devstack services and proving workflows` | `build_proving_system` | `4.4` | `3.5` | `5.0` | `5.0` | `5.0` | `low` | `high` |
+| `Devstack packets and promotion surfaces` | `build_proving_system` | `4.4` | `3.5` | `5.0` | `5.0` | `5.0` | `low` | `high` |
+| `Adoption membrane between devstack and Athanor` | `membrane_and_adoption_boundary` | `4.4` | `3.5` | `5.0` | `5.0` | `5.0` | `low` | `high` |
 | `Strategic reservoir and capability universe coverage` | `strategic_reservoir` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
 | `Operator communication and front-door UX` | `adopted_live_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
 
 ## Tool and Manifest Inventory
 
-- Athanor top-level file counts: `{'projects': 1155, 'services': 49, 'scripts': 230, 'config': 82, 'docs': 326, 'reports': 219, 'ansible': 141, 'tests': 1, 'evals': 20}`
-- Devstack top-level file counts: `{'services': 32, 'scripts': 29, 'configs': 27, 'docs': 28, 'reports': 22, 'research': 32, 'designs': 21, 'shipped': 7}`
+- Athanor top-level file counts: `{'projects': 1226, 'services': 49, 'scripts': 289, 'config': 88, 'docs': 347, 'reports': 270, 'ansible': 141, 'tests': 1, 'evals': 20}`
+- Devstack top-level file counts: `{'services': 32, 'scripts': 29, 'configs': 14, 'docs': 20, 'reports': 6, 'research': 32, 'designs': 21, 'shipped': 7}`
 - Athanor manifests:
   - `projects/agents/docker-compose.yml`
   - `projects/agents/pyproject.toml`
@@ -81,6 +81,11 @@
   - `services/quality-gate/requirements.txt`
   - `services/sentinel/requirements.txt`
 - Devstack manifests:
+  - `projects/forge/client/package.json`
+  - `projects/forge/deploy/compose/docker-compose.dev.yaml`
+  - `projects/forge/deploy/compose/docker-compose.forge.yaml`
+  - `projects/forge/deploy/compose/docker-compose.vault.yaml`
+  - `projects/forge/pyproject.toml`
   - `services/graphrag/docker-compose.yml`
   - `services/graphrag/requirements.txt`
   - `services/watchdog/docker-compose.yml`
@@ -182,44 +187,48 @@
 ## Devstack forge, atlas, and queue truth
 
 - Authority layer: `build_proving_system` (Build/proving system)
-- Summary: Devstack forge and atlas surfaces are aligned in the current audit bundle.
-- Scores: authority=`5.0` | runtime=`5.0` | visibility=`5.0` | verification=`5.0` | split-brain risk=`low` | remediation priority=`low`
+- Summary: The devstack repo currently carries a large unpublished dirty tranche without an explicit checkpoint gate.
+- Scores: authority=`3.5` | runtime=`5.0` | visibility=`5.0` | verification=`5.0` | split-brain risk=`low` | remediation priority=`high`
 - Evidence:
   - `/mnt/c/athanor-devstack/reports/master-atlas/latest.json`
   - `/mnt/c/athanor-devstack/docs/operations/DEVSTACK-FORGE-BOARD.json`
   - `/mnt/c/athanor-devstack/MASTER-PLAN.md`
-- Findings: none materialized from the current truth surfaces.
+- Findings:
+  - [HIGH] The devstack repo currently carries a large unpublished dirty tranche without an explicit checkpoint gate. Impact: Capability-forge truth, packet state, and proving surfaces are mixed with broad in-flight changes, which raises shadow-authority and auditability risk at the adoption membrane.
 
 ## Devstack services and proving workflows
 
 - Authority layer: `build_proving_system` (Build/proving system)
-- Summary: Proving lanes and service posture are explicit with no distinct current finding.
-- Scores: authority=`5.0` | runtime=`5.0` | visibility=`5.0` | verification=`5.0` | split-brain risk=`low` | remediation priority=`low`
+- Summary: The devstack repo currently carries a large unpublished dirty tranche without an explicit checkpoint gate.
+- Scores: authority=`3.5` | runtime=`5.0` | visibility=`5.0` | verification=`5.0` | split-brain risk=`low` | remediation priority=`high`
 - Evidence:
   - `/mnt/c/athanor-devstack/MASTER-PLAN.md`
   - `/mnt/c/athanor-devstack/docs/operations/DEVSTACK-FORGE-BOARD.json`
-- Findings: none materialized from the current truth surfaces.
+- Findings:
+  - [HIGH] The devstack repo currently carries a large unpublished dirty tranche without an explicit checkpoint gate. Impact: Capability-forge truth, packet state, and proving surfaces are mixed with broad in-flight changes, which raises shadow-authority and auditability risk at the adoption membrane.
 
 ## Devstack packets and promotion surfaces
 
 - Authority layer: `build_proving_system` (Build/proving system)
-- Summary: Promotion packets and readiness posture are aligned in the current audit bundle.
-- Scores: authority=`5.0` | runtime=`5.0` | visibility=`5.0` | verification=`5.0` | split-brain risk=`low` | remediation priority=`low`
+- Summary: The devstack repo currently carries a large unpublished dirty tranche without an explicit checkpoint gate.
+- Scores: authority=`3.5` | runtime=`5.0` | visibility=`5.0` | verification=`5.0` | split-brain risk=`low` | remediation priority=`high`
 - Evidence:
   - `/mnt/c/athanor-devstack/reports/master-atlas/latest.json`
   - `/mnt/c/athanor-devstack/docs/operations/DEVSTACK-FORGE-BOARD.json`
-- Findings: none materialized from the current truth surfaces.
+- Findings:
+  - [HIGH] The devstack repo currently carries a large unpublished dirty tranche without an explicit checkpoint gate. Impact: Capability-forge truth, packet state, and proving surfaces are mixed with broad in-flight changes, which raises shadow-authority and auditability risk at the adoption membrane.
 
 ## Adoption membrane between devstack and Athanor
 
 - Authority layer: `membrane_and_adoption_boundary` (Membrane and adoption boundary)
-- Summary: The adoption membrane is explicit and stable in the current audit bundle.
-- Scores: authority=`5.0` | runtime=`5.0` | visibility=`5.0` | verification=`5.0` | split-brain risk=`low` | remediation priority=`low`
+- Summary: The devstack repo currently carries a large unpublished dirty tranche without an explicit checkpoint gate.
+- Scores: authority=`3.5` | runtime=`5.0` | visibility=`5.0` | verification=`5.0` | split-brain risk=`low` | remediation priority=`high`
 - Evidence:
   - `/mnt/c/Athanor/docs/operations/ATHANOR-LAYERED-MASTER-PLAN.md`
   - `/mnt/c/athanor-devstack/reports/master-atlas/latest.json`
   - `/mnt/c/athanor-devstack/docs/operations/DEVSTACK-FORGE-BOARD.json`
-- Findings: none materialized from the current truth surfaces.
+- Findings:
+  - [HIGH] The devstack repo currently carries a large unpublished dirty tranche without an explicit checkpoint gate. Impact: Capability-forge truth, packet state, and proving surfaces are mixed with broad in-flight changes, which raises shadow-authority and auditability risk at the adoption membrane.
 
 ## Strategic reservoir and capability universe coverage
 
@@ -244,3 +253,4 @@
 
 ## Prioritized Remediation Backlog
 
+- `high` `adoption` — The devstack repo currently carries a large unpublished dirty tranche without an explicit checkpoint gate. Fix: Slice the devstack dirty tranche into explicit publication checkpoints or packet-backed work bundles and keep forge/atlas truth isolated from exploratory edits.

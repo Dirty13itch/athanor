@@ -1,0 +1,22 @@
+{
+  "version": "2026-04-19.1",
+  "updated_at": "2026-04-19T08:30:00+00:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/result-credit-contract.json",
+  "credit_sources": [
+    "ResultPacket",
+    "ReviewPacket"
+  ],
+  "rules": [
+    "No completion credit without a ResultPacket or ReviewPacket.",
+    "Every completion credit must link to a passing VerificationContract or an explicit review hold.",
+    "Direct-control loops do not count as throughput.",
+    "Proposal-only loops do not count as throughput.",
+    "Narrative-only success text never counts as credit.",
+    "Backlog, task, and result/review state must reconcile before credit is issued.",
+    "Autonomous usefulness is tracked separately from throughput credit in reports/truth-inventory/autonomous-value-proof.json.",
+    "Control-plane completions may remain valid throughput credit but never count as autonomous operator or product value."
+  ],
+  "canonical_threshold_source": "reports/truth-inventory/result-evidence-ledger.json",
+  "canonical_autonomous_value_source": "reports/truth-inventory/autonomous-value-proof.json"
+}

@@ -1,6 +1,6 @@
 {
   "version": "2026-04-11.3",
-  "updated_at": "2026-04-14T21:49:00.612707+00:00",
+  "updated_at": "2026-04-21T18:19:31.152777+00:00",
   "status": "active",
   "source_of_truth": "config/automation-backbone/reconciliation-source-registry.json",
   "source_kinds": [
@@ -952,10 +952,10 @@
   ],
   "github_portfolio": {
     "owner": "Dirty13itch",
-    "last_verified_at": "2026-04-14T21:49:00.612707+00:00",
-    "repo_count": 35,
-    "doc_repo_count": 35,
-    "live_repo_count": 35,
+    "last_verified_at": "2026-04-21T18:19:31.152777+00:00",
+    "repo_count": 36,
+    "doc_repo_count": 36,
+    "live_repo_count": 36,
     "doc_only_repos": [],
     "github_only_repos": [],
     "repos_without_confirmed_local_clone": [
@@ -967,12 +967,12 @@
       "lineage": 4,
       "operator-tooling": 1,
       "shared-module": 1,
-      "tenant": 26
+      "tenant": 27
     },
     "batch_counts": {
       "Batch 1: Core And Lineage": 5,
       "Batch 2: Shared-Module Candidates": 2,
-      "Batch 3: Tenant Products": 26,
+      "Batch 3: Tenant Products": 27,
       "Batch 4: Archive And Low-Priority Edges": 2
     },
     "repos": [
@@ -1094,7 +1094,7 @@
         "description": "",
         "is_private": false,
         "is_fork": false,
-        "updated_at": "2026-03-12T02:15:16Z",
+        "updated_at": "2026-04-17T23:35:25Z",
         "ecosystem_role": "tenant",
         "working_clone": "C:\\Users\\Shaun\\dev\\portfolio\\AuditForecaster",
         "current_maturity": "active separate product with normalized portfolio root, nested Next.js app, and product-owned Unraid/preview deployment stack",
@@ -1292,7 +1292,7 @@
         "description": "Multi-tenant field inspection platform for energy auditors, HERS raters, and construction teams",
         "is_private": true,
         "is_fork": false,
-        "updated_at": "2026-04-08T15:16:32Z",
+        "updated_at": "2026-04-18T17:23:39Z",
         "ecosystem_role": "tenant",
         "working_clone": "primary root C:\\Field Inspect plus six sibling git worktree lanes under C:\\Field Inspect-*",
         "current_maturity": "active separate product with one dirty primary workspace, one selective replay lane (operations-runtime), and the rest classified toward lineage/freeze/archive",
@@ -1368,6 +1368,28 @@
         "athanor_depends_on_it": "lineage only",
         "batch": "Batch 1: Core And Lineage",
         "shaun_decision": "locked 2026-04-07",
+        "has_confirmed_local_clone": true,
+        "doc_classified": true,
+        "live_on_github": true
+      },
+      {
+        "id": "github-lawn-signal",
+        "github_repo": "Dirty13itch/lawn-signal",
+        "name": "lawn-signal",
+        "url": "https://github.com/Dirty13itch/lawn-signal",
+        "description": "",
+        "is_private": true,
+        "is_fork": false,
+        "updated_at": "2026-04-21T03:09:18Z",
+        "ecosystem_role": "tenant",
+        "working_clone": "C:\\LawnSignal",
+        "current_maturity": "active separate product with a concrete Next.js web root, Expo mobile shell, and governed nationwide companion tranche proof",
+        "likely_tenant_status": "standalone-external",
+        "shared_extraction_potential": "low",
+        "depends_on_athanor": "no",
+        "athanor_depends_on_it": "no",
+        "batch": "Batch 3: Tenant Products",
+        "shaun_decision": "locked 2026-04-21",
         "has_confirmed_local_clone": true,
         "doc_classified": true,
         "live_on_github": true
@@ -1578,7 +1600,7 @@
         "description": "",
         "is_private": true,
         "is_fork": false,
-        "updated_at": "2026-03-12T02:54:30Z",
+        "updated_at": "2026-04-17T21:17:30Z",
         "ecosystem_role": "tenant",
         "working_clone": "C:\\Users\\Shaun\\dev\\portfolio\\subcontractor-snap",
         "current_maturity": "active separate product as a local-first field-capture MVP with preview posture",
@@ -1666,7 +1688,7 @@
         "description": "",
         "is_private": false,
         "is_fork": false,
-        "updated_at": "2026-03-12T02:15:37Z",
+        "updated_at": "2026-04-17T23:35:53Z",
         "ecosystem_role": "tenant",
         "working_clone": "C:\\Users\\Shaun\\dev\\portfolio\\ulrich-energy-auditing",
         "current_maturity": "active separate product as a local-first Python audit workbench with CLI report generation",
@@ -1688,7 +1710,7 @@
         "description": "Ulrich Energy Auditing - Professional HERS rating services website",
         "is_private": false,
         "is_fork": false,
-        "updated_at": "2026-03-12T02:15:38Z",
+        "updated_at": "2026-04-18T03:23:28Z",
         "ecosystem_role": "tenant",
         "working_clone": "C:\\Users\\Shaun\\Ulrich Energy Auditing Website",
         "current_maturity": "active separate product with concrete local website root and self-contained hosting/monitoring surfaces",
@@ -1732,7 +1754,7 @@
         "description": "Enterprise-level performer database application with advanced search, filtering, analytics dashboard, and comprehensive data visualization \u00b7 Built with Manus",
         "is_private": true,
         "is_fork": false,
-        "updated_at": "2026-03-12T02:54:27Z",
+        "updated_at": "2026-04-17T21:17:48Z",
         "ecosystem_role": "tenant",
         "working_clone": "C:\\Users\\Shaun\\dev\\portfolio\\website-app",
         "current_maturity": "active separate product with repo-backed content and static-host-ready portfolio-shell posture",
@@ -1746,6 +1768,7 @@
         "doc_classified": true,
         "live_on_github": true
       }
-    ]
+    ],
+    "sync_status": "ok"
   }
 }

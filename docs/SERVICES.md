@@ -1,7 +1,7 @@
 # Athanor Services Map
 
 Source of truth: `config/automation-backbone/platform-topology.json`, `docs/projects/PORTFOLIO-REGISTRY.md`, `python scripts/session_restart_brief.py --refresh`, and `reports/truth-inventory/finish-scoreboard.json`
-Validated against registry version: `platform-topology.json@2026-04-11.2`, `project-maturity-registry.json@2026-03-27.1`
+Validated against registry version: `platform-topology.json@2026-04-11.2`, `project-maturity-registry.json@2026-04-20.1`
 Mutable facts policy: service ids, nodes, ports, auth classes, and health paths belong to `platform-topology.json`. This document is the operator-facing map for the latest validated registry snapshot and should be rewritten when topology changes, but it does not outrank the restart brief, the finish scoreboard, or newer generated runtime reports.
 
 ---

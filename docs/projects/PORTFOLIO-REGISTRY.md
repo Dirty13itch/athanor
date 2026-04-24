@@ -13,7 +13,7 @@ It is intentionally narrower than the full Dirty13itch ecosystem view. For the p
 | `eoq` | `active-scaffold` | Active product lane, not yet under full production contract. |
 | `comfyui-workflows` | `active-scaffold` | Reusable creative workflow scaffold. |
 | `kindred` | `incubation` | Incubating product concept. |
-| `ulrich-energy` | `incubation` | Incubating product concept. |
+| `ulrich-energy` | `archive` | Retired Athanor lineage surface; the external `Ulrich Energy Auditing Website` root is the only delivery authority. |
 | `reports` | `archive` | Output archive, not an active runtime. |
 
 Projects should move classes only when the contract in the registry changes with evidence, not because they feel important.

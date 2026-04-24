@@ -6,7 +6,7 @@ Do not edit manually.
 ## Front Door Contract
 
 - Registry version: `2026-04-17.1`
-- Cached truth snapshot: `2026-04-17T22:57:47.279249+00:00`
+- Cached truth snapshot: `2026-04-21T19:11:01.403901+00:00`
 - Recorded portal id: `athanor_command_center`
 - Recorded operator URL: `https://athanor.local/`
 - Recorded front-door node: `dev`
@@ -18,8 +18,8 @@ Do not edit manually.
 
 ## Summary
 
-- Human-facing surfaces tracked: `39`
-- Launchpad-approved surfaces: `22`
+- Human-facing surfaces tracked: `40`
+- Launchpad-approved surfaces: `21`
 - Active production portal count: `1`
 - Shadow portal count: `0`
 - Duplicate active production portals observed: none
@@ -28,11 +28,11 @@ Do not edit manually.
 
 | Kind | Count |
 | --- | --- |
-| `domain_app` | 3 |
+| `domain_app` | 2 |
 | `internal_api` | 14 |
 | `portal` | 1 |
-| `retired` | 1 |
-| `specialist_tool` | 20 |
+| `retired` | 2 |
+| `specialist_tool` | 21 |
 
 ### Statuses
 
@@ -41,7 +41,7 @@ Do not edit manually.
 | `active_internal` | 13 |
 | `active_production` | 1 |
 | `active_specialist` | 23 |
-| `retired` | 2 |
+| `retired` | 3 |
 
 ## Canonical Portal
 
@@ -52,26 +52,9 @@ Do not edit manually.
 - Deployment mode: `containerized_service_behind_caddy`
 - Target deployment mode: `containerized_service_behind_caddy`
 - Canonical probe: `URLError: [SSL: CERTIFICATE_VERIFY_FAILED] certi`
-- Runtime probe: `200`
-- Runtime Next.js asset probe: `200` root, `0` failing sampled asset(s)
+- Runtime probe: `TimeoutError: timed out`
+- Runtime Next.js asset probe: `unknown` root, `0` failing sampled asset(s)
 - Sampled failing assets: none
-- DEV runtime probe target: `dev`
-- DEV deployment mode observed: `containerized_service_behind_caddy`
-- Dashboard container running: `True`
-- Dashboard container status: `Up 3 hours`
-- Dashboard container image: `athanor/dashboard:latest`
-- Dashboard container ports: ``
-- Dashboard compose working dir: `/opt/athanor/dashboard`
-- Dashboard compose config file(s): `/opt/athanor/dashboard/docker-compose.yml`
-- Expected dashboard deploy root: `/opt/athanor/dashboard`
-- Observed active dashboard root: `/opt/athanor/dashboard`
-- Observed compose config file(s): `/opt/athanor/dashboard/docker-compose.yml`
-- Dashboard deploy-root drift: `False`
-- DEV local runtime probe from host: `200`
-- DEV local canonical probe from host: `200`
-- Caddy service state: `active` / `running`
-- Legacy dashboard systemd state: `inactive` / `dead`
-- Legacy dashboard working directory: ``
 
 ## Shadow Portal
 
@@ -101,15 +84,15 @@ No shadow portals are currently registered.
 | `Open WebUI (WORKSHOP)` | `workshop` | `specialist_tool` | `http://interface.athanor.local:3000/` | `chat` | `200` |
 | `ComfyUI` | `workshop` | `specialist_tool` | `http://interface.athanor.local:8188/` | `creative` | `200` |
 | `Empire of Broken Queens` | `workshop` | `domain_app` | `http://interface.athanor.local:3002/` | `domain_product` | `200` |
-| `Ulrich Energy` | `workshop` | `domain_app` | `http://interface.athanor.local:3003/` | `domain_product` | `200` |
 | `Speaches` | `foundry` | `specialist_tool` | `http://core.athanor.local:8200/` | `creative` | `200` |
 
 ## Full Surface Matrix
 
 | Surface | Kind | Node | Status | Navigation | Canonical URL | Runtime URL | Runtime probe |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `athanor_command_center` | `portal` | `dev` | `active_production` | `front_door` | `https://athanor.local/` | `http://dev.athanor.local:3001/` | `200` |
-| `builder_front_door` | `domain_app` | `dev` | `active_specialist` | `launchpad` | `https://athanor.local/builder` | `http://dev.athanor.local:3001/builder` | `200` |
+| `athanor_command_center` | `portal` | `dev` | `active_production` | `front_door` | `https://athanor.local/` | `http://dev.athanor.local:3001/` | `TimeoutError: timed out` |
+| `openclaw_gateway` | `specialist_tool` | `dev` | `active_specialist` | `hidden` | `http://127.0.0.1:18789/` | `http://127.0.0.1:18789/` | `not_probed` |
+| `builder_front_door` | `domain_app` | `dev` | `active_specialist` | `launchpad` | `https://athanor.local/builder` | `http://dev.athanor.local:3001/builder` | `TimeoutError: timed out` |
 | `workshop_shadow_command_center` | `retired` | `workshop` | `retired` | `hidden` | `https://athanor.local/` | `http://interface.athanor.local:3001/` | `200` |
 | `desk_goose_operator_shell` | `specialist_tool` | `desk` | `active_specialist` | `hidden` | `local-shell://desk/goose-operator-shell` | `C:/Users/Shaun/AppData/Local/Athanor/operator-shell/run-goose-athanor-shell.ps1` | `not_probed` |
 | `quality_gate` | `internal_api` | `dev` | `retired` | `hidden` | `http://dev.athanor.local:8790/health` | `http://192.168.1.189:8790/health` | `200` |
@@ -138,11 +121,11 @@ No shadow portals are currently registered.
 | `workshop_open_webui` | `specialist_tool` | `workshop` | `active_specialist` | `launchpad` | `http://interface.athanor.local:3000/` | `http://192.168.1.225:3000/` | `200` |
 | `comfyui` | `specialist_tool` | `workshop` | `active_specialist` | `launchpad` | `http://interface.athanor.local:8188/` | `http://192.168.1.225:8188/` | `200` |
 | `eoq` | `domain_app` | `workshop` | `active_specialist` | `launchpad` | `http://interface.athanor.local:3002/` | `http://192.168.1.225:3002/` | `200` |
-| `ulrich_energy` | `domain_app` | `workshop` | `active_specialist` | `launchpad` | `http://interface.athanor.local:3003/` | `http://192.168.1.225:3003/` | `200` |
+| `ulrich_energy` | `retired` | `workshop` | `retired` | `hidden` | `http://interface.athanor.local:3003/` | `http://192.168.1.225:3003/` | `URLError: timed out` |
 | `ws_pty_bridge` | `internal_api` | `workshop` | `active_internal` | `hidden` | `http://interface.athanor.local:3100/health` | `http://192.168.1.225:3100/health` | `200` |
 | `workshop_worker_api` | `internal_api` | `workshop` | `active_internal` | `hidden` | `http://interface.athanor.local:8010/health` | `http://192.168.1.225:8010/health` | `URLError: timed out` |
 | `aesthetic_scorer_api` | `internal_api` | `workshop` | `active_internal` | `hidden` | `http://interface.athanor.local:8050/` | `http://192.168.1.225:8050/` | `404` |
-| `agent_server` | `internal_api` | `foundry` | `active_internal` | `hidden` | `http://core.athanor.local:9000/health` | `http://192.168.1.244:9000/health` | `200` |
+| `agent_server` | `internal_api` | `foundry` | `active_internal` | `hidden` | `http://core.athanor.local:9000/health` | `http://192.168.1.244:9000/health` | `TimeoutError: timed out` |
 | `gpu_orchestrator` | `internal_api` | `foundry` | `active_internal` | `hidden` | `http://core.athanor.local:9200/health` | `http://192.168.1.244:9200/health` | `200` |
 | `speaches` | `specialist_tool` | `foundry` | `active_specialist` | `launchpad` | `http://core.athanor.local:8200/` | `http://192.168.1.244:8200/` | `200` |
 | `foundry_coordinator_api` | `internal_api` | `foundry` | `active_internal` | `hidden` | `http://core.athanor.local:8000/health` | `http://192.168.1.244:8000/health` | `200` |

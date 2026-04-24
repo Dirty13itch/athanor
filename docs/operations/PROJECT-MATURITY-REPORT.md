@@ -5,7 +5,7 @@ Do not edit manually.
 
 ## Summary
 
-- Registry version: `2026-03-27.1`
+- Registry version: `2026-04-20.1`
 - Projects tracked: `11`
 - Projects meeting declared class: `11`
 
@@ -14,8 +14,8 @@ Do not edit manually.
 | `platform-core` | 5 |
 | `production-product` | 1 |
 | `active-scaffold` | 2 |
-| `incubation` | 2 |
-| `archive` | 1 |
+| `incubation` | 1 |
+| `archive` | 2 |
 
 ## Project Status
 
@@ -30,7 +30,7 @@ Do not edit manually.
 | `eoq` (EOQ) | `active-scaffold` | meets declared class | `shaun` | `projects/eoq` |
 | `comfyui-workflows` (ComfyUI Workflows) | `active-scaffold` | meets declared class | `shaun` | `projects/comfyui-workflows` |
 | `kindred` (Kindred) | `incubation` | meets declared class | `shaun` | `projects/kindred` |
-| `ulrich-energy` (Ulrich Energy) | `incubation` | meets declared class | `shaun` | `projects/ulrich-energy` |
+| `ulrich-energy` (Ulrich Energy (retired lineage)) | `archive` | meets declared class | `shaun` | `projects/ulrich-energy` |
 | `reports` (Reports) | `archive` | meets declared class | `shaun` | `projects/reports` |
 
 ## Athanor Agents (`agents`)
@@ -181,17 +181,17 @@ Do not edit manually.
 - Notes: Incubating product concept.
 - Open issues: none
 
-## Ulrich Energy (`ulrich-energy`)
+## Ulrich Energy (retired lineage) (`ulrich-energy`)
 
-- Class: `incubation`
+- Class: `archive`
 - Owner: `shaun`
 - Workspace: `projects/ulrich-energy`
-- Declared requirements: `owner`, `workspace`, `explicit_status`
+- Declared requirements: `workspace`, `archive_note`
 - Monitoring: none
 - CI workflow steps: none
 - Acceptance workflow steps: none
 - Docs: `docs/projects/PORTFOLIO-REGISTRY.md`
-- Notes: Incubating product concept.
+- Notes: Retired lineage surface. The external Ulrich Energy Auditing Website is the only current delivery authority.
 - Open issues: none
 
 ## Reports (`reports`)

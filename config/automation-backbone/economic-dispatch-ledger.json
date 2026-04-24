@@ -158,7 +158,7 @@
       "roi_posture": "spend subscription-backed GLM coding quota before metered overflow when the supported tooling path is healthy",
       "premium_reserve_consumption": "draws_from_glm_coding_plan_quota",
       "daily_budget_ceiling_usd": 0,
-      "local_vs_cloud_opportunity_cost": "prefer for cloud-safe bulk coding and refactor overflow once support tooling is proven live",
+      "local_vs_cloud_opportunity_cost": "prefer only after owned local bulk capacity is protected or saturated, and before metered cloud overflow",
       "selection_reasons": [
         "Target subscription-backed overflow lane for cloud-safe coding.",
         "Should sit between premium cloud lanes and cheap metered APIs when tooling health is green."
@@ -177,13 +177,13 @@
       "max_parallel_slots": 8,
       "reserved_parallel_slots": 0,
       "harvestable_parallel_slots": 8,
-      "roi_posture": "use as the cheapest cloud-safe bulk lane inside acceptable-quality thresholds",
+      "roi_posture": "use as the last-resort metered cloud-safe bulk lane inside acceptable-quality thresholds",
       "premium_reserve_consumption": "none_metered_only",
       "daily_budget_ceiling_usd": 10,
-      "local_vs_cloud_opportunity_cost": "prefer for low-cost cloud-safe transforms, extraction, and background throughput when local reserves are protected",
+      "local_vs_cloud_opportunity_cost": "prefer only after local bulk and subscription-backed overflow lanes are exhausted or blocked",
       "selection_reasons": [
-        "Cheapest metered cloud lane for eligible bulk work.",
-        "Ideal overflow path for classification, extraction, and cheap background transforms."
+        "Cheapest metered cloud lane for eligible bulk work once owned and subscription capacity are already spent or unfit.",
+        "Overflow path for classification, extraction, and cheap background transforms, not the first bulk default."
       ],
       "avoid_when": [
         "The work requires premium implementation quality or is not cloud-safe."
@@ -216,22 +216,23 @@
     {
       "lane_id": "claude_review_cloudsafe",
       "provider_id": "anthropic_claude_code",
-      "reserve_class": "retiring_premium_review",
+      "reserve_class": "premium_interactive_review",
       "max_parallel_slots": 2,
       "reserved_parallel_slots": 1,
       "harvestable_parallel_slots": 1,
-      "roi_posture": "retire after review coverage migrates cleanly to Gemini and Codex",
+      "roi_posture": "preserve as the premium interactive architecture, semantic-repair, and final-review lane",
       "premium_reserve_consumption": "draws_from_paid_claude_max_reserve",
       "daily_budget_ceiling_usd": 0,
-      "local_vs_cloud_opportunity_cost": "current-state only until migration gates pass",
+      "local_vs_cloud_opportunity_cost": "use when architecture depth, semantic repair, or final review quality materially exceeds local or cheaper lanes",
       "selection_reasons": [
-        "Retained only as a migration lane until review coverage fully transfers."
+        "Premium interactive lane for architecture-heavy review and semantic repair.",
+        "Worth consuming intentionally before reset windows close when the task needs its strengths."
       ],
       "avoid_when": [
-        "Target-state routing is available and healthy."
+        "The work is deterministic, mechanical, or good enough on local or cheaper cloud lanes."
       ],
       "quality_tier": "premium_review",
-      "availability_state": "retiring",
+      "availability_state": "live",
       "last_verified_at": "2026-04-11T11:15:00-05:00"
     },
     {

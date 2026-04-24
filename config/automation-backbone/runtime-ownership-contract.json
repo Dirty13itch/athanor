@@ -177,6 +177,46 @@
       "execution_packet_id": "dev-runtime-ssh-access-recovery-packet"
     },
     {
+      "id": "dev-openclaw-gateway",
+      "label": "DEV OpenClaw sidecar gateway lane",
+      "host": "dev",
+      "status": "active",
+      "deployment_mode": "host_state_surface",
+      "owner_root_ids": [
+        "dev-state",
+        "dev-systemd",
+        "dev-logs"
+      ],
+      "runtime_scope": "OpenClaw Gateway sidecar runtime on DEV, bound to loopback on port 18789 and accessed from DESK through an SSH tunnel. It is an approval-gated personal operator layer and not the canonical Athanor command center.",
+      "runtime_paths": [
+        "/home/shaun/.openclaw",
+        "/home/shaun/.config/systemd/user/openclaw-gateway.service",
+        "/tmp/openclaw"
+      ],
+      "active_surfaces": [
+        "openclaw-gateway.service",
+        "http://127.0.0.1:18789/",
+        "ws://127.0.0.1:18789",
+        "DESK SSH tunnel to DEV loopback port 18789"
+      ],
+      "execution_packet_id": "dev-openclaw-gateway-sidecar-packet",
+      "evidence_paths": [
+        "reports/truth-inventory/openclaw-sidecar-status.json",
+        "docs/operations/OPENCLAW-SIDECAR-RUNTIME-PACKET.md",
+        "config/automation-backbone/platform-topology.json",
+        "config/automation-backbone/operator-surface-registry.json"
+      ],
+      "verification_commands": [
+        "ssh dev \"export PATH=\\\"$HOME/.local/npm-global/bin:$PATH\\\"; openclaw gateway status\"",
+        "ssh dev \"curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18789/healthz\"",
+        "ssh dev \"export PATH=\\\"$HOME/.local/npm-global/bin:$PATH\\\"; openclaw security audit --json\"",
+        "python scripts/write_openclaw_sidecar_status.py --write"
+      ],
+      "rollback_contract": "Stop and disable openclaw-gateway.service, preserve /home/shaun/.openclaw under a timestamped backup, and remove the DESK SSH tunnel/profile if the sidecar regresses local operator workflows.",
+      "approval_boundary": "Changing OpenClaw service supervision, widening bind scope beyond loopback, enabling Telegram delivery, pairing nodes with mutation-capable tools, or granting VAULT write access remains approval-gated.",
+      "next_action": "Keep OpenClaw sidecar-first: complete model auth and Telegram allowlist, then pair DESK before FOUNDRY/WORKSHOP, with VAULT read-mostly until a separate packet widens scope."
+    },
+    {
       "id": "desk-goose-operator-shell",
       "label": "DESK Goose operator-shell lane",
       "host": "desk",
@@ -472,7 +512,7 @@
         "workshop-opt-athanor"
       ],
       "source_root_id": "desk-main",
-      "runtime_scope": "Recovery-only Workshop dashboard shadow plus the live ws-pty-bridge compose bundle rooted under /opt/athanor/dashboard and /opt/athanor/ws-pty-bridge.",
+      "runtime_scope": "Recovery-only Workshop dashboard shadow plus the read-only truth-inventory mount and live ws-pty-bridge compose bundle rooted under /opt/athanor/dashboard, /opt/athanor/reports/truth-inventory, and /opt/athanor/ws-pty-bridge.",
       "source_paths": [
         "ansible/host_vars/interface.yml",
         "ansible/roles/dashboard/defaults/main.yml",
@@ -480,10 +520,12 @@
         "ansible/roles/dashboard/templates/docker-compose.yml.j2",
         "projects/dashboard",
         "projects/ws-pty-bridge",
+        "reports/truth-inventory",
         "reports/rendered/workshop-dashboard.rendered.yml"
       ],
       "runtime_paths": [
         "/opt/athanor/dashboard/docker-compose.yml",
+        "/opt/athanor/reports/truth-inventory",
         "/opt/athanor/ws-pty-bridge"
       ],
       "active_surfaces": [
@@ -502,11 +544,12 @@
       "verification_commands": [
         "ssh workshop \"cd /opt/athanor/dashboard && docker compose ps\"",
         "ssh workshop \"docker inspect athanor-ws-pty-bridge --format '{{.Name}}|{{.State.Status}}'\"",
-        "ssh workshop \"curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/health\""
+        "ssh workshop \"test -f /opt/athanor/reports/truth-inventory/operator-mobile-summary.json\"",
+        "ssh workshop \"curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/health && curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/api/operator/mobile-summary\""
       ],
       "rollback_contract": "Preserve the previous /opt/athanor/dashboard compose bundle and /opt/athanor/ws-pty-bridge source under /opt/athanor/backups/dashboard-shadow/<timestamp>/ before replacement, and restore both if the approved reconcile pass regresses bridge access or the shadow recovery surface.",
       "approval_boundary": "Replacing Workshop control-surface compose roots or recreating the live dashboard shadow or ws-pty-bridge containers remains approval-gated.",
-      "next_action": "Keep the live Workshop dashboard shadow and ws-pty bridge healthy and treat any future compose or source change as packet-backed runtime work; the 2026-04-08 backup-first reconcile pass synced the source bundles, replaced /opt/athanor/dashboard/docker-compose.yml from implementation authority, and re-probed both :3001 and :3100/health at 200."
+      "next_action": "Keep the live Workshop dashboard shadow, truth-inventory mount, and ws-pty bridge healthy and treat any future compose or source change as packet-backed runtime work; the 2026-04-08 backup-first reconcile pass synced the source bundles, replaced /opt/athanor/dashboard/docker-compose.yml from implementation authority, and re-probed both :3001 and :3100/health at 200."
     },
     {
       "id": "workshop-vllm-compose",
@@ -558,7 +601,7 @@
         "workshop-opt-athanor"
       ],
       "source_root_id": "desk-main",
-      "runtime_scope": "Active Workshop product and creative compose roots for Open WebUI, ComfyUI, EoBQ, and Ulrich Energy under /opt/athanor.",
+      "runtime_scope": "Active Workshop product and creative compose roots for Open WebUI, ComfyUI, and EoBQ under /opt/athanor. The retired Ulrich Energy lineage now remains only as packet-backed rollback context.",
       "source_paths": [
         "ansible/host_vars/interface.yml",
         "ansible/roles/open-webui/defaults/main.yml",
@@ -567,46 +610,42 @@
         "ansible/roles/comfyui/templates/docker-compose.yml.j2",
         "ansible/roles/eoq/defaults/main.yml",
         "ansible/roles/eoq/templates/docker-compose.yml.j2",
-        "ansible/roles/ulrich-energy/defaults/main.yml",
-        "ansible/roles/ulrich-energy/templates/docker-compose.yml.j2",
         "projects/eoq",
-        "projects/ulrich-energy",
         "projects/comfyui-workflows"
       ],
       "runtime_paths": [
         "/opt/athanor/open-webui/docker-compose.yml",
         "/opt/athanor/comfyui/docker-compose.yml",
-        "/opt/athanor/eoq/docker-compose.yml",
-        "/opt/athanor/ulrich-energy/docker-compose.yml"
+        "/opt/athanor/eoq/docker-compose.yml"
       ],
       "active_surfaces": [
         "open-webui container",
         "comfyui container",
         "athanor-eoq container",
-        "athanor-ulrich-energy container",
         "http://workshop:3000/",
         "http://workshop:8188/",
-        "http://workshop:3002/",
-        "http://workshop:3003/"
+        "http://workshop:3002/"
       ],
       "evidence_paths": [
         "reports/deployment-drift/workshop-open-webui.diff",
         "reports/deployment-drift/workshop-comfyui.diff",
         "reports/deployment-drift/workshop-eoq.diff",
-        "reports/deployment-drift/workshop-ulrich-energy.diff",
         "reports/live/workshop-open-webui.live.yml",
         "reports/live/workshop-comfyui.live.yml",
         "reports/live/workshop-eoq.live.yml",
-        "reports/live/workshop-ulrich-energy.live.yml",
+        "docs/operations/WORKSHOP-OPEN-WEBUI-COMPOSE-RECONCILIATION-PACKET.md",
+        "docs/operations/WORKSHOP-COMFYUI-COMPOSE-RECONCILIATION-PACKET.md",
+        "docs/operations/WORKSHOP-EOQ-COMPOSE-RECONCILIATION-PACKET.md",
+        "docs/operations/WORKSHOP-ULRICH-ENERGY-COMPOSE-RECONCILIATION-PACKET.md",
         "docs/operations/RUNTIME-OWNERSHIP-REPORT.md"
       ],
       "verification_commands": [
-        "ssh workshop \"docker compose -f /opt/athanor/open-webui/docker-compose.yml ps && docker compose -f /opt/athanor/comfyui/docker-compose.yml ps && docker compose -f /opt/athanor/eoq/docker-compose.yml ps && docker compose -f /opt/athanor/ulrich-energy/docker-compose.yml ps\"",
-        "ssh workshop \"curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/ && curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8188/ && curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3002/ && curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3003/\""
+        "ssh workshop \"docker compose -f /opt/athanor/open-webui/docker-compose.yml ps && docker compose -f /opt/athanor/comfyui/docker-compose.yml ps && docker compose -f /opt/athanor/eoq/docker-compose.yml ps\"",
+        "ssh workshop \"curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/ && curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8188/ && curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3002/\""
       ],
       "rollback_contract": "Preserve the current product and creative compose bundles under timestamped /opt/athanor/backups/<service>/<timestamp>/ roots before any future runtime mutation on these Workshop surfaces.",
       "approval_boundary": "Replacing Workshop product or creative compose roots or recreating their live containers remains approval-gated.",
-      "next_action": "Keep these roots explicit and split them into narrower per-surface repair packets only when a specific Workshop product or creative service is intentionally reconciled."
+      "next_action": "Use the explicit per-surface packet docs for Workshop Open WebUI, ComfyUI, and EOQ as the only active bounded runtime lanes. Keep the retired Ulrich Energy lineage only as rollback context through workshop-ulrich-energy-retirement-packet instead of treating it as a normal repair target."
     },
     {
       "id": "vault-litellm-config",

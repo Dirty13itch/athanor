@@ -4,8 +4,8 @@ Generated from `config/automation-backbone/runtime-ownership-packets.json`, `con
 Do not edit manually.
 
 - Registry version: `2026-04-16.2`
-- Cached truth snapshot: `2026-04-17T22:57:47.279249+00:00`
-- Packets tracked: `17`
+- Cached truth snapshot: `2026-04-21T19:11:01.403901+00:00`
+- Packets tracked: `19`
 
 | Packet | Status | Lane | Approval type | Goal |
 | --- | --- | --- | --- | --- |
@@ -13,6 +13,7 @@ Do not edit manually.
 | `dev-dashboard-shadow-retirement-packet` | `executed` | `dev-dashboard-compose` | `systemd_runtime_change` | Retire or explicitly downgrade the inactive athanor-dashboard.service unit so the active /opt/athanor/dashboard compose lane is the only ordinary dashboard deployment path. |
 | `dev-dashboard-compose-deploy-packet` | `executed` | `dev-dashboard-compose` | `runtime_host_reconfiguration` | Make the active /opt/athanor/dashboard compose lane explicit so dashboard updates replace the governed compose build context instead of relying on remembered manual copy steps. |
 | `dev-heartbeat-opt-deploy-packet` | `executed` | `dev-heartbeat-opt` | `runtime_host_reconfiguration` | Make the source-to-/opt heartbeat bundle replacement explicit so the live athanor-heartbeat.service lane no longer depends on undocumented manual copy steps. |
+| `workshop-ulrich-energy-retirement-packet` | `executed` | `workshop-product-compose` | `runtime_host_reconfiguration` | Retire the remaining Workshop ulrich-energy runtime lineage so the external Ulrich Energy Auditing Website is the only product authority and the in-repo scaffold stops lingering as a live surface. |
 | `foundry-agents-compose-deploy-packet` | `executed` | `foundry-agents-compose` | `runtime_host_reconfiguration` | Make the repo-owned athanor-agents deploy path explicit so FOUNDRY updates replace the full compose build context and stop relying on ad hoc site-packages hotfixes. |
 | `foundry-graphrag-compose-deploy-packet` | `executed` | `foundry-graphrag-compose` | `runtime_host_reconfiguration` | Make the live /opt/athanor/graphrag compose root a governed knowledge-subsystem lane so GraphRAG rollout and rollback stop depending on remembered host-local steps. |
 | `foundry-gpu-orchestrator-compose-deploy-packet` | `executed` | `foundry-gpu-orchestrator-compose` | `runtime_host_reconfiguration` | Keep the active /opt/athanor/gpu-orchestrator compose root aligned to implementation authority so host-local runtime identity does not drift away from the repo-owned coordinator and zone-routing contract. |
@@ -20,11 +21,12 @@ Do not edit manually.
 | `foundry-watchdog-runtime-guard-rollout-packet` | `executed` | `foundry-watchdog-runtime-guard` | `runtime_host_reconfiguration` | Keep the Athanor-owned watchdog bundle under /opt/athanor/watchdog as the packet-backed live canary lane so monitoring, bounded restart controls, and rollback posture stay explicit while live remediation authority remains narrow. |
 | `desk-goose-operator-shell-rollout-packet` | `executed` | `desk-goose-operator-shell` | `runtime_host_reconfiguration` | Roll out the bounded DESK Goose shell helper so the preferred Athanor shell path is pinned to the intended LiteLLM DeepSeek lane with explicit fallback behavior instead of relying on remembered workstation-local defaults. |
 | `foundry-vllm-compose-reconciliation-packet` | `executed` | `foundry-vllm-compose` | `runtime_host_reconfiguration` | Reconcile the live FOUNDRY coordinator compose root and the llama-dolphin dolphin3-r1-24b coder runtime so the active coordinator and coder lanes stop drifting through host-local state. |
-| `workshop-control-surface-compose-reconciliation-packet` | `executed` | `workshop-control-surface-compose` | `runtime_host_reconfiguration` | Reconcile the live Workshop dashboard-shadow compose root with implementation authority now that the source contract explicitly includes the active ws-pty-bridge service and the correct worker lane URL. |
+| `workshop-control-surface-compose-reconciliation-packet` | `executed` | `workshop-control-surface-compose` | `runtime_host_reconfiguration` | Reconcile the live Workshop dashboard-shadow compose root with implementation authority now that the source contract explicitly includes the active ws-pty-bridge service, the shadow-dashboard truth-inventory mount, and the correct worker lane URL. |
 | `workshop-vllm-compose-reconciliation-packet` | `executed` | `workshop-vllm-compose` | `runtime_host_reconfiguration` | Retire the stale /opt/athanor/vllm-node2 worker contract now that the pinned Workshop worker model directory is absent and the live Workshop data-plane is ComfyUI plus vllm-vision instead of a reachable :8010 worker lane. |
 | `vault-litellm-config-reconciliation-packet` | `executed` | `vault-litellm-config` | `runtime_host_reconfiguration` | Reconcile the live /mnt/user/appdata/litellm/config.yaml file with implementation authority so the coder lane and other routed model definitions stop drifting independently of the repo. |
 | `vault-prometheus-config-reconciliation-packet` | `executed` | `vault-prometheus-config` | `runtime_host_reconfiguration` | Reconcile the live /mnt/user/appdata/prometheus/prometheus.yml and alert-rules.yml files with implementation authority so monitoring truth stops drifting across stale shadow targets, extra jobs, and outdated node labels. |
 | `dev-runtime-ssh-access-recovery-packet` | `executed` | `dev-runtime-state` | `runtime_host_reconfiguration` | Restore one governed DEV SSH access path so truth collection, runtime verification, and repo-root maintenance no longer depend on a broken alias or remembered fallback guesses. |
+| `dev-openclaw-gateway-sidecar-packet` | `executed` | `dev-openclaw-gateway` | `runtime_host_reconfiguration` | Install and register OpenClaw as a loopback-only DEV sidecar gateway with approval-gated execution, isolated agent workspaces, DESK tunnel access, and generated status evidence. |
 | `foundry-agents-runtime-alignment-packet` | `executed` | `foundry-agents-compose` | `runtime_host_reconfiguration` | Reconcile the live /opt/athanor/agents source tree and imported `athanor_agents` module path with implementation authority when the truth collector reports a source/runtime mismatch. |
 
 ## dev-runtime-repo-sync-packet
@@ -97,11 +99,11 @@ Do not edit manually.
 
 ### Live evidence
 
-- Legacy service state: `inactive` / `dead`
-- Legacy unit file state: `masked`
-- Legacy fragment path: `/etc/systemd/system/athanor-dashboard.service`
-- Container running: `True`
-- Canonical probe status: `200`
+- Legacy service state: `unknown` / `unknown`
+- Legacy unit file state: `unknown`
+- Legacy fragment path: `unknown`
+- Container running: `False`
+- Canonical probe status: `unknown`
 
 ### Preflight Commands
 
@@ -224,6 +226,50 @@ Do not edit manually.
 - Restart athanor-heartbeat.service.
 - Re-run the same truth refresh and validator sequence to confirm rollback.
 
+## workshop-ulrich-energy-retirement-packet
+
+- Label: `WORKSHOP retired ulrich-energy runtime retirement packet`
+- Status: `executed`
+- Lane: `workshop-product-compose`
+- Approval type: `runtime_host_reconfiguration` (Runtime host reconfiguration)
+- Host: `workshop`
+- Goal: Retire the remaining Workshop ulrich-energy runtime lineage so the external Ulrich Energy Auditing Website is the only product authority and the in-repo scaffold stops lingering as a live surface.
+- Lane next action: Use the explicit per-surface packet docs for Workshop Open WebUI, ComfyUI, and EOQ as the only active bounded runtime lanes. Keep the retired Ulrich Energy lineage only as rollback context through workshop-ulrich-energy-retirement-packet instead of treating it as a normal repair target.
+- Backup root: `/opt/athanor/backups/ulrich-energy/<timestamp>`
+- Evidence: `config/automation-backbone/runtime-ownership-contract.json`, `config/automation-backbone/runtime-ownership-packets.json`, `docs/operations/WORKSHOP-ULRICH-ENERGY-COMPOSE-RECONCILIATION-PACKET.md`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
+
+| Source path | Runtime path | Restart units |
+| --- | --- | --- |
+| `projects/ulrich-energy` | `/opt/athanor/ulrich-energy` | `athanor-ulrich-energy` |
+
+### Preflight Commands
+
+- ssh workshop "test -d /opt/athanor/ulrich-energy && docker compose -f /opt/athanor/ulrich-energy/docker-compose.yml ps || true"
+- ssh workshop "docker inspect athanor-ulrich-energy > /opt/athanor/backups/ulrich-energy/<timestamp>/athanor-ulrich-energy.inspect.json"
+- ssh workshop "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3003/ || true"
+- python scripts/generate_truth_inventory_reports.py --report runtime_ownership --report runtime_ownership_packets
+
+### Exact Steps
+
+- Create a timestamped backup root under /opt/athanor/backups/ulrich-energy/<timestamp> and preserve the current /opt/athanor/ulrich-energy bundle plus docker inspect evidence before any mutation.
+- Stop and remove only the athanor-ulrich-energy container; do not touch Workshop Open WebUI, ComfyUI, or EOQ surfaces.
+- Archive or remove the governed /opt/athanor/ulrich-energy runtime root so the lineage is no longer a live compose surface.
+- Refresh runtime-ownership and deployment-drift evidence immediately after the retirement so the lineage remains only as packet-backed rollback context.
+
+### Verification Commands
+
+- ssh workshop "docker ps --format '{{.Names}}' | rg '^athanor-ulrich-energy$' && exit 1 || exit 0"
+- ssh workshop "test ! -d /opt/athanor/ulrich-energy"
+- ssh workshop "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3003/ || true"
+- python scripts/generate_truth_inventory_reports.py --report runtime_ownership --report runtime_ownership_packets --report drift
+- python scripts/validate_platform_contract.py
+
+### Rollback Steps
+
+- Restore the backed up /opt/athanor/ulrich-energy bundle from /opt/athanor/backups/ulrich-energy/<timestamp> if the retired lineage must be revived.
+- Recreate athanor-ulrich-energy from the restored compose root.
+- Re-run the same truth refresh and validator sequence to confirm rollback.
+
 ## foundry-agents-compose-deploy-packet
 
 - Label: `FOUNDRY athanor-agents compose deploy packet`
@@ -251,7 +297,7 @@ Do not edit manually.
 - Nested source dir present: `False`
 - bak-codex files: none
 - Container running: `True`
-- Container status: `Up 27 hours`
+- Container status: `Up 4 hours`
 - Runtime import path: `/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py`
 
 ### Preflight Commands
@@ -563,15 +609,16 @@ Do not edit manually.
 - Lane: `workshop-control-surface-compose`
 - Approval type: `runtime_host_reconfiguration` (Runtime host reconfiguration)
 - Host: `workshop`
-- Goal: Reconcile the live Workshop dashboard-shadow compose root with implementation authority now that the source contract explicitly includes the active ws-pty-bridge service and the correct worker lane URL.
-- Lane next action: Keep the live Workshop dashboard shadow and ws-pty bridge healthy and treat any future compose or source change as packet-backed runtime work; the 2026-04-08 backup-first reconcile pass synced the source bundles, replaced /opt/athanor/dashboard/docker-compose.yml from implementation authority, and re-probed both :3001 and :3100/health at 200.
+- Goal: Reconcile the live Workshop dashboard-shadow compose root with implementation authority now that the source contract explicitly includes the active ws-pty-bridge service, the shadow-dashboard truth-inventory mount, and the correct worker lane URL.
+- Lane next action: Keep the live Workshop dashboard shadow, truth-inventory mount, and ws-pty bridge healthy and treat any future compose or source change as packet-backed runtime work; the 2026-04-08 backup-first reconcile pass synced the source bundles, replaced /opt/athanor/dashboard/docker-compose.yml from implementation authority, and re-probed both :3001 and :3100/health at 200.
 - Backup root: `/opt/athanor/backups/dashboard-shadow/<timestamp>`
-- Evidence: `reports/deployment-drift/summary.md`, `reports/rendered/workshop-dashboard.rendered.yml`, `reports/live/workshop-dashboard.live.yml`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
+- Evidence: `reports/deployment-drift/summary.md`, `reports/truth-inventory/operator-mobile-summary.json`, `reports/rendered/workshop-dashboard.rendered.yml`, `reports/live/workshop-dashboard.live.yml`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
 
 | Source path | Runtime path | Restart units |
 | --- | --- | --- |
 | `projects/dashboard` | `/opt/athanor/dashboard` | `athanor-dashboard`, `athanor-ws-pty-bridge` |
 | `projects/ws-pty-bridge` | `/opt/athanor/ws-pty-bridge` | `athanor-ws-pty-bridge` |
+| `reports/truth-inventory` | `/opt/athanor/reports/truth-inventory` | `athanor-dashboard` |
 | `reports/rendered/workshop-dashboard.rendered.yml` | `/opt/athanor/dashboard/docker-compose.yml` | `athanor-dashboard`, `athanor-ws-pty-bridge` |
 
 ### Preflight Commands
@@ -581,11 +628,13 @@ Do not edit manually.
 - ssh workshop "cd /opt/athanor/dashboard && docker compose ps"
 - ssh workshop "docker inspect athanor-ws-pty-bridge --format '{{.Name}}|{{.State.Status}}|{{.Config.Image}}'"
 - ssh workshop "test -f /opt/athanor/dashboard/docker-compose.yml && sed -n '1,220p' /opt/athanor/dashboard/docker-compose.yml"
+- ssh workshop "test -f /opt/athanor/reports/truth-inventory/operator-mobile-summary.json"
 
 ### Exact Steps
 
 - Create a timestamped backup root under /opt/athanor/backups/dashboard-shadow/<timestamp> and back up the current /opt/athanor/dashboard compose bundle plus /opt/athanor/ws-pty-bridge source before replacement.
 - Re-render the Workshop control-surface compose file through the governed deployment-drift audit or render_ansible_template.py so the replacement artifact matches implementation authority exactly.
+- Sync the governed truth inventory into /opt/athanor/reports/truth-inventory before recreating the shadow dashboard so the recovery surface reads the same operator truth as Athanor core.
 - Replace the Workshop dashboard-shadow source bundle and ws-pty-bridge source bundle from implementation authority during the approved maintenance window.
 - Replace /opt/athanor/dashboard/docker-compose.yml from the rendered canonical artifact and keep the dashboard container explicitly recovery-only in operator posture.
 - Recreate the affected Workshop control-surface services and refresh deployment-drift evidence immediately.
@@ -593,7 +642,8 @@ Do not edit manually.
 ### Verification Commands
 
 - ssh workshop "cd /opt/athanor/dashboard && docker compose ps"
-- ssh workshop "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/health && curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/"
+- ssh workshop "test -f /opt/athanor/reports/truth-inventory/operator-mobile-summary.json"
+- ssh workshop "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/health && curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/ && curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/api/operator/mobile-summary"
 - powershell -ExecutionPolicy Bypass -File .\scripts\Invoke-DeploymentDriftAudit.ps1
 - python scripts/generate_truth_inventory_reports.py --report repo_roots --report runtime_ownership --report runtime_ownership_packets
 - python scripts/validate_platform_contract.py
@@ -782,6 +832,54 @@ Do not edit manually.
 - Restore the previous desktop SSH config and any DEV-side authorized-key or access material captured under the timestamped backup root.
 - Re-run `ssh dev` and the truth refresh sequence to confirm the prior access posture is back in place.
 - Leave the packet in ready-for-approval state until a new bounded access repair is explicitly reviewed.
+
+## dev-openclaw-gateway-sidecar-packet
+
+- Label: `DEV OpenClaw sidecar gateway packet`
+- Status: `executed`
+- Lane: `dev-openclaw-gateway`
+- Approval type: `runtime_host_reconfiguration` (Runtime host reconfiguration)
+- Host: `dev`
+- Goal: Install and register OpenClaw as a loopback-only DEV sidecar gateway with approval-gated execution, isolated agent workspaces, DESK tunnel access, and generated status evidence.
+- Lane next action: Keep OpenClaw sidecar-first: complete model auth and Telegram allowlist, then pair DESK before FOUNDRY/WORKSHOP, with VAULT read-mostly until a separate packet widens scope.
+- Backup root: `/home/shaun/.openclaw/openclaw.json.bak plus systemd unit backups created by OpenClaw install`
+- Evidence: `reports/truth-inventory/openclaw-sidecar-status.json`, `docs/operations/OPENCLAW-SIDECAR-RUNTIME-PACKET.md`, `scripts/configure_openclaw_telegram.py`, `config/automation-backbone/platform-topology.json`, `config/automation-backbone/operator-surface-registry.json`, `config/automation-backbone/runtime-ownership-contract.json`
+
+- Target units: `openclaw-gateway.service`, `/home/shaun/.openclaw`, `DESK OpenClaw dev profile`, `DESK SSH tunnel to DEV 127.0.0.1:18789`
+
+### Preflight Commands
+
+- ssh dev "node --version && npm --version"
+- ssh dev "systemctl --user is-system-running"
+- ssh dev "test ! -e /home/shaun/.openclaw || ls -ld /home/shaun/.openclaw"
+- python scripts/validate_platform_contract.py
+
+### Exact Steps
+
+- Use a user-local npm prefix on DEV at /home/shaun/.local/npm-global so OpenClaw does not require sudo or a root-owned global install.
+- Install openclaw@latest on DEV and configure gateway.mode=local, gateway.bind=loopback, gateway.auth.mode=token, and gateway.port=18789.
+- Generate a dedicated OpenClaw gateway token under /home/shaun/.openclaw/gateway.token and install openclaw-gateway.service as a user systemd service.
+- Create isolated OpenClaw agents for operator, coder, cluster, creative, research, and home-media with separate workspaces under /home/shaun/.openclaw/workspaces.
+- Apply the cautious exec policy so command execution is allowlist-based with ask-on-miss and deny fallback.
+- Configure DESK profile `openclaw --profile dev` to use ws://127.0.0.1:18789 through the SSH tunnel.
+- Keep Telegram delivery and inline approvals blocked until the BotFather token plus numeric allowlist/approver IDs are installed in OpenClaw channel state and verified.
+
+### Verification Commands
+
+- ssh dev "export PATH=\"$HOME/.local/npm-global/bin:$PATH\"; openclaw gateway status"
+- ssh dev "curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18789/healthz"
+- ssh dev "export PATH=\"$HOME/.local/npm-global/bin:$PATH\"; openclaw models status --check --probe --json"
+- ssh dev "export PATH=\"$HOME/.local/npm-global/bin:$PATH\"; openclaw channels status --probe --json"
+- ssh dev "export PATH=\"$HOME/.local/npm-global/bin:$PATH\"; openclaw agents list --bindings --json"
+- ssh dev "export PATH=\"$HOME/.local/npm-global/bin:$PATH\"; openclaw exec-policy show"
+- python scripts/write_openclaw_sidecar_status.py --write
+- python scripts/validate_platform_contract.py
+
+### Rollback Steps
+
+- Run `ssh dev "systemctl --user disable --now openclaw-gateway.service"`.
+- Preserve /home/shaun/.openclaw for recovery, then restore the previous /home/shaun/.openclaw/openclaw.json.bak and openclaw-gateway.service.bak if needed.
+- Stop any DESK ssh.exe tunnel process listening on 127.0.0.1:18789 and remove the DESK `openclaw --profile dev` config only if the sidecar is being retired.
 
 ## foundry-agents-runtime-alignment-packet
 

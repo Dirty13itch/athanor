@@ -1,0 +1,109 @@
+{
+  "version": "2026-04-19.1",
+  "updated_at": "2026-04-19T08:30:00+00:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/system-capability-contract.json",
+  "required_now": [
+    "observe_truth",
+    "decide_next_work",
+    "act_within_scope",
+    "verify_and_credit",
+    "learn_from_failures",
+    "govern_boundaries",
+    "expose_operator_surface"
+  ],
+  "gated_future": [
+    "memory_plane_expansion",
+    "bounded_worker_expansion",
+    "broader_tenant_coding_autonomy"
+  ],
+  "domains": [
+    {
+      "id": "observe_truth",
+      "required_now": true,
+      "label": "Observe Truth",
+      "purpose": "Surface truthful runtime, queue, proof, provider, and operator posture.",
+      "proof_surfaces": [
+        "reports/truth-inventory/blocker-map.json",
+        "reports/truth-inventory/steady-state-status.json",
+        "reports/truth-inventory/finish-scoreboard.json",
+        "reports/truth-inventory/runtime-parity.json"
+      ]
+    },
+    {
+      "id": "decide_next_work",
+      "required_now": true,
+      "label": "Decide Next Work",
+      "purpose": "Choose the highest-value bounded tranche or backlog item without stale-claim spin.",
+      "proof_surfaces": [
+        "reports/truth-inventory/blocker-execution-plan.json",
+        "reports/truth-inventory/continuity-controller-state.json",
+        "reports/ralph-loop/latest.json"
+      ]
+    },
+    {
+      "id": "act_within_scope",
+      "required_now": true,
+      "label": "Act Within Scope",
+      "purpose": "Execute bounded repo-safe work continuously inside the current mutation posture.",
+      "proof_surfaces": [
+        "reports/truth-inventory/continuity-supervisor-health.json",
+        "reports/truth-inventory/continuity-controller-state.json",
+        "config/automation-backbone/autonomy-constitution.json"
+      ]
+    },
+    {
+      "id": "verify_and_credit",
+      "required_now": true,
+      "label": "Verify And Credit",
+      "purpose": "Claim closure only from passing verification or explicit review evidence.",
+      "proof_surfaces": [
+        "reports/truth-inventory/result-evidence-ledger.json",
+        "config/automation-backbone/result-credit-contract.json"
+      ]
+    },
+    {
+      "id": "learn_from_failures",
+      "required_now": true,
+      "label": "Learn From Failures",
+      "purpose": "Convert repeated failure patterns into governed backlog or review work without churn.",
+      "proof_surfaces": [
+        "reports/truth-inventory/autonomy-failure-ledger.json",
+        "reports/truth-inventory/value-throughput-scorecard.json"
+      ]
+    },
+    {
+      "id": "govern_boundaries",
+      "required_now": true,
+      "label": "Govern Boundaries",
+      "purpose": "Keep Athanor core, devstack, tenant/product, operator-local, and external systems in separate authority lanes.",
+      "proof_surfaces": [
+        "reports/truth-inventory/controller-of-controllers.json",
+        "config/automation-backbone/project-packet-registry.json",
+        "docs/operations/ATHANOR-ECOSYSTEM-REGISTRY.md"
+      ]
+    },
+    {
+      "id": "expose_operator_surface",
+      "required_now": true,
+      "label": "Expose Operator Surface",
+      "purpose": "Expose current state, typed brakes, and approvals on desktop and phone-safe surfaces.",
+      "proof_surfaces": [
+        "reports/truth-inventory/steady-state-status.json",
+        "reports/truth-inventory/operator-mobile-summary.json",
+        "config/automation-backbone/operator-surface-registry.json"
+      ]
+    },
+    {
+      "id": "adopt_new_capabilities",
+      "required_now": false,
+      "gated_future": true,
+      "label": "Adopt New Capabilities",
+      "purpose": "Adopt devstack-proved capabilities only through packets, proof, and rollback-ready landings.",
+      "proof_surfaces": [
+        "config/automation-backbone/capability-adoption-registry.json",
+        "docs/promotion-packets"
+      ]
+    }
+  ]
+}

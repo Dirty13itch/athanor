@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-15.2",
-  "updated_at": "2026-04-15T18:40:00-05:00",
+  "version": "2026-04-20.1",
+  "updated_at": "2026-04-20T18:32:00-05:00",
   "status": "active",
   "source_of_truth": "config/automation-backbone/project-packet-registry.json",
   "routing_class_map": {
@@ -163,17 +163,17 @@
     },
     {
       "id": "ulrich-energy",
-      "name": "Ulrich Energy",
-      "status": "live",
-      "stage": "scaffold",
+      "name": "Ulrich Energy (retired lineage)",
+      "status": "retired",
+      "stage": "retired",
       "template": "field_pwa",
       "class": "tenant",
-      "visibility": "pilot",
+      "visibility": "private",
       "sensitivity": "private",
       "routing_class": "private_but_cloud_allowed",
-      "routing_reason": "Private field workflow product work may use cloud-safe implementation lanes when packet rules permit.",
-      "runtime_target": "vercel",
-      "deploy_target": "vercel",
+      "routing_reason": "Retired lineage surface retained only for runtime lineage and rollback until an explicit Workshop retirement or cutover packet lands.",
+      "runtime_target": "cluster",
+      "deploy_target": "cluster",
       "workspace_root": "C:\\Athanor\\projects\\ulrich-energy",
       "primary_route": "/projects",
       "owner_domain": "product_foundry",
@@ -187,12 +187,13 @@
         "knowledge-agent"
       ],
       "acceptance_bundle": [
-        "Field workflow packet",
-        "Offline-first PWA checklist"
+        "Runtime-lineage evidence",
+        "Explicit retirement or cutover packet",
+        "Rollback-safe Workshop runtime record"
       ],
-      "rollback_contract": "Retain scaffold packet and demote failed candidate.",
-      "maintenance_cadence": "monthly",
-      "execution_mode": "governed_in_repo_project",
+      "rollback_contract": "Do not treat this repo as delivery authority; preserve rollback-safe lineage until a separate runtime retirement or cutover packet lands.",
+      "maintenance_cadence": "retirement_only",
+      "execution_mode": "lineage_reference",
       "data_handling_profile_id": "business_confidential",
       "entity_boundary_class": "business_counterparty",
       "account_surface_class": "client_workflow_accounts",

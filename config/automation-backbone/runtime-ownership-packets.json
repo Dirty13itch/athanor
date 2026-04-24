@@ -211,6 +211,56 @@
       ]
     },
     {
+      "id": "workshop-ulrich-energy-retirement-packet",
+      "label": "WORKSHOP retired ulrich-energy runtime retirement packet",
+      "status": "executed",
+      "lane_id": "workshop-product-compose",
+      "host": "workshop",
+      "approval_packet_type": "runtime_host_reconfiguration",
+      "goal": "Retire the remaining Workshop ulrich-energy runtime lineage so the external Ulrich Energy Auditing Website is the only product authority and the in-repo scaffold stops lingering as a live surface.",
+      "path_mappings": [
+        {
+          "source_path": "projects/ulrich-energy",
+          "runtime_path": "/opt/athanor/ulrich-energy",
+          "restart_units": [
+            "athanor-ulrich-energy"
+          ]
+        }
+      ],
+      "backup_root": "/opt/athanor/backups/ulrich-energy/<timestamp>",
+      "preflight_commands": [
+        "ssh workshop \"test -d /opt/athanor/ulrich-energy && docker compose -f /opt/athanor/ulrich-energy/docker-compose.yml ps || true\"",
+        "ssh workshop \"docker inspect athanor-ulrich-energy > /opt/athanor/backups/ulrich-energy/<timestamp>/athanor-ulrich-energy.inspect.json\"",
+        "ssh workshop \"curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3003/ || true\"",
+        "python scripts/generate_truth_inventory_reports.py --report runtime_ownership --report runtime_ownership_packets"
+      ],
+      "exact_steps": [
+        "Create a timestamped backup root under /opt/athanor/backups/ulrich-energy/<timestamp> and preserve the current /opt/athanor/ulrich-energy bundle plus docker inspect evidence before any mutation.",
+        "Stop and remove only the athanor-ulrich-energy container; do not touch Workshop Open WebUI, ComfyUI, or EOQ surfaces.",
+        "Archive or remove the governed /opt/athanor/ulrich-energy runtime root so the lineage is no longer a live compose surface.",
+        "Refresh runtime-ownership and deployment-drift evidence immediately after the retirement so the lineage remains only as packet-backed rollback context."
+      ],
+      "verification_commands": [
+        "ssh workshop \"docker ps --format '{{.Names}}' | rg '^athanor-ulrich-energy$' && exit 1 || exit 0\"",
+        "ssh workshop \"test ! -d /opt/athanor/ulrich-energy\"",
+        "ssh workshop \"curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3003/ || true\"",
+        "python scripts/generate_truth_inventory_reports.py --report runtime_ownership --report runtime_ownership_packets --report drift",
+        "python scripts/validate_platform_contract.py"
+      ],
+      "rollback_steps": [
+        "Restore the backed up /opt/athanor/ulrich-energy bundle from /opt/athanor/backups/ulrich-energy/<timestamp> if the retired lineage must be revived.",
+        "Recreate athanor-ulrich-energy from the restored compose root.",
+        "Re-run the same truth refresh and validator sequence to confirm rollback."
+      ],
+      "evidence_paths": [
+        "config/automation-backbone/runtime-ownership-contract.json",
+        "config/automation-backbone/runtime-ownership-packets.json",
+        "docs/operations/WORKSHOP-ULRICH-ENERGY-COMPOSE-RECONCILIATION-PACKET.md",
+        "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
+      ]
+    },
+    {
       "id": "foundry-agents-compose-deploy-packet",
       "label": "FOUNDRY athanor-agents compose deploy packet",
       "status": "executed",
@@ -663,7 +713,7 @@
       "lane_id": "workshop-control-surface-compose",
       "host": "workshop",
       "approval_packet_type": "runtime_host_reconfiguration",
-      "goal": "Reconcile the live Workshop dashboard-shadow compose root with implementation authority now that the source contract explicitly includes the active ws-pty-bridge service and the correct worker lane URL.",
+      "goal": "Reconcile the live Workshop dashboard-shadow compose root with implementation authority now that the source contract explicitly includes the active ws-pty-bridge service, the shadow-dashboard truth-inventory mount, and the correct worker lane URL.",
       "path_mappings": [
         {
           "source_path": "projects/dashboard",
@@ -681,6 +731,13 @@
           ]
         },
         {
+          "source_path": "reports/truth-inventory",
+          "runtime_path": "/opt/athanor/reports/truth-inventory",
+          "restart_units": [
+            "athanor-dashboard"
+          ]
+        },
+        {
           "source_path": "reports/rendered/workshop-dashboard.rendered.yml",
           "runtime_path": "/opt/athanor/dashboard/docker-compose.yml",
           "restart_units": [
@@ -695,18 +752,21 @@
         "powershell -ExecutionPolicy Bypass -File .\\scripts\\Invoke-DeploymentDriftAudit.ps1",
         "ssh workshop \"cd /opt/athanor/dashboard && docker compose ps\"",
         "ssh workshop \"docker inspect athanor-ws-pty-bridge --format '{{.Name}}|{{.State.Status}}|{{.Config.Image}}'\"",
-        "ssh workshop \"test -f /opt/athanor/dashboard/docker-compose.yml && sed -n '1,220p' /opt/athanor/dashboard/docker-compose.yml\""
+        "ssh workshop \"test -f /opt/athanor/dashboard/docker-compose.yml && sed -n '1,220p' /opt/athanor/dashboard/docker-compose.yml\"",
+        "ssh workshop \"test -f /opt/athanor/reports/truth-inventory/operator-mobile-summary.json\""
       ],
       "exact_steps": [
         "Create a timestamped backup root under /opt/athanor/backups/dashboard-shadow/<timestamp> and back up the current /opt/athanor/dashboard compose bundle plus /opt/athanor/ws-pty-bridge source before replacement.",
         "Re-render the Workshop control-surface compose file through the governed deployment-drift audit or render_ansible_template.py so the replacement artifact matches implementation authority exactly.",
+        "Sync the governed truth inventory into /opt/athanor/reports/truth-inventory before recreating the shadow dashboard so the recovery surface reads the same operator truth as Athanor core.",
         "Replace the Workshop dashboard-shadow source bundle and ws-pty-bridge source bundle from implementation authority during the approved maintenance window.",
         "Replace /opt/athanor/dashboard/docker-compose.yml from the rendered canonical artifact and keep the dashboard container explicitly recovery-only in operator posture.",
         "Recreate the affected Workshop control-surface services and refresh deployment-drift evidence immediately."
       ],
       "verification_commands": [
         "ssh workshop \"cd /opt/athanor/dashboard && docker compose ps\"",
-        "ssh workshop \"curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/health && curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/\"",
+        "ssh workshop \"test -f /opt/athanor/reports/truth-inventory/operator-mobile-summary.json\"",
+        "ssh workshop \"curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/health && curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/ && curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/api/operator/mobile-summary\"",
         "powershell -ExecutionPolicy Bypass -File .\\scripts\\Invoke-DeploymentDriftAudit.ps1",
         "python scripts/generate_truth_inventory_reports.py --report repo_roots --report runtime_ownership --report runtime_ownership_packets",
         "python scripts/validate_platform_contract.py"
@@ -718,6 +778,7 @@
       ],
       "evidence_paths": [
         "reports/deployment-drift/summary.md",
+        "reports/truth-inventory/operator-mobile-summary.json",
         "reports/rendered/workshop-dashboard.rendered.yml",
         "reports/live/workshop-dashboard.live.yml",
         "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
@@ -932,6 +993,61 @@
         "docs/runbooks/rebuild-dev.md"
       ],
       "next_action": "Use the governed `ssh dev` alias as the ordinary DEV access path; reopen this packet only if collector evidence shows the alias failing again or a new blessed fallback is intentionally introduced."
+    },
+    {
+      "id": "dev-openclaw-gateway-sidecar-packet",
+      "label": "DEV OpenClaw sidecar gateway packet",
+      "status": "executed",
+      "lane_id": "dev-openclaw-gateway",
+      "host": "dev",
+      "approval_packet_type": "runtime_host_reconfiguration",
+      "goal": "Install and register OpenClaw as a loopback-only DEV sidecar gateway with approval-gated execution, isolated agent workspaces, DESK tunnel access, and generated status evidence.",
+      "target_units": [
+        "openclaw-gateway.service",
+        "/home/shaun/.openclaw",
+        "DESK OpenClaw dev profile",
+        "DESK SSH tunnel to DEV 127.0.0.1:18789"
+      ],
+      "backup_root": "/home/shaun/.openclaw/openclaw.json.bak plus systemd unit backups created by OpenClaw install",
+      "preflight_commands": [
+        "ssh dev \"node --version && npm --version\"",
+        "ssh dev \"systemctl --user is-system-running\"",
+        "ssh dev \"test ! -e /home/shaun/.openclaw || ls -ld /home/shaun/.openclaw\"",
+        "python scripts/validate_platform_contract.py"
+      ],
+      "exact_steps": [
+        "Use a user-local npm prefix on DEV at /home/shaun/.local/npm-global so OpenClaw does not require sudo or a root-owned global install.",
+        "Install openclaw@latest on DEV and configure gateway.mode=local, gateway.bind=loopback, gateway.auth.mode=token, and gateway.port=18789.",
+        "Generate a dedicated OpenClaw gateway token under /home/shaun/.openclaw/gateway.token and install openclaw-gateway.service as a user systemd service.",
+        "Create isolated OpenClaw agents for operator, coder, cluster, creative, research, and home-media with separate workspaces under /home/shaun/.openclaw/workspaces.",
+        "Apply the cautious exec policy so command execution is allowlist-based with ask-on-miss and deny fallback.",
+        "Configure DESK profile `openclaw --profile dev` to use ws://127.0.0.1:18789 through the SSH tunnel.",
+        "Keep Telegram delivery and inline approvals blocked until the BotFather token plus numeric allowlist/approver IDs are installed in OpenClaw channel state and verified."
+      ],
+      "verification_commands": [
+        "ssh dev \"export PATH=\\\"$HOME/.local/npm-global/bin:$PATH\\\"; openclaw gateway status\"",
+        "ssh dev \"curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18789/healthz\"",
+        "ssh dev \"export PATH=\\\"$HOME/.local/npm-global/bin:$PATH\\\"; openclaw models status --check --probe --json\"",
+        "ssh dev \"export PATH=\\\"$HOME/.local/npm-global/bin:$PATH\\\"; openclaw channels status --probe --json\"",
+        "ssh dev \"export PATH=\\\"$HOME/.local/npm-global/bin:$PATH\\\"; openclaw agents list --bindings --json\"",
+        "ssh dev \"export PATH=\\\"$HOME/.local/npm-global/bin:$PATH\\\"; openclaw exec-policy show\"",
+        "python scripts/write_openclaw_sidecar_status.py --write",
+        "python scripts/validate_platform_contract.py"
+      ],
+      "rollback_steps": [
+        "Run `ssh dev \"systemctl --user disable --now openclaw-gateway.service\"`.",
+        "Preserve /home/shaun/.openclaw for recovery, then restore the previous /home/shaun/.openclaw/openclaw.json.bak and openclaw-gateway.service.bak if needed.",
+        "Stop any DESK ssh.exe tunnel process listening on 127.0.0.1:18789 and remove the DESK `openclaw --profile dev` config only if the sidecar is being retired."
+      ],
+      "evidence_paths": [
+        "reports/truth-inventory/openclaw-sidecar-status.json",
+        "docs/operations/OPENCLAW-SIDECAR-RUNTIME-PACKET.md",
+        "scripts/configure_openclaw_telegram.py",
+        "config/automation-backbone/platform-topology.json",
+        "config/automation-backbone/operator-surface-registry.json",
+        "config/automation-backbone/runtime-ownership-contract.json"
+      ],
+      "next_action": "Model auth, DESK tunnel/profile, DESK node pairing, cautious exec policy, isolated agents, and the first report-only cron are verified; install the Telegram BotFather token plus numeric allowlist/approver IDs next, then prove one DM approval round trip before any FOUNDRY, WORKSHOP, or VAULT node widening."
     },
     {
       "id": "foundry-agents-runtime-alignment-packet",

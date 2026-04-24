@@ -3,17 +3,17 @@
 
 ## Posture
 
-- Atlas turnover status: `ready_for_low_touch_execution`
-- Atlas top priority lane: `letta-memory-plane`
-- Forge board top priority lane: `letta-memory-plane`
+- Atlas turnover status: `devstack_primary_build_and_shadow`
+- Atlas top priority lane: `migration-hygiene`
+- Forge board top priority lane: `migration-hygiene`
 - Adopted capabilities tracked in atlas: `7`
 - Concept capabilities tracked in atlas: `2`
-- Devstack dirty count: `14`
+- Devstack dirty count: `66`
 - Devstack contract validator: `pass`
 
 ## Membrane Findings
 
-- No membrane-specific findings materialized.
+- [HIGH] The devstack repo currently carries a large unpublished dirty tranche without an explicit checkpoint gate. Impact: Capability-forge truth, packet state, and proving surfaces are mixed with broad in-flight changes, which raises shadow-authority and auditability risk at the adoption membrane. Fix: Slice the devstack dirty tranche into explicit publication checkpoints or packet-backed work bundles and keep forge/atlas truth isolated from exploratory edits.
 
 ## Adopted vs Proved Boundary
 

@@ -1,0 +1,103 @@
+{
+  "version": "2026-04-20.1",
+  "updated_at": "2026-04-20T04:20:00+00:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/autonomous-value-canary-registry.json",
+  "guardrails": {
+    "require_runtime_parity_clean": true,
+    "require_validator_and_contract_healer_green": true,
+    "require_continuity_health_healthy": true
+  },
+  "stage_targets": {
+    "operator_value": {
+      "required_count": 3,
+      "required_distinct_families": 2
+    },
+    "product_value": {
+      "required_count": 2,
+      "required_visible_surface": "dashboard"
+    }
+  },
+  "canaries": [
+    {
+      "id": "operator-core-bounded-fix",
+      "title": "Produce an accepted bounded Athanor-core fix",
+      "stage": "operator_value",
+      "value_class": "operator_value",
+      "deliverable_kind": "code_patch",
+      "beneficiary_surface": "athanor_core",
+      "preferred_lane_family": "safe_surface_execution",
+      "approved_mutation_class": "auto_read_only",
+      "proof_command_or_eval_surface": "scripts/validate_platform_contract.py",
+      "proof_command": "python3 scripts/validate_platform_contract.py",
+      "acceptance_artifact": "reports/truth-inventory/autonomous-value-proof.json",
+      "rollback_path": "git revert the bounded patch or archive the packet if adoption is rejected",
+      "closure_rule": "Land one bounded repo-safe change with passing verification and explicit acceptance proof.",
+      "family_hint": "builder",
+      "ranking_bonus": 95,
+      "enabled": true
+    },
+    {
+      "id": "operator-runtime-packet",
+      "title": "Produce an accepted runtime packet outcome",
+      "stage": "operator_value",
+      "value_class": "operator_value",
+      "deliverable_kind": "runtime_packet",
+      "beneficiary_surface": "athanor_core",
+      "preferred_lane_family": "governed_runtime_packets",
+      "approved_mutation_class": "approval_required",
+      "proof_command_or_eval_surface": "reports/truth-inventory/runtime-packet-inbox.json",
+      "proof_command": "python3 scripts/write_runtime_packet_inbox.py --json",
+      "acceptance_artifact": "reports/truth-inventory/autonomous-value-proof.json",
+      "rollback_path": "reopen the runtime packet and restore the prior packet state",
+      "closure_rule": "Execute or route one bounded runtime packet with acceptance evidence and no mid-flight steering.",
+      "family_hint": "runtime_ops",
+      "ranking_bonus": 90,
+      "enabled": true
+    },
+    {
+      "id": "dashboard-visible-proof",
+      "title": "Produce a visible dashboard value proof",
+      "stage": "product_value",
+      "value_class": "product_value",
+      "deliverable_kind": "ui_change",
+      "deliverable_refs": [
+        "projects/dashboard/src/features/overview/command-center.tsx"
+      ],
+      "beneficiary_surface": "dashboard",
+      "preferred_lane_family": "safe_surface_execution",
+      "approved_mutation_class": "auto_read_only",
+      "proof_command_or_eval_surface": "projects/dashboard/src/features/overview/command-center.tsx",
+      "proof_command": "python3 scripts/run_dashboard_value_proof.py --surface dashboard_overview",
+      "acceptance_artifact": "reports/truth-inventory/autonomous-value-proof.json",
+      "rollback_path": "revert the bounded dashboard slice and restore the previous visible state",
+      "closure_rule": "Ship one operator-visible dashboard improvement with proof and acceptance evidence.",
+      "task_brief": "Add an autonomous value proof summary to the command-center overview. Surface operator/product counts, latest accepted proof, and remaining product proofs in a front-door card without crowding the current operational triage.",
+      "family_hint": "builder",
+      "ranking_bonus": 85,
+      "enabled": true
+    },
+    {
+      "id": "builder-front-door-visible-proof",
+      "title": "Produce a visible builder front-door value proof",
+      "stage": "product_value",
+      "value_class": "product_value",
+      "deliverable_kind": "ui_change",
+      "deliverable_refs": [
+        "projects/dashboard/src/features/operator/operator-console.tsx"
+      ],
+      "beneficiary_surface": "builder",
+      "preferred_lane_family": "safe_surface_execution",
+      "approved_mutation_class": "auto_read_only",
+      "proof_command_or_eval_surface": "projects/dashboard/src/features/operator/operator-console.tsx",
+      "proof_command": "python3 scripts/run_dashboard_value_proof.py --surface builder_operator_surface",
+      "acceptance_artifact": "reports/truth-inventory/autonomous-value-proof.json",
+      "rollback_path": "revert the bounded builder front-door slice and restore the prior visible state",
+      "closure_rule": "Ship one operator-visible builder/front-door improvement with proof and acceptance evidence.",
+      "task_brief": "Promote autonomous value proof into the builder front-door summary on the operator console. Surface stage badges, latest accepted proof, and remaining product proofs alongside the builder posture so the operator can see builder usefulness at a glance.",
+      "family_hint": "builder",
+      "ranking_bonus": 82,
+      "enabled": true
+    }
+  ]
+}

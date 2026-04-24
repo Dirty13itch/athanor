@@ -4,14 +4,18 @@
 
 Athanor hosts multiple independent projects, each with their own UI, data, and agent interactions. This doc describes how projects are isolated and managed.
 
+> Authority boundary: design reference only. Live project class, delivery authority, and runtime ownership belong to `config/automation-backbone/project-maturity-registry.json`, `docs/projects/PORTFOLIO-REGISTRY.md`, `config/automation-backbone/runtime-ownership-contract.json`, and current truth reports.
+
 ## Current Projects
 
 | Project | Stack | Port | Location | Status |
 |---------|-------|------|----------|--------|
 | Athanor Command Center | Next.js 16 + React 19 | `https://athanor.local/` (runtime `dev.athanor.local:3001`) | `projects/dashboard/` | Production |
 | Empire of Broken Queens (EoBQ) | Next.js + ComfyUI | WORKSHOP:3002 | `projects/eoq/` | Production |
-| Ulrich Energy | Next.js + LiteLLM | WORKSHOP:8088 | `projects/ulrich-energy/` | Scaffold |
+| Ulrich Energy (retired lineage) | Next.js + LiteLLM | WORKSHOP:3003 | `projects/ulrich-energy/` | Retired lineage only; not delivery authority |
 | Kindred | — | — | `projects/kindred/` | Concept only |
+
+`Ulrich Energy Auditing Website` now ships from the external authority root at `C:\Users\Shaun\Ulrich Energy Auditing Website`. The in-repo `projects/ulrich-energy/` app is retained only as retired runtime lineage until a separate Workshop retirement or cutover packet lands.
 
 ## Isolation Model
 
@@ -58,4 +62,4 @@ No shared deployment pipeline. Each project is an independent deploy unit.
 - **Project-scoped agent instances** — per-project agent configs with tailored system prompts
 - **Multi-tenant auth** — currently single-user; would need project-scoped access control
 
-Last updated: 2026-03-14
+Last updated: 2026-04-20

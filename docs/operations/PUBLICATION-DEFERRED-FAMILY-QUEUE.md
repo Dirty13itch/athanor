@@ -1,10 +1,10 @@
 # Publication Deferred-Family Queue
 
 - Active sequence: `2026-04-15-publication-triage-governance`
-- Dirty entries: `0`
-- Slice-matched entries: `0`
+- Dirty entries: `316`
+- Slice-matched entries: `228`
 - Deferred-family entries: `0`
-- Deferred families: `7`
+- Deferred families: `10`
 
 ## Ordered Queue
 
@@ -15,8 +15,11 @@
 | `3` | `audit-and-eval-artifacts` | `cash_now` | `0` | `audit_artifact` | `validation-and-publication, startup-docs-and-prune` |
 | `4` | `deployment-authority-follow-on` | `bounded_follow_on` | `0` | `deferred_out_of_sequence` | `deployment-authority-reconciliation, validation-and-publication` |
 | `5` | `runtime-service-follow-on` | `bounded_follow_on` | `0` | `runtime_follow_on` | `runtime-sync-and-governed-packets, validation-and-publication` |
-| `6` | `control-plane-follow-on` | `program_slice` | `0` | `deferred_out_of_sequence` | `authority-and-mainline, validation-and-publication` |
+| `6` | `control-plane-registry-and-routing` | `program_slice` | `0` | `deferred_out_of_sequence` | `authority-and-mainline, validation-and-publication` |
+| `7` | `agent-execution-kernel-follow-on` | `program_slice` | `0` | `deferred_out_of_sequence` | `authority-and-mainline, validation-and-publication` |
 | `7` | `tenant-product-lanes` | `tenant_lane` | `0` | `tenant_surface` | `tenant-architecture-and-classification, validation-and-publication` |
+| `8` | `agent-route-contract-follow-on` | `program_slice` | `0` | `deferred_out_of_sequence` | `authority-and-mainline, validation-and-publication` |
+| `9` | `control-plane-proof-and-ops-follow-on` | `program_slice` | `0` | `deferred_out_of_sequence` | `authority-and-mainline, validation-and-publication` |
 
 ## 1. Reference and Archive Prune (`reference-and-archive-prune`)
 
@@ -68,14 +71,24 @@
 - Success condition: Runtime service changes are packet-backed and no service lane remains an undocumented side path.
 - Owner workstreams: `runtime-sync-and-governed-packets`, `validation-and-publication`
 
-## 6. Control-Plane Follow-on (`control-plane-follow-on`)
+## 6. Control-Plane Registry and Routing (`control-plane-registry-and-routing`)
 
 - Execution class: `program_slice`
 - Disposition: `deferred_out_of_sequence`
 - Dirty matches: `0`
-- Scope: Implementation-authority control-plane, agent-runtime, and operations packet work that is real but intentionally outside the six ready checkpoint slices.
-- Next action: Break the broad control-plane tail into explicit follow-on publication slices before any wider checkpoint publish.
-- Success condition: Control-plane residue is no longer one deferred mass; it is decomposed into explicit publication-ready tranches.
+- Scope: Implementation-authority registry, routing, and dispatch policy surfaces that should publish as one bounded control-plane tranche instead of riding inside a generic residual bucket.
+- Next action: Isolate registry, routing, and dispatch policy residue into a bounded publication-ready tranche.
+- Success condition: Registry and routing policy residue is isolated, packet-backed where needed, and ready for bounded publication.
+- Owner workstreams: `authority-and-mainline`, `validation-and-publication`
+
+## 7. Agent Execution Kernel Follow-on (`agent-execution-kernel-follow-on`)
+
+- Execution class: `program_slice`
+- Disposition: `deferred_out_of_sequence`
+- Dirty matches: `0`
+- Scope: Agent execution-kernel, queue, scheduler, and proving surfaces that remain active implementation authority but should no longer hide inside one broad control-plane tail.
+- Next action: Bound the execution-kernel, queue, scheduler, and proving logic into an explicit follow-on publication tranche.
+- Success condition: Execution-kernel residue is isolated into a bounded follow-on tranche with explicit closure proof and replay boundaries.
 - Owner workstreams: `authority-and-mainline`, `validation-and-publication`
 
 ## 7. Tenant Product Lanes (`tenant-product-lanes`)
@@ -87,3 +100,23 @@
 - Next action: Push tenant roots through product-specific classification, packet lanes, and local-root governance instead of Athanor checkpoint publication.
 - Success condition: Tenant product changes route through their governed tenant lanes without leaking into Athanor checkpoint slices.
 - Owner workstreams: `tenant-architecture-and-classification`, `validation-and-publication`
+
+## 8. Agent Route Contract Follow-on (`agent-route-contract-follow-on`)
+
+- Execution class: `program_slice`
+- Disposition: `deferred_out_of_sequence`
+- Dirty matches: `0`
+- Scope: Agent HTTP route and route-contract surfaces that should move as one bounded contract tranche instead of blending with runtime kernel work.
+- Next action: Split route surfaces and route-contract verification into a dedicated publication-ready follow-on tranche.
+- Success condition: Route and route-contract residue is isolated, contract-tested, and ready for bounded publication.
+- Owner workstreams: `authority-and-mainline`, `validation-and-publication`
+
+## 9. Control-Plane Proof and Ops Follow-on (`control-plane-proof-and-ops-follow-on`)
+
+- Execution class: `program_slice`
+- Disposition: `deferred_out_of_sequence`
+- Dirty matches: `0`
+- Scope: Control-plane proof scripts, deployment helpers, and ops automation surfaces that still matter to live closure but should no longer appear as one undifferentiated residual family.
+- Next action: Isolate proof-generation, control-plane ops, and deployment helper residue into a bounded follow-on tranche.
+- Success condition: Proof and ops residue is isolated, verified, and publishable without hiding behind a generic control-plane bucket.
+- Owner workstreams: `authority-and-mainline`, `validation-and-publication`

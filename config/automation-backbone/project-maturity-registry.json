@@ -1,5 +1,5 @@
 {
-  "version": "2026-03-27.1",
+  "version": "2026-04-20.1",
   "status": "active",
   "source_of_truth": "config/automation-backbone/project-maturity-registry.json",
   "classes": [
@@ -184,13 +184,13 @@
     },
     {
       "id": "ulrich-energy",
-      "label": "Ulrich Energy",
-      "class": "incubation",
+      "label": "Ulrich Energy (retired lineage)",
+      "class": "archive",
       "owner": "shaun",
       "workspace": "projects/ulrich-energy",
-      "explicit_status": "incubation",
+      "archive_note": "Retired Athanor in-repo scaffold retained only as runtime lineage until an explicit Workshop runtime retirement or cutover packet lands.",
       "docs": ["docs/projects/PORTFOLIO-REGISTRY.md"],
-      "notes": "Incubating product concept."
+      "notes": "Retired lineage surface. The external Ulrich Energy Auditing Website is the only current delivery authority."
     },
     {
       "id": "reports",

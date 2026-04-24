@@ -1,7 +1,7 @@
 # Troubleshooting Guide
 
 Reference truth: `config/automation-backbone/platform-topology.json`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/PROVIDER-CATALOG-REPORT.md`, `docs/RECOVERY.md`, `python scripts/session_restart_brief.py --refresh`, `reports/truth-inventory/finish-scoreboard.json`, and `reports/truth-inventory/runtime-packet-inbox.json`
-Validated against registry version: `platform-topology.json@2026-04-11.2`, `provider-catalog.json@2026-04-16.3`, `credential-surface-registry.json@2026-04-14.1`
+Validated against registry version: `platform-topology.json@2026-04-11.2`, `provider-catalog.json@2026-04-24.0`, `credential-surface-registry.json@2026-04-14.1`
 Mutable facts policy: runtime ownership, service URLs, provider execution state, and secret posture must come from registries and generated reports first. This document is a quick-reference fallback for operator triage after those canonical surfaces are checked; it is not the live recovery or queue authority surface.
 
 ---

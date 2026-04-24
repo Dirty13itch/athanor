@@ -661,7 +661,7 @@
         ],
         "request_surface_hint": "cloud-safe bounded worker task",
         "required_commands": [
-          "openhands"
+          "uv"
         ]
       },
       "formal_eval_artifact_path": "C:/Athanor/reports/truth-inventory/openhands-bounded-worker-formal-eval.json",
@@ -682,7 +682,8 @@
       "linked_promotion_packet": "C:/athanor-devstack/docs/promotion-packets/openhands-bounded-worker-lane.md",
       "not_handoff_critical_until_formal_preflight_ready": true,
       "notes": [
-        "This run validates whether OpenHands adds unique bounded-worker value over native worker lanes."
+        "This run validates whether OpenHands adds unique bounded-worker value over native worker lanes.",
+        "The current blocker is verified command and env wiring, not a missing global install."
       ],
       "operator_test_flow_id": "openhands_bounded_worker",
       "preflight_only_allowed": true,
@@ -705,7 +706,19 @@
         "operational_quality_min": "reviewable",
         "policy_pass_required": true
       },
-      "wrapper_mode": "direct_cli"
+      "wrapper_mode": "direct_cli",
+      "preflight_command_probe": {
+        "command": "python3",
+        "args": [
+          "scripts/probe_openhands_bounded_worker.py"
+        ],
+        "cwd": "C:/Athanor",
+        "stdin_mode": "none",
+        "timeout_ms": 90000,
+        "success_substrings": [
+          "READY"
+        ]
+      }
     },
     {
       "baseline_id": "repo_native_context_stack",

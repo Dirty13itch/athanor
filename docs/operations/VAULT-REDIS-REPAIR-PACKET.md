@@ -3,50 +3,64 @@
 Generated from the cached truth snapshot plus the read-only VAULT Redis audit by `scripts/generate_truth_inventory_reports.py`.
 Do not edit manually.
 
-- Cached truth snapshot: `2026-04-17T20:13:43.334406+00:00`
-- Cached redis audit: `2026-04-17T20:13:42Z`
+- Cached truth snapshot: `2026-04-21T17:58:05.200567+00:00`
+- Cached redis audit: `2026-04-21T17:58:04Z`
 - Surface id: `vault-redis-persistence`
 - Host: `vault`
 - Runtime owner surface: `standalone_docker_container`
 - Container: `redis`
-- Container image: ``
-- Restart policy: ``
-- Data mount source: ``
+- Container image: `redis:7-alpine`
+- Restart policy: `unless-stopped`
+- Data mount source: `/mnt/appdatacache/appdata/redis`
 - Data mount destination: `/data`
 - Reconciliation runbook: [redis-reconciliation.md](/C:/Athanor/docs/runbooks/redis-reconciliation.md)
 - Companion snapshot: [latest.json](/C:/Athanor/reports/truth-inventory/latest.json)
 
 ## Current Runtime Truth
 
-- Persistence blocker code: `probe_failed`
-- Persistence blocker detail: <3>WSL (170164 - ) ERROR: UtilAcceptVsock:271: accept4 failed 110
+- Persistence blocker code: `healthy`
+- Persistence blocker detail: Redis persistence audit is healthy.
 - Latest temp-RDB no-space error: ``
 - Latest background-save error: ``
 - Latest cross-protocol warning: ``
 - Temp-RDB no-space error count in audit tail: `0`
 - Background-save error count in audit tail: `0`
 - Cross-protocol warning count in audit tail: `0`
-- Redis data directory size: `unknown`
-- Filesystem device: `unknown`
-- Filesystem size: `unknown`
-- Filesystem used: `unknown`
-- Filesystem available: `unknown`
-- Filesystem used percent: `unknown`
-- Filesystem mountpoint: `unknown`
-- Btrfs device allocated: `unknown`
-- Btrfs device unallocated: `unknown`
-- Btrfs free estimate: `unknown`
-- Next live action: Re-run the VAULT Redis audit and verify docker inspect plus filesystem probes on VAULT.
+- Redis data directory size: `66.87 MiB`
+- Filesystem device: `/dev/nvme0n1p1`
+- Filesystem size: `931.51 GiB`
+- Filesystem used: `485.38 GiB`
+- Filesystem available: `444.21 GiB`
+- Filesystem used percent: `53%`
+- Filesystem mountpoint: `/mnt/appdatacache`
+- Btrfs device allocated: `560.04GiB`
+- Btrfs device unallocated: `371.48GiB`
+- Btrfs free estimate: `444.21GiB	(min: 258.47GiB)`
+- Next live action: No Redis repair action required.
 
 ## Largest Consumers On The Backing Filesystem
 
 ### /mnt/appdatacache
 
-- No appdatacache consumer census is available in the current audit.
+- `/mnt/appdatacache/appdata`: `390.64 GiB`
+- `/mnt/appdatacache/backups`: `28.89 GiB`
+- `/mnt/appdatacache/data`: `20.21 GiB`
+- `/mnt/appdatacache/system`: `18.80 GiB`
+- `/mnt/appdatacache/dev`: `3.80 GiB`
+- `/mnt/appdatacache/databases`: `1.35 GiB`
+- `/mnt/appdatacache/n8n`: `404.00 MiB`
+- `/mnt/appdatacache/miniflux-postgres`: `180.91 MiB`
 
 ### /mnt/appdatacache/appdata
 
-- No appdata consumer census is available in the current audit.
+- `/mnt/appdatacache/appdata/stash`: `346.27 GiB`
+- `/mnt/appdatacache/appdata/plex`: `27.88 GiB`
+- `/mnt/appdatacache/appdata/prometheus`: `5.03 GiB`
+- `/mnt/appdatacache/appdata/tdarr`: `4.69 GiB`
+- `/mnt/appdatacache/appdata/immich`: `3.18 GiB`
+- `/mnt/appdatacache/appdata/Field Inspect`: `1.45 GiB`
+- `/mnt/appdatacache/appdata/sonarr`: `1014.91 MiB`
+- `/mnt/appdatacache/appdata/neo4j`: `521.80 MiB`
 
 ### /mnt/appdatacache/backups (top files)
 
@@ -54,7 +68,14 @@ Do not edit manually.
 
 ### /mnt/appdatacache/appdata/stash/generated
 
-- No stash/generated consumer census is available in the current audit.
+- `/mnt/appdatacache/appdata/stash/generated/screenshots`: `137.68 GiB`
+- `/mnt/appdatacache/appdata/stash/generated/thumbnails`: `82.96 GiB`
+- `/mnt/appdatacache/appdata/stash/generated/vtt`: `64.95 GiB`
+- `/mnt/appdatacache/appdata/stash/generated/markers`: `39.49 GiB`
+- `/mnt/appdatacache/appdata/stash/generated/blobs`: `12.00 GiB`
+- `/mnt/appdatacache/appdata/stash/generated/transcodes`: `0 B`
+- `/mnt/appdatacache/appdata/stash/generated/download_stage`: `0 B`
+- `/mnt/appdatacache/appdata/stash/generated/interactive_heatmaps`: `0 B`
 
 ### /mnt/appdatacache/models/comfyui
 

@@ -28,6 +28,50 @@
     "builder_surface_id": "builder_front_door",
     "builder_surface_url": "https://athanor.local/builder"
   },
+  "front_door_sequence": [
+    {
+      "surface": "reports/truth-inventory/steady-state-live.md",
+      "role": "volatile_front_door",
+      "attention_class": "primary"
+    },
+    {
+      "surface": "reports/truth-inventory/steady-state-status.json",
+      "role": "machine_proof",
+      "attention_class": "primary"
+    },
+    {
+      "surface": "reports/truth-inventory/operator-mobile-summary.json",
+      "role": "phone_safe_operator_summary",
+      "attention_class": "secondary"
+    },
+    {
+      "surface": "https://athanor.local/",
+      "role": "canonical_command_center",
+      "attention_class": "interactive"
+    }
+  ],
+  "attention_levels": [
+    {
+      "id": "no_action_needed",
+      "label": "No action needed",
+      "response_contract": "observe_only"
+    },
+    {
+      "id": "review_recommended",
+      "label": "Review recommended",
+      "response_contract": "inspect_and_decide"
+    },
+    {
+      "id": "approval_required",
+      "label": "Approval required",
+      "response_contract": "approve_or_deny"
+    },
+    {
+      "id": "system_attention_required",
+      "label": "System attention required",
+      "response_contract": "pause_or_repair"
+    }
+  ],
   "host_aliases": [
     {
       "id": "athanor_local",
@@ -87,6 +131,28 @@
         "Canonical portal.",
         "DEV runs the dashboard as a containerized service behind Caddy on athanor.local.",
         "DESK hostname resolution is verified through the scripted hosts-file rollout."
+      ]
+    },
+    {
+      "id": "openclaw_gateway",
+      "surface_group": "openclaw_gateway",
+      "service_id": "openclaw_gateway",
+      "label": "OpenClaw Gateway",
+      "surface_kind": "specialist_tool",
+      "node": "dev",
+      "canonical_url": "http://127.0.0.1:18789/",
+      "runtime_url": "http://127.0.0.1:18789/",
+      "auth_class": "operator",
+      "deployment_mode": "service_runtime",
+      "navigation_role": "hidden",
+      "operator_role": "sidecar_operator",
+      "status": "active_specialist",
+      "owner": "shaun",
+      "retirement_state": "keep",
+      "notes": [
+        "OpenClaw is a DEV-hosted sidecar operator surface, not the canonical Athanor front door.",
+        "DESK access is via SSH tunnel to 127.0.0.1:18789; the gateway stays loopback-only on DEV.",
+        "Runtime mutations remain governed by OpenClaw exec approvals plus Athanor runtime-ownership packets."
       ]
     },
     {
@@ -600,18 +666,23 @@
     {
       "id": "ulrich_energy",
       "surface_group": "ulrich_energy",
-      "label": "Ulrich Energy",
-      "surface_kind": "domain_app",
+      "label": "Ulrich Energy (retired lineage)",
+      "surface_kind": "retired",
       "node": "workshop",
       "canonical_url": "http://interface.athanor.local:3003/",
       "runtime_url": "http://192.168.1.225:3003/",
       "auth_class": "operator",
       "deployment_mode": "docker_container",
-      "navigation_role": "launchpad",
+      "navigation_role": "hidden",
       "operator_role": "domain_product",
-      "status": "active_specialist",
+      "status": "retired",
       "owner": "shaun",
-      "retirement_state": "keep"
+      "retirement_state": "retired",
+      "notes": [
+        "Retired Athanor in-repo product surface.",
+        "Do not treat Workshop :3003 as the delivery authority for the Ulrich Energy Auditing Website.",
+        "Preserve only as runtime lineage until a separate Workshop retirement or cutover packet lands."
+      ]
     },
     {
       "id": "ws_pty_bridge",

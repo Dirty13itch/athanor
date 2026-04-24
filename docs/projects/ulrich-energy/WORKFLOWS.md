@@ -2,7 +2,9 @@
 
 *RESNET-certified HERS Rating business. Athanor integration planned.*
 
-**Status:** Active business (S-Corp). Workflows designed, not yet implemented.
+**Status:** Retired lineage reference only. The active delivery authority is `C:\Users\Shaun\Ulrich Energy Auditing Website`; this document is preserved as historical Athanor scaffold context and not as the current product workflow authority.
+
+Last updated: 2026-04-20
 
 ---
 

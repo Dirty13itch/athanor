@@ -43,8 +43,8 @@ This appendix is exhaustive by subsystem. It exists to make every ecosystem doma
 - `C:/athanor-devstack/docs/operations/DEVSTACK-FORGE-BOARD.md`
 - `C:/athanor-devstack/reports/master-atlas/latest.json`
 - `C:/athanor-devstack/MASTER-PLAN.md`
-- Current state: Turnover is `ready_for_low_touch_execution`; current top lane and packet drafting flow are carried live by the forge board and atlas surfaces.
-- Blockers: Provider secret repair, LETTA_API_KEY, OpenHands substrate readiness
+- Current state: Turnover is `devstack_primary_build_and_shadow`; current top lane and packet drafting flow are carried live by the forge board and atlas surfaces.
+- Blockers: none
 - Failure mode: If build truth is stale or overruns its boundary, shadow authority leaks into Athanor and pilot work becomes ambiguous.
 - Next maturity move: Advance the next bounded promotion lane through proof, packet, and Athanor landing surfaces without leaking build truth into runtime truth.
 - Dependencies: athanor_core_adopted_system, operator_local_systems, external_providers_and_saas, human_approval_and_decision_gates
@@ -60,7 +60,7 @@ This appendix is exhaustive by subsystem. It exists to make every ecosystem doma
 - `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
 - `reports/truth-inventory/capacity-telemetry.json`
 - Current state: Topology tracks `5` nodes; atlas harvest posture is `open_harvest_window` and work-economy posture is `ready`.
-- Blockers: OpenHands substrate readiness on DESK
+- Blockers: none
 - Failure mode: Host drift or ambiguous runtime ownership can reopen deployment debt and invalidate operator truth.
 - Next maturity move: Keep runtime mutations packet-backed, preserve host-role clarity, and only widen pilot substrate work when a specific activation lane needs it.
 - Dependencies: external_providers_and_saas, human_approval_and_decision_gates
@@ -92,7 +92,7 @@ This appendix is exhaustive by subsystem. It exists to make every ecosystem doma
 - `reports/truth-inventory/planned-subscription-evidence.json`
 - `reports/truth-inventory/quota-truth.json`
 - Current state: Provider evidence is explicit with `170` usage captures and `2` planned-subscription captures; optional elasticity maintenance remains externalized rather than core-blocking.
-- Blockers: Provider secret repair
+- Blockers: none
 - Failure mode: If provider posture is implicit or stale, routing decisions and pilot readiness become misleading.
 - Next maturity move: Keep provider proof current, rotate or repair keys only when a live lane or pilot actually requires the expanded surface, and avoid treating optional elasticity as core blockage.
 - Dependencies: human_approval_and_decision_gates
@@ -139,7 +139,7 @@ This appendix is exhaustive by subsystem. It exists to make every ecosystem doma
 - `C:/athanor-devstack/docs/operations/DEVSTACK-FORGE-BOARD.md`
 - `docs/operations/STEADY-STATE-STATUS.md`
 - Current state: Approvals stay explicit and lane-specific; live attention posture and pending gates surface through the live operator feed, steady-state JSON, and forge deferred inputs.
-- Blockers: Provider secret repair, LETTA_API_KEY, OpenHands substrate readiness
+- Blockers: none
 - Failure mode: If approval gates are vague, the system either stalls invisibly or mutates live runtime without clear consent.
 - Next maturity move: Keep approvals explicit and lane-specific: only elevate them when a bounded runtime mutation, credential gate, or pilot activation is intentionally being executed.
 - Dependencies: athanor_core_adopted_system, devstack_forge, external_providers_and_saas, cluster_and_host_substrate
@@ -148,8 +148,6 @@ This appendix is exhaustive by subsystem. It exists to make every ecosystem doma
 
 | Lane | Landing Repo | Landing Workspace | Approval State | Blocking Gate | Next Action |
 | --- | --- | --- | --- | --- | --- |
-| `Letta Memory Plane` | `C:/Athanor` | `config/automation-backbone` | `operator_review_required_before_adoption` | `continuity-gain-unproven` | Wire LETTA_API_KEY, run the bounded continuity benchmark, and keep replayability and pruning explicit. |
-| `OpenHands Bounded Worker Lane` | `C:/Athanor` | `config/automation-backbone` | `operator_review_required_before_adoption` | `bounded-worker-value-unproven` | Expose the OpenHands command on DESK, clear the worker env wiring, and run the bounded-worker eval. |
 
 ## Tenant and Product Boundary
 

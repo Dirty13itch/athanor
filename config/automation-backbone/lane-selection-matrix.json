@@ -69,6 +69,7 @@
   ],
   "tie_breakers": [
     "prefer_expiring_quota_within_same_quality_tier",
+    "prefer_subscription_quota_before_metered_api_within_same_quality_tier",
     "prefer_free_local_compute_before_metered_api_within_same_quality_tier",
     "prefer_cheapest_metered_lane_within_same_quality_tier",
     "prefer_active_session_for_continuity_last"
@@ -145,16 +146,16 @@
     {
       "task_class": "cheap_bulk_transform",
       "sensitivity_class": "cloud_safe",
-      "preferred_lane": "deepseek_cloudsafe_bulk",
+      "preferred_lane": "sovereign_bulk",
       "secondary_lane": "glm_cloudsafe_bulk",
-      "overflow_lane": "responses_background_cloudsafe",
-      "local_fallback": "sovereign_bulk",
+      "overflow_lane": "deepseek_cloudsafe_bulk",
+      "local_fallback": "sovereign_supervisor",
       "default_execution_mode": "litellm_routed",
       "disallowed_lanes": [
         "codex_cloudsafe",
         "gemini_audit_cloudsafe"
       ],
-      "selection_reason": "Cheap bulk work should spend the cheapest eligible lane first and only escalate when quality or availability requires it."
+      "selection_reason": "Cheap bulk work should harvest owned local capacity first, then burn subscription-backed overflow, and only touch metered cloud when local and subscription lanes are unavailable or unfit."
     },
     {
       "task_class": "sovereign_private_coding",

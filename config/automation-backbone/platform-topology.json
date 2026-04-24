@@ -364,6 +364,17 @@
       "health_path": "/health"
     },
     {
+      "id": "openclaw_gateway",
+      "label": "OpenClaw Gateway",
+      "node": "dev",
+      "scheme": "http",
+      "port": 18789,
+      "url_env": "OPENCLAW_GATEWAY_URL",
+      "runtime_class": "control_plane",
+      "auth_class": "operator",
+      "health_path": "/healthz"
+    },
+    {
       "id": "memory",
       "label": "Memory Service",
       "node": "dev",

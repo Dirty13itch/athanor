@@ -8,14 +8,14 @@ Do not edit manually.
 ## Summary
 
 - Registry version: `2026-04-16.1`
-- Total tracked entries: `151`
+- Total tracked entries: `179`
 
 | Class | Count |
 | --- | ---: |
-| `canonical` | 55 |
-| `generated` | 29 |
-| `reference` | 21 |
-| `archive` | 46 |
+| `canonical` | 71 |
+| `generated` | 33 |
+| `reference` | 28 |
+| `archive` | 47 |
 
 ## Canonical
 
@@ -31,6 +31,12 @@ Do not edit manually.
 | `docs/SERVICES.md` | markdown | `shaun` |
 | `docs/SYSTEM-SPEC.md` | markdown | `shaun` |
 | `docs/TROUBLESHOOTING.md` | markdown | `shaun` |
+| `docs/operations/AGENT-EXECUTION-KERNEL-OPERATOR-QUEUE-STATE-PACKET.md` | markdown | `shaun` |
+| `docs/operations/AGENT-EXECUTION-KERNEL-SCHEDULER-AND-RESEARCH-LOOP-PACKET.md` | markdown | `shaun` |
+| `docs/operations/AGENT-EXECUTION-KERNEL-SELF-IMPROVEMENT-AND-PROVING-PACKET.md` | markdown | `shaun` |
+| `docs/operations/AGENT-EXECUTION-KERNEL-SUPPORT-AND-TESTS-PACKET.md` | markdown | `shaun` |
+| `docs/operations/AGENT-ROUTE-CONTRACT-AND-CLI-TESTS-PACKET.md` | markdown | `shaun` |
+| `docs/operations/AGENT-ROUTE-SURFACE-CODE-PACKET.md` | markdown | `shaun` |
 | `docs/operations/ATHANOR-CAPABILITY-PROMOTION.md` | markdown | `shaun` |
 | `docs/operations/ATHANOR-COLD-START.md` | markdown | `shaun` |
 | `docs/operations/ATHANOR-ECOSYSTEM-REGISTRY.md` | markdown | `shaun` |
@@ -44,15 +50,25 @@ Do not edit manually.
 | `docs/operations/ATHANOR-TENANT-QUEUE.md` | markdown | `shaun` |
 | `docs/operations/ATHANOR-TOTAL-COMPLETION-PROGRAM.md` | markdown | `shaun` |
 | `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md` | markdown | `shaun` |
+| `docs/operations/CONTROL-PLANE-DEPLOY-AND-RUNTIME-OPS-HELPERS-PACKET.md` | markdown | `shaun` |
+| `docs/operations/CONTROL-PLANE-PROOF-GENERATORS-AND-VALIDATORS-PACKET.md` | markdown | `shaun` |
+| `docs/operations/CONTROL-PLANE-RALPH-AND-TRUTH-WRITERS-PACKET.md` | markdown | `shaun` |
+| `docs/operations/CONTROL-PLANE-REGISTRY-LEDGERS-AND-MATRICES-PACKET.md` | markdown | `shaun` |
+| `docs/operations/CONTROL-PLANE-ROUTING-POLICY-AND-SUBSCRIPTION-LANE-PACKET.md` | markdown | `shaun` |
 | `docs/operations/FIELD-INSPECT-OPERATIONS-RUNTIME-REPLAY-PACKET.md` | markdown | `shaun` |
 | `docs/operations/GOVERNOR-AUTHORITY-MATRIX.md` | markdown | `shaun` |
 | `docs/operations/OPERATOR_RUNBOOKS.md` | markdown | `shaun` |
+| `docs/operations/REFERENCE-AND-ARCHIVE-PRUNE-PACKET.md` | markdown | `shaun` |
 | `docs/operations/REPO-ROOT-AUTHORITY-AUDIT.md` | markdown | `shaun` |
 | `docs/operations/REPO-STRUCTURE-RULES.md` | markdown | `shaun` |
 | `docs/operations/RFI-HERS-DUPLICATE-EVIDENCE-PACKET.md` | markdown | `shaun` |
 | `docs/operations/RFI-HERS-PRIMARY-ROOT-STABILIZATION-PACKET.md` | markdown | `shaun` |
 | `docs/operations/SESSION-RESTART-RUNBOOK.md` | markdown | `shaun` |
 | `docs/operations/WAN2GP-REMOTE-ONLY-WATCH-PACKET.md` | markdown | `shaun` |
+| `docs/operations/WORKSHOP-COMFYUI-COMPOSE-RECONCILIATION-PACKET.md` | markdown | `shaun` |
+| `docs/operations/WORKSHOP-EOQ-COMPOSE-RECONCILIATION-PACKET.md` | markdown | `shaun` |
+| `docs/operations/WORKSHOP-OPEN-WEBUI-COMPOSE-RECONCILIATION-PACKET.md` | markdown | `shaun` |
+| `docs/operations/WORKSHOP-ULRICH-ENERGY-COMPOSE-RECONCILIATION-PACKET.md` | markdown | `shaun` |
 | `docs/projects/PORTFOLIO-REGISTRY.md` | markdown | `shaun` |
 | `docs/runbooks/constrained-mode.md` | markdown | `shaun` |
 | `docs/runbooks/credential-rotation.md` | markdown | `shaun` |
@@ -88,6 +104,7 @@ Do not edit manually.
 | `docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md` | markdown | `shaun` |
 | `docs/operations/ATHANOR-OPERATOR-MODEL.md` | markdown | `shaun` |
 | `docs/operations/AUDIT-REMEDIATION-BACKLOG.md` | markdown | `shaun` |
+| `docs/operations/AUTONOMOUS-VALUE-STATUS.md` | markdown | `shaun` |
 | `docs/operations/AUTONOMY-ACTIVATION-REPORT.md` | markdown | `shaun` |
 | `docs/operations/DEVSTACK-MEMBRANE-AUDIT.md` | markdown | `shaun` |
 | `docs/operations/GOVERNOR-FACADE-CUTOVER-PACKET.md` | markdown | `shaun` |
@@ -95,6 +112,9 @@ Do not edit manually.
 | `docs/operations/MODEL-DEPLOYMENT-REPORT.md` | markdown | `shaun` |
 | `docs/operations/OPERATOR-SURFACE-REPORT.md` | markdown | `shaun` |
 | `docs/operations/PROJECT-MATURITY-REPORT.md` | markdown | `shaun` |
+| `docs/operations/PROJECT-OUTPUT-CANDIDATES.md` | markdown | `shaun` |
+| `docs/operations/PROJECT-OUTPUT-PROOF.md` | markdown | `shaun` |
+| `docs/operations/PROJECT-OUTPUT-READINESS.md` | markdown | `shaun` |
 | `docs/operations/PROVIDER-CATALOG-REPORT.md` | markdown | `shaun` |
 | `docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md` | markdown | `shaun` |
 | `docs/operations/PUBLICATION-PROVENANCE-REPORT.md` | markdown | `shaun` |
@@ -127,15 +147,22 @@ Do not edit manually.
 | `docs/atlas/README.md` | markdown | `shaun` |
 | `docs/atlas/RUNTIME_ATLAS.md` | markdown | `shaun` |
 | `docs/atlas/SOURCE_RECONCILIATION.md` | markdown | `shaun` |
+| `docs/design/project-platform-architecture.md` | markdown | `shaun` |
 | `docs/operations/ATHANOR-RECONCILIATION-PRESERVATION-BASELINE.md` | markdown | `shaun` |
 | `docs/projects/dashboard/README.md` | markdown | `shaun` |
 | `docs/projects/eoq/ARCHITECTURE.md` | markdown | `shaun` |
 | `docs/projects/kindred/CONCEPT.md` | markdown | `shaun` |
 | `docs/projects/ulrich-energy/REQUIREMENTS.md` | markdown | `shaun` |
 | `docs/projects/ulrich-energy/WORKFLOWS.md` | markdown | `shaun` |
+| `evals/pilot-agent-compare/README.md` | markdown | `shaun` |
 | `projects/dashboard/docs/DESIGN.md` | markdown | `shaun` |
 | `projects/dashboard/docs/SUBPAGE_COMPLETION_PLAN.md` | markdown | `shaun` |
 | `projects/dashboard/docs/UI_AUDIT.md` | markdown | `shaun` |
+| `tests/ui-audit/findings-ledger.json` | path | `shaun` |
+| `tests/ui-audit/last-run.json` | path | `shaun` |
+| `tests/ui-audit/live-dashboard-smoke-last.json` | path | `shaun` |
+| `tests/ui-audit/surface-registry.json` | path | `shaun` |
+| `tests/ui-audit/uncovered-surfaces.json` | path | `shaun` |
 
 ## Archive
 
@@ -160,6 +187,7 @@ Do not edit manually.
 | `docs/archive/hardware/rack-session.md` | markdown | `shaun` |
 | `docs/archive/planning-era/2026-03-18-athanor-coo-architecture-FULL.md` | markdown | `shaun` |
 | `docs/archive/planning-era/VISION.md` | markdown | `shaun` |
+| `docs/archive/plans/2026-04-19-athanor-blocker-closure-program.md` | markdown | `shaun` |
 | `docs/archive/projects/dashboard/SPEC.md` | markdown | `shaun` |
 | `docs/archive/research/2026-02-15-agent-framework.md` | markdown | `shaun` |
 | `docs/archive/research/2026-02-15-base-platform.md` | markdown | `shaun` |

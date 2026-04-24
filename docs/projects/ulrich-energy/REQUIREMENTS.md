@@ -2,9 +2,9 @@
 
 *RESNET-certified HERS Rating business. HVAC workflow automation powered by Athanor.*
 
-**Status:** Requirements defined. Ready for scaffold build.
+**Status:** Retired lineage reference only. The active delivery authority is `C:\Users\Shaun\Ulrich Energy Auditing Website`; this document is historical Athanor scaffold context and must not be treated as the live website plan.
 
-Last updated: 2026-03-07
+Last updated: 2026-04-20
 
 ---
 

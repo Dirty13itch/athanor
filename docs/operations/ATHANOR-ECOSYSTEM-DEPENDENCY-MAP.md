@@ -6,16 +6,14 @@ Do not edit manually.
 ## Current Sequence
 
 1. `Letta Memory Plane`
-2. `OpenHands Bounded Worker Lane`
+2. `Agent Governance Toolkit Policy Plane`
 3. `OpenHands Bounded Worker Lane`
 
 ## Typed Blockers
 
 ### Operator Input
 
-- `Provider secret repair`: Repair or rotate the optional-elasticity provider keys on VAULT without treating them as switchover debt.
-- `LETTA_API_KEY`: Wire LETTA_API_KEY only when the Letta pilot is intentionally reactivated.
-- `OpenHands substrate readiness`: Repair the DESK WSL-first substrate only when the bounded worker pilot is intentionally reactivated.
+- None.
 
 ### Runtime Input
 

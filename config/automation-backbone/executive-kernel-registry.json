@@ -1,0 +1,139 @@
+{
+  "version": "2026-04-17.1",
+  "updated_at": "2026-04-17T12:15:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/executive-kernel-registry.json",
+  "kernel_mode": "hybrid_sessions_plus_programs",
+  "front_door": {
+    "surface": "https://athanor.local/",
+    "builder_route": "/builder",
+    "operator_route": "/operator",
+    "runs_route": "/runs",
+    "terminal_route": "/terminal"
+  },
+  "first_live_family": "builder",
+  "execution_families": [
+    {
+      "id": "builder",
+      "status": "live",
+      "role": "interactive implementation and bounded coding execution"
+    },
+    {
+      "id": "maintenance",
+      "status": "planned",
+      "role": "recurring health, drift, and freshness work"
+    },
+    {
+      "id": "research_audit",
+      "status": "planned",
+      "role": "wide-context audits, repo review, and evidence gathering"
+    },
+    {
+      "id": "github_delegate",
+      "status": "planned",
+      "role": "GitHub-native delegated async issue and PR work"
+    },
+    {
+      "id": "runtime_ops",
+      "status": "planned",
+      "role": "runtime operations, repair, and governed control-plane actions"
+    },
+    {
+      "id": "sovereign_coding",
+      "status": "planned",
+      "role": "private and sovereign local coding work"
+    },
+    {
+      "id": "creative_sovereign",
+      "status": "planned",
+      "role": "sovereign creative batch and private media work"
+    }
+  ],
+  "dispatch_order": [
+    "privacy_gate",
+    "execution_family",
+    "reserve_class",
+    "adapter",
+    "verification_and_recovery"
+  ],
+  "dispatch_defaults": {
+    "implementation_lane": "codex_cloudsafe",
+    "audit_lane": "gemini_audit_cloudsafe",
+    "mechanic_lane": "aider_repo_mechanic",
+    "github_lane": "github_async_delegate",
+    "bulk_lane": "sovereign_bulk",
+    "recommendation": "Use owned local capacity first when quality is sufficient, protect interactive and creative reserves, burn subscription windows intentionally before reset, and leave metered APIs for overflow only."
+  },
+  "reserve_classes": [
+    {
+      "id": "interactive_local_reserve",
+      "default_provider": "athanor_local",
+      "posture": "protect_interactive_and_creative_capacity"
+    },
+    {
+      "id": "harvest_local_bulk",
+      "default_provider": "athanor_local",
+      "posture": "maximize_idle_owned_compute_after_reserves_are_protected"
+    },
+    {
+      "id": "premium_async",
+      "default_provider": "openai_codex",
+      "posture": "use_for_high_value_implementation_and_async_engineering"
+    },
+    {
+      "id": "premium_interactive",
+      "default_provider": "anthropic_claude_code",
+      "posture": "use_for_architecture_semantic_repair_and_final_review"
+    },
+    {
+      "id": "burn_early_audit",
+      "default_provider": "google_gemini",
+      "posture": "use_early_for_large_context_audit_before_premium_coding_spend"
+    },
+    {
+      "id": "targeted_alt_reasoning",
+      "default_provider": "moonshot_kimi",
+      "posture": "use_for_search_heavy_and_second_pass_reasoning"
+    },
+    {
+      "id": "bulk_overflow_subscription",
+      "default_provider": "zai_glm_coding",
+      "posture": "use_after_local_bulk_and_before_metered_api_overflow"
+    },
+    {
+      "id": "metered_bulk_fallback",
+      "default_provider": "deepseek_api",
+      "posture": "use_only_after_owned_and_subscription_capacity_is_exhausted_or_unfit"
+    }
+  ],
+  "local_capacity_policy": {
+    "primary_bulk_node": "foundry",
+    "secondary_batch_node": "workshop",
+    "ops_non_harvest_nodes": [
+      "dev",
+      "desk"
+    ],
+    "provisional_non_compute_nodes": [
+      "vault"
+    ],
+    "harvest_gate": {
+      "scheduler_queue_depth_max": 0,
+      "utilization_under_pct": 20,
+      "requires_no_active_interactive_lease": true,
+      "requires_protected_reserve_preserved": true
+    }
+  },
+  "economic_biases": [
+    "prefer_local_owned_compute_when_quality_is_sufficient",
+    "prefer_expiring_subscription_windows_before_metered_api",
+    "protect_premium_interactive_capacity_for_spikes",
+    "keep_metered_api_for_last_resort_cloud_overflow"
+  ],
+  "guardrails": [
+    "do_not_create_a_second_control_plane_beside_athanor",
+    "do_not_report_success_without_verification",
+    "keep_private_and_sovereign_work_local_only",
+    "do_not_let_bounded_shell_wrappers_become_the_brain",
+    "treat_builder_as_the_first_live_family_not_the_whole_system"
+  ]
+}

@@ -34,8 +34,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane root.`
-- Local dirty file count: `11`
-- Local dirty sample: ` M config/automation-backbone/capability-adoption-registry.json`, ` M config/automation-backbone/eval-run-ledger.json`, ` M evals/pilot-agent-compare/fixtures/README.md`, ` M projects/dashboard/src/generated/master-atlas.json`, ` M scripts/run_capability_pilot_evals.py`, ` M scripts/run_capability_pilot_formal_eval.py`, ` M scripts/run_capability_pilot_formal_preflight.py`, ` M scripts/tests/test_capability_pilot_eval_contracts.py`, `?? evals/pilot-agent-compare/agt-policy-bridge-degraded-fallback.yaml`, `?? evals/pilot-agent-compare/fixtures/agt-bridge-degraded-fallback-decision-trace.json`
+- Local dirty file count: `324`
+- Local dirty sample: ` M ansible/host_vars/vault.yml`, ` M ansible/roles/agents/templates/docker-compose.yml.j2`, ` M ansible/roles/dashboard/defaults/main.yml`, ` M ansible/roles/dashboard/tasks/main.yml`, ` M ansible/roles/dashboard/templates/docker-compose.yml.j2`, ` M audit/automation/contract-healer-latest.json`, ` M config/automation-backbone/autonomy-activation-registry.json`, ` M config/automation-backbone/capability-adoption-registry.json`, ` M config/automation-backbone/completion-program-registry.json`, ` M config/automation-backbone/docs-lifecycle-registry.json`
 
 ## dev-runtime-repo
 

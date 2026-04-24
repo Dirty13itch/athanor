@@ -409,10 +409,12 @@
       "landing_project": "config/automation-backbone",
       "notes": [
         "OpenHands is a bounded sidecar candidate, not a core stack replacement.",
-        "Any worker-lane adoption must remain subordinate to Athanor routing and sidecar retention policy."
+        "Any worker-lane adoption must remain subordinate to Athanor routing and sidecar retention policy.",
+        "The current local substrate is sufficient to import the OpenHands SDK and run the agent-server module help path through uv.",
+        "The remaining blocker is command and env wiring for a bounded one-shot worker invocation, not a missing global install."
       ],
       "owner": "shaun",
-      "pilot_blocker_class": "install_required",
+      "pilot_blocker_class": "env_wiring",
       "promotion_packet_id": "pending-openhands-bounded-worker-lane",
       "proof_artifacts": [
         "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
@@ -657,6 +659,6 @@
   "promotion_contract": "promotion_packet",
   "source_of_truth": "config/automation-backbone/capability-adoption-registry.json",
   "status": "active",
-  "updated_at": "2026-04-17T22:55:00Z",
-  "version": "2026-04-17.3"
+  "updated_at": "2026-04-17T23:10:00Z",
+  "version": "2026-04-17.4"
 }
