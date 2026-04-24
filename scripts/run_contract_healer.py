@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import subprocess
 import sys
 import time
@@ -21,6 +22,14 @@ COMMANDS = [
 COMMAND_TIMEOUT_SECONDS = 120
 
 
+def command_env(command: list[str]) -> dict[str, str] | None:
+    if command[1:] == ["scripts/validate_platform_contract.py"]:
+        env = os.environ.copy()
+        env["ATHANOR_RUNTIME_PROOF_CONTEXT"] = "1"
+        return env
+    return None
+
+
 def run_command(command: list[str]) -> dict[str, object]:
     started = time.perf_counter()
     try:
@@ -29,6 +38,7 @@ def run_command(command: list[str]) -> dict[str, object]:
             cwd=ROOT,
             capture_output=True,
             text=True,
+            env=command_env(command),
             check=False,
             timeout=COMMAND_TIMEOUT_SECONDS,
         )

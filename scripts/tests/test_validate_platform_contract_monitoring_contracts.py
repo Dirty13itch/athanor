@@ -196,3 +196,101 @@ def test_parse_ignored_generated_doc_args_collects_paths() -> None:
         "docs/operations/AUDIT-REMEDIATION-BACKLOG.md",
     }
     assert remaining == []
+
+
+def test_required_publication_slice_ids_include_execution_kernel_queue_state() -> None:
+    module = _load_module(
+        f"validate_platform_contract_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "validate_platform_contract.py",
+    )
+
+    assert module.REQUIRED_PUBLICATION_SLICE_IDS[-8:] == [
+        "agent-execution-kernel-scheduler-and-research-loop",
+        "agent-execution-kernel-self-improvement-and-proving",
+        "agent-execution-kernel-support-and-tests",
+        "agent-route-contract-surface-code",
+        "agent-route-contract-tests",
+        "control-plane-ralph-and-truth-writers",
+        "control-plane-proof-generators-and-validators",
+        "control-plane-deploy-and-runtime-ops-helpers",
+    ]
+
+
+def test_load_subscription_policy_supports_workspace_agents_layout(tmp_path: Path) -> None:
+    module = _load_module(
+        f"validate_platform_contract_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "validate_platform_contract.py",
+    )
+    fake_root = tmp_path / "workspace"
+    policy_path = fake_root / "agents" / "config" / "subscription-routing-policy.yaml"
+    policy_path.parent.mkdir(parents=True, exist_ok=True)
+    policy_path.write_text("providers:\n  athanor_local:\n    routing_posture: ordinary_auto\n", encoding="utf-8")
+
+    module.REPO_ROOT = fake_root
+
+    policy = module._load_subscription_policy()
+
+    assert "athanor_local" in policy["providers"]
+
+
+def test_runtime_proof_context_skips_off_host_external_paths(monkeypatch) -> None:
+    module = _load_module(
+        f"validate_platform_contract_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "validate_platform_contract.py",
+    )
+    monkeypatch.setattr(module, "RUNTIME_PROOF_CONTEXT", True)
+
+    assert module._skip_runtime_proof_external_path("C:/Users/Shaun/dev/portfolio/AI-Dev-Control-Plane") is True
+    assert module._skip_runtime_proof_external_path("C:/Athanor/config/automation-backbone/lane-selection-matrix.json") is False
+    assert module._skip_runtime_proof_external_path("C:/athanor-devstack/docs/CODEX-STATE.md") is False
+    assert module._skip_runtime_proof_external_path("C:/Codex System Config/STATUS.md") is True
+
+
+def test_runtime_proof_context_ignores_git_repo_generator_failures(monkeypatch) -> None:
+    module = _load_module(
+        f"validate_platform_contract_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "validate_platform_contract.py",
+    )
+    monkeypatch.setattr(module, "RUNTIME_PROOF_CONTEXT", True)
+
+    assert module._should_ignore_generated_doc_failure("fatal: not a git repository") is True
+    assert module._should_ignore_generated_doc_failure("GIT_DISCOVERY_ACROSS_FILESYSTEM not set") is True
+    assert module._should_ignore_generated_doc_failure("[Errno 30] Read-only file system: '/workspace/docs/operations/REPO-ROOTS-REPORT.md'") is True
+    assert module._should_ignore_generated_doc_failure("docs/operations/REPO-ROOTS-REPORT.md is stale") is False
+
+
+def test_runtime_proof_context_skips_generated_doc_freshness_validation(monkeypatch) -> None:
+    module = _load_module(
+        f"validate_platform_contract_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "validate_platform_contract.py",
+    )
+
+    monkeypatch.setattr(module, "RUNTIME_PROOF_CONTEXT", True)
+    assert module._skip_generated_doc_freshness_validation() is True
+
+    monkeypatch.setattr(module, "RUNTIME_PROOF_CONTEXT", False)
+    assert module._skip_generated_doc_freshness_validation() is False
+
+
+def test_external_blocked_github_portfolio_snapshot_satisfies_contract() -> None:
+    module = _load_module(
+        f"validate_platform_contract_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "validate_platform_contract.py",
+    )
+
+    registry_snapshot = {
+        "owner": "Dirty13itch",
+        "last_verified_at": "2026-04-14T21:49:00.612707+00:00",
+        "repo_count": 35,
+    }
+    blocked_snapshot = {
+        "owner": "Dirty13itch",
+        "sync_status": "external_blocked",
+        "blocker_type": "external_dependency",
+        "blocking_reason": "github_auth_required",
+        "last_attempted_at": "2026-04-19T02:47:24.122158+00:00",
+        "last_error": "HTTP 401: Bad credentials",
+        "last_successful_sync_at": "2026-04-14T21:49:00.612707+00:00",
+    }
+
+    assert module._github_portfolio_snapshot_contract_errors(blocked_snapshot, registry_snapshot) == []

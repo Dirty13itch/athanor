@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 """
 Athanor CLI Router — Intelligent task->subscription CLI matching.
 ================================================================
@@ -28,23 +29,61 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
-import httpx
-import numpy as np
-import yaml
+try:
+    import httpx
+except ModuleNotFoundError:  # pragma: no cover - exercised in contract tests
+    httpx = None  # type: ignore[assignment]
+
+try:
+    import numpy as np
+except ModuleNotFoundError:  # pragma: no cover - exercised in contract tests
+    class _NumpyProxy:
+        def __getattr__(self, name: str) -> Any:
+            raise RuntimeError("numpy is required to use embedding and similarity features")
+
+    np = _NumpyProxy()  # type: ignore[assignment]
+
+try:
+    import yaml
+except ModuleNotFoundError:  # pragma: no cover - exercised in contract tests
+    yaml = None  # type: ignore[assignment]
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 REPO_ROOT = SCRIPT_DIR.parent
 
-from fastapi import Request
-from fastapi.responses import JSONResponse
+try:
+    from fastapi import Request
+    from fastapi.responses import JSONResponse
+except ModuleNotFoundError:  # pragma: no cover - exercised in contract tests
+    class Request:  # type: ignore[no-redef]
+        headers: dict[str, str]
 
-from operator_contract import (
-    build_operator_action,
-    emit_operator_audit_event,
-    require_operator_action,
-)
+    class JSONResponse(dict):  # type: ignore[no-redef]
+        def __init__(self, *, status_code: int, content: dict[str, Any]) -> None:
+            super().__init__(status_code=status_code, content=content)
+
+try:
+    from operator_contract import (
+        build_operator_action,
+        emit_operator_audit_event,
+        require_operator_action,
+    )
+except ModuleNotFoundError:  # pragma: no cover - exercised in contract tests
+    def build_operator_action(payload: dict[str, Any], *, default_reason: str) -> dict[str, Any]:
+        action = dict(payload)
+        action.setdefault("reason", default_reason)
+        return action
+
+    async def emit_operator_audit_event(**_: Any) -> None:
+        return None
+
+    def require_operator_action(payload: dict[str, Any], *, action_class: str, default_reason: str) -> dict[str, Any]:
+        action = dict(payload)
+        action.setdefault("action_class", action_class)
+        action.setdefault("reason", default_reason)
+        return action
 
 try:
     from scripts._cluster_config import LITELLM_KEY, get_url
@@ -259,6 +298,9 @@ def _load_policy() -> dict[str, Any]:
     stat = POLICY_PATH.stat()
     if _POLICY_CACHE is not None and _POLICY_CACHE_MTIME_NS == stat.st_mtime_ns:
         return _POLICY_CACHE
+
+    if yaml is None:
+        raise RuntimeError("PyYAML is required to load the subscription routing policy")
 
     with POLICY_PATH.open("r", encoding="utf-8") as handle:
         policy = yaml.safe_load(handle) or {}
@@ -554,6 +596,8 @@ class CLIRouter:
         self._availability_ttl: float = 60.0  # seconds
 
     async def _client(self) -> httpx.AsyncClient:
+        if httpx is None:
+            raise RuntimeError("httpx is required to use the CLI router network client")
         if self._http is None or self._http.is_closed:
             self._http = httpx.AsyncClient(timeout=30.0)
         return self._http
@@ -1063,9 +1107,9 @@ def register_router_endpoints(app, router_instance: CLIRouter, *, service_name: 
         return await router_instance.route(task)
 
     @app.post("/dispatch")
-    async def dispatch_task(req: DispatchRequest, request: Request):
+    async def dispatch_task(request: Request):
         """Route a task to the best CLI and launch it."""
-        _body, action, denial = await _load_operator_body(
+        body, action, denial = await _load_operator_body(
             request,
             route="/dispatch",
             action_class="admin",
@@ -1073,14 +1117,21 @@ def register_router_endpoints(app, router_instance: CLIRouter, *, service_name: 
         )
         if denial:
             return denial
-        task = {"description": req.description}
-        if req.prompt:
-            task["prompt"] = req.prompt
-        if req.working_dir:
-            task["working_dir"] = req.working_dir
+        body = body or {}
+        description = str(body.get("description") or "").strip()
+        if not description:
+            raise _HTTPException(status_code=400, detail="description is required")
+        dry_run = bool(body.get("dry_run", False))
+        task = {"description": description}
+        prompt = str(body.get("prompt") or "").strip()
+        working_dir = str(body.get("working_dir") or "").strip()
+        if prompt:
+            task["prompt"] = prompt
+        if working_dir:
+            task["working_dir"] = working_dir
         result = await router_instance.dispatch(
             task,
-            dry_run=req.dry_run,
+            dry_run=dry_run,
             operator_action=action.to_dict(),
         )
         dispatch_payload = result.get("dispatch")
@@ -1097,7 +1148,7 @@ def register_router_endpoints(app, router_instance: CLIRouter, *, service_name: 
                 metadata={
                     "cli": str(result["routing"]["cli"]),
                     "task_type": str(result["routing"]["task_type"]),
-                    "dry_run": req.dry_run,
+                    "dry_run": dry_run,
                 },
             )
             return JSONResponse(status_code=500, content=result)
@@ -1113,22 +1164,29 @@ def register_router_endpoints(app, router_instance: CLIRouter, *, service_name: 
             metadata={
                 "cli": str(result["routing"]["cli"]),
                 "task_type": str(result["routing"]["task_type"]),
-                "dry_run": req.dry_run,
+                "dry_run": dry_run,
             },
         )
         return result
 
     @app.post("/record-result")
-    async def record_result(req: RecordRequest, request: Request):
+    async def record_result(request: Request):
         """Record task outcome for the learning loop."""
-        _body, action, denial = await _load_operator_body(
+        body, action, denial = await _load_operator_body(
             request,
             route="/record-result",
             action_class="operator",
-            default_reason=f"Recorded CLI routing outcome for {req.cli}",
+            default_reason="Recorded CLI routing outcome",
         )
         if denial:
             return denial
+        body = body or {}
+        req = RecordRequest(
+            cli=str(body.get("cli") or "").strip(),
+            task_type=str(body.get("task_type") or "").strip(),
+            success=bool(body.get("success", False)),
+            duration=float(body.get("duration") or 0),
+        )
         known_clis = set(_known_cli_aliases()) | set(router_instance._cli_to_subscription)
         known_subscriptions = set(router_instance._cli_to_subscription.values())
         if req.cli not in known_clis and req.cli not in known_subscriptions:

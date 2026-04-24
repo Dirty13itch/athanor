@@ -656,3 +656,76 @@ def test_build_restart_snapshot_prefers_live_suppressed_queue_count_over_continu
 
     assert snapshot["suppressed_task_count"] == 7
     assert len(snapshot["suppressed_task_ids"]) == 8
+
+
+def test_build_restart_snapshot_prefers_fresher_finish_scoreboard_from_ralph(tmp_path: Path) -> None:
+    module = _load_module(
+        f"session_restart_brief_contracts_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "session_restart_brief.py",
+    )
+
+    ralph_path = tmp_path / "ralph.json"
+    dispatch_path = tmp_path / "dispatch.json"
+    capacity_path = tmp_path / "capacity.json"
+    atlas_path = tmp_path / "atlas.json"
+    next_rotation_preflight_path = tmp_path / "next-rotation-preflight.json"
+    finish_scoreboard_path = tmp_path / "finish-scoreboard.json"
+    runtime_packet_inbox_path = tmp_path / "runtime-packet-inbox.json"
+    steady_state_status_path = tmp_path / "steady-state-status.json"
+    continuity_path = tmp_path / "continuity.json"
+    publication_queue_path = tmp_path / "publication.json"
+
+    ralph_path.write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-04-19T03:18:21+00:00",
+                "finish_scoreboard": {
+                    "generated_at": "2026-04-19T03:18:24+00:00",
+                    "closure_state": "closure_in_progress",
+                    "cash_now_remaining_count": 0,
+                    "bounded_follow_on_remaining_count": 0,
+                    "program_slice_remaining_count": 1,
+                    "next_deferred_family_id": "control-plane-registry-and-routing",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    dispatch_path.write_text(json.dumps({}), encoding="utf-8")
+    capacity_path.write_text(json.dumps({}), encoding="utf-8")
+    atlas_path.write_text(json.dumps({}), encoding="utf-8")
+    next_rotation_preflight_path.write_text(json.dumps({}), encoding="utf-8")
+    finish_scoreboard_path.write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-04-19T02:32:20+00:00",
+                "closure_state": "closure_in_progress",
+                "cash_now_remaining_count": 1,
+                "bounded_follow_on_remaining_count": 0,
+                "program_slice_remaining_count": 1,
+                "next_deferred_family_id": "audit-and-eval-artifacts",
+            }
+        ),
+        encoding="utf-8",
+    )
+    runtime_packet_inbox_path.write_text(json.dumps({"packet_count": 0, "packets": []}), encoding="utf-8")
+    steady_state_status_path.write_text(json.dumps({}), encoding="utf-8")
+    continuity_path.write_text(json.dumps({}), encoding="utf-8")
+    publication_queue_path.write_text(json.dumps({}), encoding="utf-8")
+
+    module.RALPH_LATEST_PATH = ralph_path
+    module.DISPATCH_STATE_PATH = dispatch_path
+    module.CAPACITY_TELEMETRY_PATH = capacity_path
+    module.ATLAS_LATEST_PATH = atlas_path
+    module.NEXT_ROTATION_PREFLIGHT_PATH = next_rotation_preflight_path
+    module.FINISH_SCOREBOARD_PATH = finish_scoreboard_path
+    module.RUNTIME_PACKET_INBOX_PATH = runtime_packet_inbox_path
+    module.STEADY_STATE_STATUS_PATH = steady_state_status_path
+    module.RALPH_CONTINUITY_STATE_PATH = continuity_path
+    module.PUBLICATION_DEFERRED_QUEUE_PATH = publication_queue_path
+    module._run_git = lambda *_args: []
+
+    snapshot = module.build_restart_snapshot()
+
+    assert snapshot["finish_scoreboard"]["cash_now_remaining_count"] == 0
+    assert snapshot["finish_scoreboard"]["next_deferred_family_id"] == "control-plane-registry-and-routing"

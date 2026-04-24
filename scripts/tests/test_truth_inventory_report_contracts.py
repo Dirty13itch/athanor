@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import sys
 import uuid
 from pathlib import Path
@@ -130,6 +131,20 @@ def test_operator_surface_artifact_check_still_flags_real_content_drift() -> Non
     assert module._artifact_is_stale("operator_surfaces", existing=existing, rendered=rendered) is True
 
 
+def test_generated_output_path_uses_runtime_artifact_root_in_runtime_proof_context(monkeypatch) -> None:
+    monkeypatch.setenv("ATHANOR_RUNTIME_PROOF_CONTEXT", "1")
+    monkeypatch.setenv("ATHANOR_RUNTIME_ARTIFACT_ROOT", "/output")
+
+    module = _load_module(
+        f"truth_inventory_report_contracts_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "generate_truth_inventory_reports.py",
+    )
+
+    resolved = module._generated_output_path(module.REPO_ROOT / "docs" / "operations" / "REPO-ROOTS-REPORT.md")
+
+    assert resolved == Path("/output/docs/operations/REPO-ROOTS-REPORT.md")
+
+
 def test_report_check_ignores_runtime_container_uptime_only_drift() -> None:
     module = _load_module(
         f"truth_inventory_report_contracts_{uuid.uuid4().hex}",
@@ -163,6 +178,11 @@ def test_generated_local_git_ignore_paths_include_publication_loop_outputs() -> 
     assert "reports/truth-inventory/publication-deferred-family-queue.json" in module.GENERATED_LOCAL_GIT_IGNORE_PATHS
     assert "docs/operations/STEADY-STATE-STATUS.md" in module.GENERATED_LOCAL_GIT_IGNORE_PATHS
     assert "reports/truth-inventory/steady-state-status.json" in module.GENERATED_LOCAL_GIT_IGNORE_PATHS
+    assert "docs/operations/PROJECT-OUTPUT-READINESS.md" in module.GENERATED_LOCAL_GIT_IGNORE_PATHS
+    assert "reports/truth-inventory/project-output-readiness.json" in module.GENERATED_LOCAL_GIT_IGNORE_PATHS
+    assert "docs/operations/PROJECT-OUTPUT-PROOF.md" in module.GENERATED_LOCAL_GIT_IGNORE_PATHS
+    assert "reports/truth-inventory/project-output-proof.json" in module.GENERATED_LOCAL_GIT_IGNORE_PATHS
+    assert "reports/truth-inventory/command-center-final-form-status.json" in module.GENERATED_LOCAL_GIT_IGNORE_PATHS
     assert "docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md" in module.GENERATED_LOCAL_GIT_IGNORE_PATHS
     assert "docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md" in module.GENERATED_LOCAL_GIT_IGNORE_PATHS
     assert "docs/architecture/ATHANOR-ECOSYSTEM-SYSTEM-BIBLE.md" in module.GENERATED_LOCAL_GIT_IGNORE_PATHS

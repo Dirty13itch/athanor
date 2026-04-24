@@ -27,6 +27,10 @@ REMOTE_STEP_TIMEOUT="10m"
 REMOTE_BUILD_TIMEOUT="30m"
 REMOTE_LOG_TIMEOUT="2m"
 LOCAL_SYNC_ARCHIVE="$(mktemp "${TMPDIR:-/tmp}/athanor-agents-sync.XXXXXX.tar")"
+DEVSTACK_PROOF_ROOT_RELATIVE="$(python3 "${REPO_DIR}/scripts/proof_workspace_contract.py" devstack-root)"
+
+mapfile -t PROOF_WORKSPACE_SYNC_PATHS < <(python3 "${REPO_DIR}/scripts/proof_workspace_contract.py" repo-sync-paths)
+mapfile -t DEVSTACK_PROOF_SYNC_PATHS < <(python3 "${REPO_DIR}/scripts/proof_workspace_contract.py" devstack-sync-paths)
 
 cleanup() {
     rm -f "${LOCAL_SYNC_ARCHIVE}"
@@ -90,6 +94,52 @@ else
             -cf - \
             truth-inventory \
             | ssh "${SSH_OPTS[@]}" "${FOUNDRY}" "timeout --preserve-status --kill-after=30s ${REMOTE_STEP_TIMEOUT} bash -lc \"rm -rf ~/truth-inventory.sync && mkdir -p ~/truth-inventory.sync && cd ~ && tar -xf - && sudo rm -rf '${REMOTE_WORKSPACE_ROOT}/reports/truth-inventory' && sudo cp -a ~/truth-inventory '${REMOTE_WORKSPACE_ROOT}/reports/truth-inventory' && rm -rf ~/truth-inventory\""
+    fi
+fi
+
+echo "[2c/4] Syncing governed proof scripts..."
+tar \
+    -C "${REPO_DIR}" \
+    -cf - \
+    scripts \
+    | ssh "${SSH_OPTS[@]}" "${FOUNDRY}" "timeout --preserve-status --kill-after=30s ${REMOTE_STEP_TIMEOUT} bash -lc \"cd '${REMOTE_WORKSPACE_ROOT}' && tar -xf -\""
+
+sync_workspace_item() {
+    local source_root="$1"
+    local relative_path="$2"
+    local remote_root="$3"
+    local remote_path="${remote_root}/${relative_path}"
+    local remote_parent
+    remote_parent="$(dirname "${remote_path}")"
+
+    tar \
+        --exclude='__pycache__' \
+        --exclude='*.pyc' \
+        --exclude='.venv' \
+        --exclude='node_modules' \
+        --exclude='.next' \
+        --exclude='.next-playwright-*' \
+        --exclude='dist' \
+        --exclude='build' \
+        -C "${source_root}" \
+        -cf - "${relative_path}" \
+        | ssh "${SSH_OPTS[@]}" "${FOUNDRY}" "timeout --preserve-status --kill-after=30s ${REMOTE_STEP_TIMEOUT} bash -lc 'set -euo pipefail; tmpdir=\$(mktemp -d ~/athanor-proof-sync.XXXXXX); cd \"\$tmpdir\"; tar -xf -; sudo rm -rf \"${remote_path}\"; sudo mkdir -p \"${remote_parent}\"; sudo cp -a \"\$tmpdir/${relative_path}\" \"${remote_path}\"; rm -rf \"\$tmpdir\"'"
+}
+
+echo "[2d/4] Syncing proof workspace surface..."
+if [[ "${PROJECT_ONLY}" == "1" ]]; then
+    echo "[2d/4] Skipped proof workspace sync (--project-only)"
+else
+    for relative_path in "${PROOF_WORKSPACE_SYNC_PATHS[@]}"; do
+        sync_workspace_item "${REPO_DIR}" "${relative_path}" "${REMOTE_WORKSPACE_ROOT}"
+    done
+
+    if [[ -d "/mnt/c/athanor-devstack" ]]; then
+        for relative_path in "${DEVSTACK_PROOF_SYNC_PATHS[@]}"; do
+            sync_workspace_item "/mnt/c/athanor-devstack" "${relative_path}" "${REMOTE_WORKSPACE_ROOT}/${DEVSTACK_PROOF_ROOT_RELATIVE}"
+        done
+    else
+        echo "[2d/4] WARNING: /mnt/c/athanor-devstack missing; devstack proof mirror not updated"
     fi
 fi
 

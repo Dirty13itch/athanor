@@ -10,16 +10,44 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_DIR = REPO_ROOT / "config" / "automation-backbone"
 WINDOWS_ABS_PATH_RE = re.compile(r"^(?P<drive>[A-Za-z]):[\\/](?P<rest>.*)$")
+EXTERNAL_ROOT_ENV_OVERRIDES = {
+    "c:/athanor": "ATHANOR_IMPLEMENTATION_AUTHORITY",
+    "c:/athanor-devstack": "ATHANOR_DEVSTACK_ROOT",
+    "c:/codex system config": "ATHANOR_CODEX_ROOT",
+}
+
+
+def _resolve_external_override(text: str) -> Path | None:
+    normalized = text.replace("\\", "/")
+    lowered = normalized.lower().rstrip("/")
+    for external_root, env_var in EXTERNAL_ROOT_ENV_OVERRIDES.items():
+        override_root = os.environ.get(env_var, "").strip()
+        if not override_root:
+            continue
+        if lowered == external_root or lowered.startswith(external_root + "/"):
+            suffix = normalized[len(external_root) :].lstrip("/\\")
+            resolved_root = Path(override_root)
+            return resolved_root / suffix if suffix else resolved_root
+    return None
 
 
 def resolve_external_path(raw: str | Path | None, *, base: Path | None = None) -> Path:
     text = str(raw or "").strip()
     if not text:
         return base or REPO_ROOT
+    normalized = text.replace("\\", "/")
+    lowered = normalized.lower().rstrip("/")
+    overridden = _resolve_external_override(text)
+    if overridden is not None:
+        return overridden
     match = WINDOWS_ABS_PATH_RE.match(text)
     if match:
         rest = match.group("rest").replace("\\", "/").lstrip("/")
-        if os.name == "nt":
+        canonical_external_root = any(
+            lowered == external_root or lowered.startswith(external_root + "/")
+            for external_root in EXTERNAL_ROOT_ENV_OVERRIDES
+        )
+        if os.name == "nt" and not canonical_external_root:
             return Path(f"{match.group('drive').upper()}:/{rest}")
         return Path("/mnt") / match.group("drive").lower() / rest
     path = Path(text)

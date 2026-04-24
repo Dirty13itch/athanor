@@ -11,6 +11,10 @@ from session_restart_brief import build_restart_snapshot
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 RALPH_LATEST_PATH = REPO_ROOT / "reports" / "ralph-loop" / "latest.json"
+VALUE_THROUGHPUT_SCORECARD_PATH = REPO_ROOT / "reports" / "truth-inventory" / "value-throughput-scorecard.json"
+BLOCKER_MAP_PATH = REPO_ROOT / "reports" / "truth-inventory" / "blocker-map.json"
+BLOCKER_EXECUTION_PLAN_PATH = REPO_ROOT / "reports" / "truth-inventory" / "blocker-execution-plan.json"
+CONTINUITY_CONTROLLER_STATE_PATH = REPO_ROOT / "reports" / "truth-inventory" / "continuity-controller-state.json"
 STEADY_STATE_STATUS_JSON_PATH = REPO_ROOT / "reports" / "truth-inventory" / "steady-state-status.json"
 STEADY_STATE_LIVE_MD_PATH = REPO_ROOT / "reports" / "truth-inventory" / "steady-state-live.md"
 STEADY_STATE_STATUS_DOC_PATH = REPO_ROOT / "docs" / "operations" / "STEADY-STATE-STATUS.md"
@@ -35,6 +39,51 @@ def _load_optional_json(path: Path) -> dict[str, Any]:
     except (OSError, json.JSONDecodeError):
         return {}
     return payload if isinstance(payload, dict) else {}
+
+
+def _pick_int(*values: Any, default: int = 0) -> int:
+    for value in values:
+        if isinstance(value, bool):
+            continue
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float) and value.is_integer():
+            return int(value)
+        if isinstance(value, str) and value.strip():
+            try:
+                return int(value.strip())
+            except ValueError:
+                continue
+    return default
+
+
+def _runtime_packet_list(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    packets = payload.get("packets")
+    if not isinstance(packets, list):
+        return []
+    return [dict(item) for item in packets if isinstance(item, dict)]
+
+
+def _runtime_packet_target(runtime_packets: dict[str, Any]) -> dict[str, Any]:
+    packets = _runtime_packet_list(runtime_packets)
+    if not packets:
+        return {}
+    packet = packets[0]
+    return {
+        "kind": "runtime_packet",
+        "family_id": "runtime-packet-inbox",
+        "family_title": "Runtime Packet Inbox",
+        "subtranche_id": _pick_string(packet.get("id")),
+        "subtranche_title": _pick_string(packet.get("label"), packet.get("id")),
+        "execution_class": "approval_gated_runtime_packet",
+        "approval_gated": True,
+        "external_blocked": False,
+        "host": _pick_string(packet.get("host")),
+        "approval_type": _pick_string(packet.get("approval_type")),
+        "readiness_state": _pick_string(packet.get("readiness_state")) or "unknown",
+        "detail": _pick_string(packet.get("goal")),
+        "next_operator_action": _pick_string(packet.get("next_operator_action")),
+    }
 
 
 def _pick_queue(payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -81,13 +130,29 @@ def _parse_event_time(value: Any) -> str | None:
     return None
 
 
-def _attention_level(reopen_required: bool, closure_state: str, runtime_packet_count: int, stop_state: str) -> tuple[str, str]:
+def _attention_level(
+    reopen_required: bool,
+    closure_state: str,
+    runtime_packet_count: int,
+    stop_state: str,
+    dispatch_status: str,
+    continuity_status: str,
+    continuity_skip_reason: str | None,
+) -> tuple[str, str]:
     if stop_state and stop_state != "none":
         return ("system_attention_required", f"Ralph surfaced stop_state={stop_state}.")
+    if dispatch_status in {"failed", "stale_dispatched_task", "spin_detected"}:
+        return ("system_attention_required", f"Governed dispatch is currently `{dispatch_status}`.")
     if runtime_packet_count > 0:
         return ("approval_required", f"{runtime_packet_count} runtime packet(s) require approval or operator execution.")
     if reopen_required or closure_state not in {"repo_safe_complete", "typed_brakes_only"}:
         return ("review_recommended", "Closure debt or reopen conditions are active.")
+    if continuity_status == "skipped":
+        if continuity_skip_reason == "backoff_active":
+            return ("no_action_needed", "Core closure is complete and the live lane is in bounded backoff.")
+        return ("no_action_needed", "Core closure is complete and the live lane is paused.")
+    if continuity_status == "idle":
+        return ("no_action_needed", "Core closure is complete and the live lane is idle.")
     return ("no_action_needed", "Core closure is complete and the live lane is running.")
 
 
@@ -128,14 +193,42 @@ def build_payload() -> dict[str, Any]:
     finish = dict(snapshot.get("finish_scoreboard") or {})
     runtime = dict(snapshot.get("runtime_packet_inbox") or {})
     ralph = _load_optional_json(RALPH_LATEST_PATH)
+    value_throughput = _load_optional_json(VALUE_THROUGHPUT_SCORECARD_PATH)
+    blocker_map = _load_optional_json(BLOCKER_MAP_PATH)
+    blocker_execution_plan = _load_optional_json(BLOCKER_EXECUTION_PLAN_PATH)
+    continuity_controller = _load_optional_json(CONTINUITY_CONTROLLER_STATE_PATH)
     queue = _pick_queue(ralph)
 
     closure_state = str(finish.get("closure_state") or "unknown")
-    cash_now_remaining_count = int(finish.get("cash_now_remaining_count") or 0)
-    bounded_follow_on_remaining_count = int(finish.get("bounded_follow_on_remaining_count") or 0)
-    program_slice_remaining_count = int(finish.get("program_slice_remaining_count") or 0)
-    runtime_packet_count = int(runtime.get("packet_count") or 0)
+    remaining = dict(blocker_map.get("remaining") or {})
+    blocker_next_tranche = dict(blocker_map.get("next_tranche") or {})
+    blocker_queue = dict(blocker_map.get("queue") or {})
+    blocker_runtime_packets = dict(blocker_map.get("runtime_packets") or {})
+    proof_gate = dict(blocker_map.get("proof_gate") or {})
+    auto_mutation = dict(blocker_map.get("auto_mutation") or {})
+    execution_plan_next_target = dict(blocker_execution_plan.get("next_target") or {})
+    continuity_status = _pick_string(continuity_controller.get("controller_status")) or "unknown"
+    continuity_skip_reason = _pick_string(continuity_controller.get("last_skip_reason"))
+    cash_now_remaining_count = _pick_int(remaining.get("cash_now"), finish.get("cash_now_remaining_count"))
+    bounded_follow_on_remaining_count = _pick_int(
+        remaining.get("bounded_follow_on"),
+        finish.get("bounded_follow_on_remaining_count"),
+    )
+    program_slice_remaining_count = _pick_int(
+        remaining.get("program_slice"),
+        finish.get("program_slice_remaining_count"),
+    )
+    runtime_packet_count = _pick_int(blocker_runtime_packets.get("count"), runtime.get("packet_count"))
     stop_state = _pick_string(snapshot.get("current_stop_state")) or "none"
+    dispatch_status = _pick_string(snapshot.get("dispatch_status")) or "unknown"
+    value_throughput_reconciliation = dict(value_throughput.get("reconciliation") or {})
+    value_throughput_issue_count = int(value_throughput_reconciliation.get("issue_count") or 0)
+    value_throughput_stale_claim_count = int(value_throughput.get("stale_claim_count") or 0)
+    value_throughput_degraded_sections = [
+        str(item).strip()
+        for item in value_throughput.get("degraded_sections", [])
+        if isinstance(item, str) and item.strip()
+    ]
 
     reopen_reasons: list[str] = []
     if cash_now_remaining_count > 0:
@@ -150,6 +243,20 @@ def build_payload() -> dict[str, Any]:
         reopen_reasons.append(f"finish scoreboard closure_state is `{closure_state}`")
     if stop_state != "none":
         reopen_reasons.append(f"Ralph stop_state is `{stop_state}`")
+    if dispatch_status in {"failed", "stale_dispatched_task", "spin_detected"}:
+        reopen_reasons.append(f"governed dispatch is `{dispatch_status}`")
+    if value_throughput_issue_count > 0:
+        reopen_reasons.append(
+            f"value-throughput reconciliation reports `{value_throughput_issue_count}` repairable issue(s)"
+        )
+    if value_throughput_stale_claim_count > 0:
+        reopen_reasons.append(
+            f"value-throughput still reports `{value_throughput_stale_claim_count}` stale claim(s)"
+        )
+    if value_throughput_degraded_sections:
+        reopen_reasons.append(
+            f"value-throughput scorecard is degraded (`{len(value_throughput_degraded_sections)}` section(s))"
+        )
 
     operator_mode = "steady_state_monitoring" if not reopen_reasons and closure_state == "repo_safe_complete" else "active_closure"
     reopen_required = operator_mode != "steady_state_monitoring"
@@ -158,12 +265,17 @@ def build_payload() -> dict[str, Any]:
         closure_state=closure_state,
         runtime_packet_count=runtime_packet_count,
         stop_state=stop_state,
+        dispatch_status=dispatch_status,
+        continuity_status=continuity_status,
+        continuity_skip_reason=continuity_skip_reason,
     )
 
     active_claim_task_id = _pick_string(ralph.get("active_claim_task_id"), snapshot.get("active_claim_task_id"))
     active_claim = _find_task(queue, active_claim_task_id)
     blocked_candidate = _first_blocked_task(queue)
     next_candidate = dict(ralph.get("next_unblocked_candidate") or snapshot.get("next_unblocked_candidate") or {})
+    runtime_packet_next = _runtime_packet_target(runtime)
+    effective_next_target = runtime_packet_next or execution_plan_next_target
 
     current_work = {
         "task_id": active_claim_task_id,
@@ -171,15 +283,28 @@ def build_payload() -> dict[str, Any]:
         "lane_family": _pick_string(ralph.get("active_claim_lane_family"), snapshot.get("active_claim_lane_family")),
         "provider_label": _pick_string(active_claim.get("selected_provider_label")),
         "provider_id": _pick_string(active_claim.get("selected_provider_id")),
-        "dispatch_status": _pick_string(snapshot.get("dispatch_status"), active_claim.get("status")),
+        "dispatch_status": _pick_string(dispatch_status, active_claim.get("status")),
         "proof_surface": _pick_string(active_claim.get("proof_command_or_eval_surface")),
         "mutation_class": _pick_string(active_claim.get("approved_mutation_class")),
         "value_class": _pick_string(active_claim.get("value_class")),
         "max_concurrency": active_claim.get("max_concurrency"),
     }
     next_up = {
-        "task_id": _pick_string(next_candidate.get("task_id"), next_candidate.get("id")),
-        "task_title": _pick_string(next_candidate.get("title"), next_candidate.get("task_title"), finish.get("next_deferred_family_title"), finish.get("next_deferred_family_id")),
+        "task_id": _pick_string(
+            runtime_packet_next.get("subtranche_id"),
+            next_candidate.get("task_id"),
+            next_candidate.get("id"),
+        ),
+        "task_title": _pick_string(
+            runtime_packet_next.get("subtranche_title"),
+            next_candidate.get("title"),
+            next_candidate.get("task_title"),
+            execution_plan_next_target.get("subtranche_title"),
+            execution_plan_next_target.get("family_title"),
+            blocker_next_tranche.get("title"),
+            finish.get("next_deferred_family_title"),
+            finish.get("next_deferred_family_id"),
+        ),
         "provider_label": _pick_string(next_candidate.get("selected_provider_label")),
         "lane_family": _pick_string(next_candidate.get("preferred_lane_family")),
     }
@@ -196,6 +321,10 @@ def build_payload() -> dict[str, Any]:
             )
         elif runtime_packet_count > 0:
             next_operator_action = "Review the runtime packet inbox and execute or approve the next bounded mutation packet."
+        elif dispatch_status in {"failed", "stale_dispatched_task", "spin_detected"}:
+            next_operator_action = (
+                "Re-enter closure work through `python scripts/session_restart_brief.py --refresh` and repair the governed dispatch failure before trusting steady-state posture."
+            )
         else:
             next_operator_action = "Re-enter closure work through `python scripts/session_restart_brief.py --refresh` and cash the next surfaced debt family or runtime packet."
     else:
@@ -207,6 +336,9 @@ def build_payload() -> dict[str, Any]:
             "steady_state_status_json": str(STEADY_STATE_STATUS_JSON_PATH),
             "steady_state_live_md": str(STEADY_STATE_LIVE_MD_PATH),
             "steady_state_status_doc": str(STEADY_STATE_STATUS_DOC_PATH),
+            "blocker_map": str(BLOCKER_MAP_PATH),
+            "blocker_execution_plan": str(BLOCKER_EXECUTION_PLAN_PATH),
+            "continuity_controller_state": str(CONTINUITY_CONTROLLER_STATE_PATH),
         }
     )
 
@@ -228,11 +360,70 @@ def build_payload() -> dict[str, Any]:
         "selected_workstream_id": snapshot.get("selected_workstream_id"),
         "selected_workstream_title": snapshot.get("selected_workstream_title"),
         "current_work": current_work,
+        "next_target": effective_next_target,
         "next_up": next_up,
-        "queue_total": snapshot.get("queue_total"),
-        "queue_dispatchable": snapshot.get("queue_dispatchable"),
-        "queue_blocked": snapshot.get("queue_blocked"),
-        "suppressed_task_count": finish.get("suppressed_queue_count", snapshot.get("suppressed_task_count")),
+        "queue_total": _pick_int(blocker_queue.get("total"), snapshot.get("queue_total")),
+        "queue_dispatchable": _pick_int(blocker_queue.get("dispatchable"), snapshot.get("queue_dispatchable")),
+        "queue_blocked": _pick_int(blocker_queue.get("blocked"), snapshot.get("queue_blocked")),
+        "suppressed_task_count": _pick_int(
+            blocker_queue.get("suppressed"),
+            finish.get("suppressed_queue_count"),
+            snapshot.get("suppressed_task_count"),
+        ),
+        "value_throughput": {
+            "reconciliation_issue_count": value_throughput_issue_count,
+            "stale_claim_count": value_throughput_stale_claim_count,
+            "degraded_sections": value_throughput_degraded_sections,
+        },
+        "blocker_map": {
+            "remaining_family_count": _pick_int(remaining.get("family_count"), default=0),
+            "remaining_family_ids": remaining.get("family_ids", []),
+            "next_tranche": {
+                "id": blocker_next_tranche.get("id"),
+                "title": blocker_next_tranche.get("title"),
+                "match_count": _pick_int(blocker_next_tranche.get("match_count"), default=0),
+                "decomposition_required": bool(blocker_next_tranche.get("decomposition_required")),
+            },
+            "proof_gate": {
+                "open": bool(proof_gate.get("open")),
+                "status": _pick_string(proof_gate.get("status")) or "unknown",
+                "blocking_check_ids": proof_gate.get("blocking_check_ids", []),
+            },
+            "auto_mutation": {
+                "state": _pick_string(auto_mutation.get("state")) or "unknown",
+                "proof_gate_open": bool(auto_mutation.get("proof_gate_open")),
+            },
+        },
+        "proof_gate": {
+            "open": bool(proof_gate.get("open")),
+            "status": _pick_string(proof_gate.get("status")) or "unknown",
+            "blocking_check_ids": proof_gate.get("blocking_check_ids", []),
+        },
+        "continuity_controller": {
+            "status": _pick_string(continuity_controller.get("controller_status")) or "unknown",
+            "active_pass_id": _pick_string(continuity_controller.get("active_pass_id")),
+            "active_family_id": _pick_string(continuity_controller.get("active_family_id")),
+            "active_subtranche_id": _pick_string(continuity_controller.get("active_subtranche_id")),
+            "last_skip_reason": _pick_string(continuity_controller.get("last_skip_reason")),
+            "backoff_until": _pick_string(continuity_controller.get("backoff_until")),
+            "next_target": {
+                "kind": _pick_string(effective_next_target.get("kind")) or "unknown",
+                "family_id": _pick_string(effective_next_target.get("family_id")),
+                "family_title": _pick_string(effective_next_target.get("family_title")),
+                "subtranche_id": _pick_string(effective_next_target.get("subtranche_id")),
+                "subtranche_title": _pick_string(effective_next_target.get("subtranche_title")),
+                "approval_gated": bool(effective_next_target.get("approval_gated")),
+            },
+        },
+        "continuity": {
+            "controller_status": _pick_string(continuity_controller.get("controller_status")) or "unknown",
+            "controller_host": _pick_string(continuity_controller.get("controller_host")) or "dev",
+            "controller_mode": _pick_string(continuity_controller.get("controller_mode")) or "unknown",
+            "typed_brake": _pick_string(continuity_controller.get("typed_brake")),
+            "last_skip_reason": _pick_string(continuity_controller.get("last_skip_reason")),
+            "backoff_until": _pick_string(continuity_controller.get("backoff_until")),
+        },
+        "runtime_packet_next": runtime_packet_next,
         "next_operator_action": next_operator_action,
         "reopen_triggers": [
             "finish-scoreboard reports non-zero repo-safe debt",
@@ -259,6 +450,9 @@ def render_markdown(payload: dict[str, Any]) -> str:
         "- Read the live feed first when you need to know what Athanor is doing right now.",
         f"- Live operator feed: `{artifacts.get('steady_state_live_md', '')}`",
         f"- Machine proof: `{artifacts.get('steady_state_status_json', '')}`",
+        f"- Canonical blocker map: `{artifacts.get('blocker_map', '')}`",
+        f"- Blocker execution plan: `{artifacts.get('blocker_execution_plan', '')}`",
+        f"- Continuity controller state: `{artifacts.get('continuity_controller_state', '')}`",
         "",
         "## Operating Contract",
         "",
@@ -266,6 +460,9 @@ def render_markdown(payload: dict[str, Any]) -> str:
         "- `docs/operations/STEADY-STATE-STATUS.md` should only change when the operator contract or proof paths change.",
         "- `reports/truth-inventory/steady-state-live.md` is the volatile front door for current work, next up, queue posture, and recent activity.",
         "- `reports/truth-inventory/steady-state-status.json` is the machine-readable source for intervention level, reopen state, and queue counts.",
+        "- `reports/truth-inventory/blocker-map.json` is the canonical remaining-work source for family counts, next tranche selection, proof-gate posture, and auto-mutation state.",
+        "- `reports/truth-inventory/blocker-execution-plan.json` is the canonical bounded sub-tranche plan when a family requires decomposition.",
+        "- `reports/truth-inventory/continuity-controller-state.json` is the machine-readable controller lock, skip, and backoff state for the thread heartbeat lane.",
         "- `reports/ralph-loop/latest.json` remains the deeper live dispatch proof when operator surfaces need forensic confirmation.",
         "",
         "## Operator Action",
@@ -293,6 +490,9 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Ralph loop: `{artifacts.get('ralph_latest', '')}`",
         f"- Finish scoreboard: `{artifacts.get('finish_scoreboard', '')}`",
         f"- Runtime packet inbox: `{artifacts.get('runtime_packet_inbox', '')}`",
+        f"- Blocker map: `{artifacts.get('blocker_map', '')}`",
+        f"- Blocker execution plan: `{artifacts.get('blocker_execution_plan', '')}`",
+        f"- Continuity controller state: `{artifacts.get('continuity_controller_state', '')}`",
         f"- Session restart brief source: `python scripts/session_restart_brief.py --refresh`",
         f"- Live operator feed: `{artifacts.get('steady_state_live_md', '')}`",
         f"- Steady-state JSON: `{artifacts.get('steady_state_status_json', '')}`",
@@ -307,6 +507,13 @@ def render_live_markdown(payload: dict[str, Any]) -> str:
     next_up = dict(payload.get("next_up") or {})
     recent_activity = payload.get("recent_activity") if isinstance(payload.get("recent_activity"), list) else []
     reopen_reasons = payload.get("reopen_reasons") if isinstance(payload.get("reopen_reasons"), list) else []
+    blocker_map = dict(payload.get("blocker_map") or {})
+    continuity_controller = dict(payload.get("continuity_controller") or {})
+    next_tranche = dict(blocker_map.get("next_tranche") or {})
+    proof_gate = dict(blocker_map.get("proof_gate") or {})
+    auto_mutation = dict(blocker_map.get("auto_mutation") or {})
+    continuity_next_target = dict(payload.get("next_target") or continuity_controller.get("next_target") or {})
+    runtime_packet_next = dict(payload.get("runtime_packet_next") or {})
     lines = [
         "# Steady-State Live Operator Feed",
         "",
@@ -322,6 +529,13 @@ def render_live_markdown(payload: dict[str, Any]) -> str:
         f"- Dispatch status: `{_pick_string(current_work.get('dispatch_status')) or 'unknown'}`",
         f"- Next up: `{_pick_string(next_up.get('task_title'), next_up.get('task_id')) or 'unknown'}`",
         f"- Queue posture: total=`{payload.get('queue_total', 'unknown')}` | dispatchable=`{payload.get('queue_dispatchable', 'unknown')}` | blocked=`{payload.get('queue_blocked', 'unknown')}` | suppressed=`{payload.get('suppressed_task_count', 'unknown')}`",
+        f"- Remaining blocker families: `{blocker_map.get('remaining_family_count', 'unknown')}`",
+        f"- Next tranche: `{_pick_string(next_tranche.get('title'), next_tranche.get('id')) or 'unknown'}`",
+        f"- Continuity controller: `{_pick_string(continuity_controller.get('status')) or 'unknown'}`",
+        f"- Active continuity family: `{_pick_string(continuity_controller.get('active_family_id')) or 'none'}` | sub-tranche: `{_pick_string(continuity_controller.get('active_subtranche_id')) or 'none'}`",
+        f"- Continuity skip/backoff: skip=`{_pick_string(continuity_controller.get('last_skip_reason')) or 'none'}` | backoff_until=`{_pick_string(continuity_controller.get('backoff_until')) or 'none'}`",
+        f"- Next bounded target: `{_pick_string(continuity_next_target.get('subtranche_title'), continuity_next_target.get('family_title')) or 'unknown'}`",
+        f"- Proof gate: `{_pick_string(proof_gate.get('status')) or 'unknown'}` | auto-mutation: `{_pick_string(auto_mutation.get('state')) or 'unknown'}`",
         f"- Needs you: `{payload.get('needs_you', 'unknown')}`",
         f"- Why: `{_pick_string(payload.get('intervention_summary')) or 'unknown'}`",
         "",
@@ -332,9 +546,23 @@ def render_live_markdown(payload: dict[str, Any]) -> str:
         f"- Proof surface: `{_pick_string(current_work.get('proof_surface')) or 'unknown'}`",
         f"- Max concurrency: `{current_work.get('max_concurrency', 'unknown')}`",
         "",
+    ]
+    if runtime_packet_next:
+        lines.extend(
+            [
+                "## Runtime Packet Ready",
+                "",
+                f"- Packet: `{_pick_string(runtime_packet_next.get('subtranche_title'), runtime_packet_next.get('subtranche_id')) or 'unknown'}`",
+                f"- Host: `{_pick_string(runtime_packet_next.get('host')) or 'unknown'}` | approval type: `{_pick_string(runtime_packet_next.get('approval_type')) or 'unknown'}` | state: `{_pick_string(runtime_packet_next.get('readiness_state')) or 'unknown'}`",
+                f"- Goal: `{_pick_string(runtime_packet_next.get('detail')) or 'unknown'}`",
+                f"- Next operator action: `{_pick_string(runtime_packet_next.get('next_operator_action')) or 'Review the runtime packet inbox and execute or approve the next bounded mutation packet.'}`",
+                "",
+            ]
+        )
+    lines.extend([
         "## Reopen State",
         "",
-    ]
+    ])
     if reopen_reasons:
         lines.extend(f"- {item}" for item in reopen_reasons)
     else:

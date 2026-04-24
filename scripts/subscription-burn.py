@@ -63,6 +63,7 @@ _cli_router_spec = importlib.util.spec_from_file_location("athanor_cli_router", 
 if _cli_router_spec is None or _cli_router_spec.loader is None:
     raise RuntimeError(f"Unable to load CLI router from {_CLI_ROUTER_PATH}")
 _cli_router_mod = importlib.util.module_from_spec(_cli_router_spec)
+sys.modules[_cli_router_spec.name] = _cli_router_mod
 _cli_router_spec.loader.exec_module(_cli_router_mod)
 CLIRouter = _cli_router_mod.CLIRouter
 register_router_endpoints = _cli_router_mod.register_router_endpoints

@@ -41,8 +41,8 @@ def test_canonical_cli_candidates_derive_from_policy_lease(monkeypatch) -> None:
         lambda: {
             "task_classes": {
                 "multi_file_implementation": {
-                    "primary": ["anthropic_claude_code"],
-                    "fallback": ["openai_codex", "athanor_local", "zai_glm_coding"],
+                    "primary": ["openai_codex"],
+                    "fallback": ["athanor_local", "zai_glm_coding", "anthropic_claude_code"],
                 }
             },
             "providers": {
@@ -69,8 +69,8 @@ def test_canonical_cli_candidates_derive_from_policy_lease(monkeypatch) -> None:
     candidates = module._canonical_cli_candidates("feature_dev", "Implement the next feature slice")
 
     assert candidates == [
-        ("anthropic_claude_code", "claude"),
         ("openai_codex", "codex"),
+        ("anthropic_claude_code", "claude"),
     ]
 
 
@@ -86,26 +86,26 @@ def test_route_uses_canonical_policy_preference(monkeypatch) -> None:
         module,
         "_canonical_cli_candidates",
         lambda task_type, task_description: [
-            ("anthropic_claude_code", "claude"),
             ("openai_codex", "codex"),
+            ("anthropic_claude_code", "claude"),
         ],
     )
 
     async def fake_available() -> dict[str, bool]:
-        router._cli_to_subscription = {"claude": "claude_max", "codex": "chatgpt_pro"}
+        router._cli_to_subscription = {"codex": "chatgpt_pro", "claude": "claude_max"}
         router._cli_to_provider = {
-            "claude": "anthropic_claude_code",
             "codex": "openai_codex",
+            "claude": "anthropic_claude_code",
         }
-        return {"claude": True, "codex": True}
+        return {"codex": True, "claude": True}
 
     monkeypatch.setattr(router, "get_available_clis", fake_available)
 
     decision = asyncio.run(router.route({"description": "Implement the next feature slice"}))
 
-    assert decision["cli"] == "claude"
-    assert decision["subscription"] == "claude_max"
-    assert decision["provider"] == "anthropic_claude_code"
-    assert decision["alternatives"] == ["codex"]
+    assert decision["cli"] == "codex"
+    assert decision["subscription"] == "chatgpt_pro"
+    assert decision["provider"] == "openai_codex"
+    assert decision["alternatives"] == ["claude"]
     assert "policy_preference" in decision["reason"]
     assert "policy_task_class=multi_file_implementation" in decision["reason"]

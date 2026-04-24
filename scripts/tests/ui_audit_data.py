@@ -143,8 +143,6 @@ DASHBOARD_API_BASE = ["projects/dashboard/tests/e2e/smoke-api.spec.ts"]
 DASHBOARD_MUTATION_BASE = ["projects/dashboard/tests/e2e/mutations.spec.ts"]
 EOQ_ROUTE_BASE = ["projects/eoq/tests/e2e/smoke.spec.ts"]
 EOQ_WORKFLOW_BASE = ["projects/eoq/tests/e2e/gameplay.spec.ts"]
-ULRICH_ROUTE_BASE = ["projects/ulrich-energy/tests/e2e/smoke.spec.ts"]
-ULRICH_WORKFLOW_BASE = ["projects/ulrich-energy/tests/e2e/workflows.spec.ts"]
 
 
 SURFACES: list[dict[str, Any]] = []
@@ -164,6 +162,26 @@ _extend(
             owned_apis=["/api/overview"],
             primary_controls=["priority lane", "recent context", "project platform", "launchpad", "work planner"],
             local_checks=DASHBOARD_ROUTE_BASE + ["projects/dashboard/tests/e2e/navigation.spec.ts", "projects/dashboard/tests/e2e/consoles.spec.ts"],
+            live_checks=DASHBOARD_ROUTE_LIVE + ["scripts/tests/live-dashboard-smoke.py::project-navigation"],
+        ),
+        route_surface(
+            surface_id="dashboard.route.operator",
+            title="Operator Console",
+            product="dashboard",
+            route_path="/operator",
+            owned_apis=["/api/operator/summary", "/api/operator/mobile-summary"],
+            primary_controls=["approval queue", "governed dispatch", "continuity posture", "project-output review"],
+            local_checks=DASHBOARD_ROUTE_BASE + ["projects/dashboard/tests/e2e/operator-controls.spec.ts", "projects/dashboard/src/features/operator/operator-console.test.tsx"],
+            live_checks=DASHBOARD_ROUTE_LIVE,
+        ),
+        route_surface(
+            surface_id="dashboard.route.projects",
+            title="Governed Projects",
+            product="dashboard",
+            route_path="/projects",
+            owned_apis=["/api/projects/factory"],
+            primary_controls=["project readiness", "latest candidate", "acceptance state", "blockers", "proof history"],
+            local_checks=DASHBOARD_ROUTE_BASE + ["projects/dashboard/src/features/projects/projects-console.test.tsx"],
             live_checks=DASHBOARD_ROUTE_LIVE + ["scripts/tests/live-dashboard-smoke.py::project-navigation"],
         ),
         route_surface(
@@ -466,29 +484,6 @@ _extend(
 
 _extend(
     [
-        route_surface(surface_id="ulrich.route.home", title="Ulrich Home", product="ulrich-energy", route_path="/", owned_apis=["/api/analytics/dashboard"], primary_controls=["quick actions", "summary cards", "report drill-down"], local_checks=ULRICH_ROUTE_BASE + ULRICH_WORKFLOW_BASE, live_checks=["scripts/tests/live-ulrich-smoke.py::routes"]),
-        route_surface(surface_id="ulrich.route.analytics", title="Ulrich Analytics", product="ulrich-energy", route_path="/analytics", owned_apis=["/api/analytics/dashboard"], primary_controls=["dashboard summary", "slow-data resilience"], local_checks=ULRICH_ROUTE_BASE, live_checks=["scripts/tests/live-ulrich-smoke.py::routes"]),
-        route_surface(surface_id="ulrich.route.clients", title="Ulrich Clients", product="ulrich-energy", route_path="/clients", owned_apis=["/api/clients"], primary_controls=["client list", "client drill-down"], local_checks=ULRICH_ROUTE_BASE, live_checks=["scripts/tests/live-ulrich-smoke.py::routes"]),
-        route_surface(surface_id="ulrich.route.inspections", title="Ulrich Inspections", product="ulrich-energy", route_path="/inspections", owned_apis=["/api/inspections", "/api/inspections/[id]"], primary_controls=["inspection list", "detail navigation", "empty state"], local_checks=ULRICH_ROUTE_BASE + ULRICH_WORKFLOW_BASE, live_checks=["scripts/tests/live-ulrich-smoke.py::routes"]),
-        route_surface(surface_id="ulrich.route.inspections-new", title="Ulrich New Inspection", product="ulrich-energy", route_path="/inspections/new", owned_apis=["/api/inspections"], primary_controls=["create inspection"], local_checks=ULRICH_ROUTE_BASE + ULRICH_WORKFLOW_BASE, manual_checklist=["Use the optional live mutation mode before shipping inspection-form changes."]),
-        route_surface(surface_id="ulrich.route.projects", title="Ulrich Projects", product="ulrich-energy", route_path="/projects", owned_apis=["/api/projects"], primary_controls=["project drill-down", "status cards"], local_checks=ULRICH_ROUTE_BASE, live_checks=["scripts/tests/live-ulrich-smoke.py::routes"]),
-        route_surface(surface_id="ulrich.route.reports", title="Ulrich Reports", product="ulrich-energy", route_path="/reports", owned_apis=["/api/reports", "/api/reports/[id]", "/api/reports/generate"], primary_controls=["report list", "report detail", "inspection back-link"], local_checks=ULRICH_ROUTE_BASE + ULRICH_WORKFLOW_BASE, live_checks=["scripts/tests/live-ulrich-smoke.py::routes"]),
-        api_surface(surface_id="ulrich.api.analytics", title="Ulrich Analytics API", product="ulrich-energy", api_path="/api/analytics/dashboard", primary_controls=["analytics snapshot"], local_checks=ULRICH_ROUTE_BASE, live_checks=["scripts/tests/live-ulrich-smoke.py::analytics"]),
-        api_surface(surface_id="ulrich.api.clients", title="Ulrich Clients API", product="ulrich-energy", api_path="/api/clients", primary_controls=["client list"], local_checks=ULRICH_ROUTE_BASE, live_checks=["scripts/tests/live-ulrich-smoke.py::clients"]),
-        api_surface(surface_id="ulrich.api.inspections", title="Ulrich Inspections API", product="ulrich-energy", api_path="/api/inspections", primary_controls=["inspection list"], local_checks=ULRICH_ROUTE_BASE, live_checks=["scripts/tests/live-ulrich-smoke.py::inspections"]),
-        api_surface(surface_id="ulrich.api.inspection-detail", title="Ulrich Inspection Detail API", product="ulrich-energy", api_path="/api/inspections/[id]", primary_controls=["inspection detail"], local_checks=ULRICH_ROUTE_BASE, live_checks=["scripts/tests/live-ulrich-smoke.py::inspection-detail"]),
-        api_surface(surface_id="ulrich.api.projects", title="Ulrich Projects API", product="ulrich-energy", api_path="/api/projects", primary_controls=["project list"], local_checks=ULRICH_ROUTE_BASE, live_checks=["scripts/tests/live-ulrich-smoke.py::projects"]),
-        api_surface(surface_id="ulrich.api.reports", title="Ulrich Reports API", product="ulrich-energy", api_path="/api/reports", primary_controls=["report list"], local_checks=ULRICH_ROUTE_BASE, live_checks=["scripts/tests/live-ulrich-smoke.py::reports"]),
-        api_surface(surface_id="ulrich.api.report-detail", title="Ulrich Report Detail API", product="ulrich-energy", api_path="/api/reports/[id]", primary_controls=["report detail"], local_checks=ULRICH_ROUTE_BASE, live_checks=["scripts/tests/live-ulrich-smoke.py::report-detail"]),
-        api_surface(surface_id="ulrich.api.reports-generate", title="Ulrich Reports Generate API", product="ulrich-energy", api_path="/api/reports/generate", primary_controls=["report generation"], local_checks=ULRICH_ROUTE_BASE + ULRICH_WORKFLOW_BASE, manual_checklist=["Use the optional live mutation mode before shipping report-generation changes."]),
-        workflow_surface(surface_id="ulrich.workflow.create-inspection", title="Ulrich Create Inspection Flow", product="ulrich-energy", route_path="/inspections/new", owned_apis=["/api/inspections"], primary_controls=["create inspection and open detail"], local_checks=ULRICH_WORKFLOW_BASE),
-        workflow_surface(surface_id="ulrich.workflow.generate-report", title="Ulrich Generate Report Flow", product="ulrich-energy", route_path="/inspections/[id]", owned_apis=["/api/reports/generate", "/api/reports/[id]"], primary_controls=["generate report and open report detail"], local_checks=ULRICH_WORKFLOW_BASE),
-        workflow_surface(surface_id="ulrich.workflow.quick-actions", title="Ulrich Quick Actions and Return Navigation", product="ulrich-energy", route_path="/", owned_apis=["/api/reports", "/api/inspections/[id]"], primary_controls=["home quick actions", "report drill-down", "inspection back-link"], local_checks=ULRICH_WORKFLOW_BASE),
-    ]
-)
-
-_extend(
-    [
         workflow_surface(surface_id="integration.workflow.command-center-to-workplanner", title="Command Center to Work Planner", product="integration", route_path="/", owned_apis=["/api/overview", "/api/workforce"], primary_controls=["command center incident/workplanner navigation"], local_checks=["projects/dashboard/tests/e2e/navigation.spec.ts", "projects/dashboard/tests/e2e/family-flows.spec.ts"], live_checks=["scripts/tests/live-dashboard-smoke.py::project-navigation"]),
         workflow_surface(surface_id="integration.workflow.command-center-to-tenants", title="Command Center to Tenant Launches", product="integration", route_path="/", owned_apis=["/api/overview", "/api/projects"], primary_controls=["project card external launch", "tenant workspace deep links"], local_checks=["projects/dashboard/tests/e2e/consoles.spec.ts"], live_checks=["scripts/tests/run-live-ui-smoke.py::dashboard+tenants"], manual_checklist=["Check tenant launch links in the browser after any project-registry URL change."]),
         workflow_surface(surface_id="integration.workflow.domain-drawer-round-trip", title="Domain Drawer Round Trip", product="integration", route_path="/monitoring", owned_apis=["/api/monitoring", "/api/media/overview", "/api/home/overview", "/api/gallery/overview"], primary_controls=["drawer open", "external launch", "browser back restore"], local_checks=["projects/dashboard/tests/e2e/family-flows.spec.ts"], live_checks=["scripts/tests/live-dashboard-smoke.py::drawer-launches"]),
@@ -505,6 +500,10 @@ _extend(
         api_surface(surface_id="dashboard.api.gpu-history", title="GPU History API", product="dashboard", api_path="/api/gpu/history", primary_controls=["gpu trend history"], local_checks=DASHBOARD_API_BASE, live_checks=["scripts/tests/live-dashboard-smoke.py::api:/api/gpu/history"]),
         api_surface(surface_id="dashboard.api.models", title="Models API", product="dashboard", api_path="/api/models", primary_controls=["model inventory"], local_checks=DASHBOARD_API_BASE, live_checks=["scripts/tests/live-dashboard-smoke.py::api:/api/models"]),
         api_surface(surface_id="dashboard.api.projects", title="Projects API", product="dashboard", api_path="/api/projects", primary_controls=["project registry"], local_checks=DASHBOARD_API_BASE, live_checks=["scripts/tests/live-dashboard-smoke.py::api:/api/projects"]),
+        api_surface(surface_id="dashboard.api.master-atlas", title="Master Atlas API", product="dashboard", api_path="/api/master-atlas", primary_controls=["executive atlas summary", "project-factory summary"], local_checks=DASHBOARD_API_BASE + ["projects/dashboard/src/app/api/master-atlas/route.test.ts"], live_checks=["scripts/tests/live-dashboard-smoke.py::api:/api/master-atlas"]),
+        api_surface(surface_id="dashboard.api.operator-mobile-summary", title="Operator Mobile Summary API", product="dashboard", api_path="/api/operator/mobile-summary", primary_controls=["phone-safe operator summary", "proof-gate posture", "project-factory summary"], local_checks=DASHBOARD_API_BASE + ["projects/dashboard/src/app/api/operator/mobile-summary/route.test.ts"], live_checks=["scripts/tests/live-dashboard-smoke.py::api:/api/operator/mobile-summary"]),
+        api_surface(surface_id="dashboard.api.operator-summary", title="Operator Summary API", product="dashboard", api_path="/api/operator/summary", primary_controls=["governance summary", "continuity posture", "project-factory summary"], local_checks=DASHBOARD_API_BASE + ["projects/dashboard/src/app/api/operator/summary/route.test.ts"], live_checks=["scripts/tests/live-dashboard-smoke.py::api:/api/operator/summary"]),
+        api_surface(surface_id="dashboard.api.projects-factory", title="Project Factory API", product="dashboard", api_path="/api/projects/factory", primary_controls=["project-output readiness", "candidate history", "final-form status"], local_checks=DASHBOARD_API_BASE + ["projects/dashboard/src/app/api/projects/factory/route.test.ts"], live_checks=["scripts/tests/live-dashboard-smoke.py::api:/api/projects/factory"]),
         api_surface(surface_id="dashboard.api.workforce", title="Workforce API", product="dashboard", api_path="/api/workforce", primary_controls=["workforce snapshot"], local_checks=DASHBOARD_API_BASE, live_checks=["scripts/tests/live-dashboard-smoke.py::api:/api/workforce"]),
         api_surface(surface_id="dashboard.api.pipeline-status", title="Pipeline Status API", product="dashboard", api_path="/api/pipeline/status", primary_controls=["pipeline status snapshot"], local_checks=DASHBOARD_API_BASE),
         api_surface(surface_id="dashboard.api.pipeline-outcomes", title="Pipeline Outcomes API", product="dashboard", api_path="/api/pipeline/outcomes", primary_controls=["recent pipeline outcomes"], local_checks=DASHBOARD_API_BASE),

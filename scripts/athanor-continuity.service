@@ -1,0 +1,17 @@
+[Unit]
+Description=Athanor Continuity Supervisor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=shaun
+WorkingDirectory=/home/shaun/repos/athanor
+ExecStart=/usr/bin/python3 /home/shaun/repos/athanor/scripts/run_continuity_supervisor.py --loop --json
+Restart=always
+RestartSec=15
+StandardOutput=append:/home/shaun/.athanor/logs/continuity-supervisor.log
+StandardError=append:/home/shaun/.athanor/logs/continuity-supervisor.log
+
+[Install]
+WantedBy=multi-user.target

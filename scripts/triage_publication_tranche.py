@@ -12,6 +12,7 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REGISTRY_PATH = REPO_ROOT / "config" / "automation-backbone" / "completion-program-registry.json"
 DEFAULT_DOCS_LIFECYCLE_REGISTRY_PATH = REPO_ROOT / "config" / "automation-backbone" / "docs-lifecycle-registry.json"
+DEFAULT_PROJECT_OUTPUT_CANDIDATES_PATH = REPO_ROOT / "reports" / "truth-inventory" / "project-output-candidates.json"
 LOCAL_NOISE_HINTS = [
     ".letta/",
     "evals/.letta/",
@@ -23,8 +24,14 @@ LOCAL_NOISE_HINTS = [
 ]
 
 SELF_MANAGED_GENERATOR_SCRIPTS = (
+    'scripts/generate_documentation_index.py',
     'scripts/triage_publication_tranche.py',
     'scripts/generate_publication_deferred_family_queue.py',
+    'scripts/write_autonomous_value_proof.py',
+    'scripts/write_project_output_candidates.py',
+    'scripts/write_project_output_proof.py',
+    'scripts/write_project_output_readiness.py',
+    'scripts/write_command_center_final_form_status.py',
     'scripts/write_steady_state_status.py',
     'scripts/generate_full_system_audit.py',
     'scripts/generate_ecosystem_master_plan.py',
@@ -34,6 +41,21 @@ SELF_MANAGED_GENERATOR_SCRIPTS = (
 SELF_MANAGED_GENERATOR_SIDECARS = {
     'scripts/generate_publication_deferred_family_queue.py': [
         'reports/truth-inventory/publication-deferred-family-queue.json',
+    ],
+    'scripts/write_autonomous_value_proof.py': [
+        'reports/truth-inventory/autonomous-value-proof.json',
+    ],
+    'scripts/write_project_output_candidates.py': [
+        'reports/truth-inventory/project-output-candidates.json',
+    ],
+    'scripts/write_project_output_proof.py': [
+        'reports/truth-inventory/project-output-proof.json',
+    ],
+    'scripts/write_project_output_readiness.py': [
+        'reports/truth-inventory/project-output-readiness.json',
+    ],
+    'scripts/write_command_center_final_form_status.py': [
+        'reports/truth-inventory/command-center-final-form-status.json',
     ],
     'scripts/write_steady_state_status.py': [
         'reports/truth-inventory/steady-state-status.json',
@@ -48,6 +70,20 @@ SELF_MANAGED_GENERATOR_SIDECARS = {
         'reports/truth-inventory/ecosystem-master-plan.json',
     ],
 }
+SELF_MANAGED_ARTIFACT_OUTPUTS = {
+    'audit/automation/contract-healer-latest.json',
+    'docs/operations/PROJECT-OUTPUT-CANDIDATES.md',
+}
+SELF_MANAGED_ARTIFACT_PREFIXES = (
+    'reports/truth-inventory/project-output-candidates/',
+    'reports/truth-inventory/project-output-acceptance/',
+)
+LIFECYCLE_MANAGED_HARNESS_PREFIXES = (
+    'evals/',
+    'audit/',
+    'recipes/',
+    'tests/ui-audit/',
+)
 
 
 GIT_STATUS_TIMEOUT_SECONDS = 20
@@ -62,11 +98,11 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 
 def _self_managed_output_paths(docs_lifecycle_registry_path: Path) -> set[str]:
+    outputs: set[str] = set(SELF_MANAGED_ARTIFACT_OUTPUTS)
     if not docs_lifecycle_registry_path.exists():
-        return set()
+        return outputs
 
     payload = _load_json(docs_lifecycle_registry_path)
-    outputs: set[str] = set()
     for entry in payload.get('documents', []):
         if not isinstance(entry, dict):
             continue
@@ -80,6 +116,92 @@ def _self_managed_output_paths(docs_lifecycle_registry_path: Path) -> set[str]:
         outputs.add(path)
         outputs.update(_normalize_path(item) for item in SELF_MANAGED_GENERATOR_SIDECARS.get(matched_script, []))
     return outputs
+
+
+def _lifecycle_managed_harness_paths(docs_lifecycle_registry_path: Path) -> set[str]:
+    if not docs_lifecycle_registry_path.exists():
+        return set()
+
+    payload = _load_json(docs_lifecycle_registry_path)
+    managed: set[str] = set()
+    for entry in payload.get('documents', []):
+        if not isinstance(entry, dict):
+            continue
+        path = _normalize_path(str(entry.get('path') or ''))
+        if not path or not path.startswith(LIFECYCLE_MANAGED_HARNESS_PREFIXES):
+            continue
+        if str(entry.get('class') or '').strip() not in {'reference', 'archive'}:
+            continue
+        managed.add(path)
+    return managed
+
+
+def _looks_like_path(value: str) -> bool:
+    normalized = _normalize_path(value)
+    if not normalized:
+        return False
+    if normalized.startswith(('/mnt/', 'C:/', './')):
+        return True
+    return '/' in normalized
+
+
+def _relative_repo_path(repo_root: Path, value: str) -> str | None:
+    normalized = _normalize_path(value)
+    if not normalized or not _looks_like_path(normalized):
+        return None
+    if normalized.startswith('/mnt/') or normalized.startswith('C:/'):
+        resolved = _resolve_path(repo_root, normalized)
+        try:
+            return _normalize_path(str(resolved.relative_to(repo_root)))
+        except ValueError:
+            return None
+    return normalized.removeprefix('./')
+
+
+def _governed_project_output_paths(
+    repo_root: Path,
+    project_output_candidates_path: Path,
+) -> set[str]:
+    if not project_output_candidates_path.exists():
+        return set()
+
+    payload = _load_json(project_output_candidates_path)
+    governed: set[str] = set()
+    for candidate in payload.get('candidates', []):
+        if not isinstance(candidate, dict):
+            continue
+        scalar_fields = (
+            'manifest_ref',
+            'source_generator',
+            'candidate_artifact_ref',
+        )
+        list_fields = (
+            'deliverable_refs',
+            'verification_refs',
+            'workflow_refs',
+            'acceptance_proof_refs',
+        )
+        for field in scalar_fields:
+            relative = _relative_repo_path(repo_root, str(candidate.get(field) or ''))
+            if relative:
+                governed.add(relative)
+        for field in list_fields:
+            values = candidate.get(field) or []
+            if not isinstance(values, list):
+                continue
+            for raw in values:
+                relative = _relative_repo_path(repo_root, str(raw or ''))
+                if relative:
+                    governed.add(relative)
+    return governed
+
+
+def _is_governed_project_output_path(path: str, governed_paths: set[str]) -> bool:
+    normalized = _normalize_path(path)
+    if normalized in governed_paths:
+        return True
+    prefix = normalized if normalized.endswith('/') else normalized + '/'
+    return any(item.startswith(prefix) for item in governed_paths)
 
 
 def _normalize_path(value: str) -> str:
@@ -253,15 +375,21 @@ def build_triage_bundle(
     repo_root: Path = REPO_ROOT,
     registry_path: Path = DEFAULT_REGISTRY_PATH,
     docs_lifecycle_registry_path: Path = DEFAULT_DOCS_LIFECYCLE_REGISTRY_PATH,
+    project_output_candidates_path: Path = DEFAULT_PROJECT_OUTPUT_CANDIDATES_PATH,
 ) -> dict[str, Any]:
     registry_payload = _load_json(registry_path)
     slice_records = _slice_records(registry_payload)
     deferred_records = _deferred_family_records(registry_payload)
     self_managed_outputs = _self_managed_output_paths(docs_lifecycle_registry_path)
+    lifecycle_managed_harness_paths = _lifecycle_managed_harness_paths(docs_lifecycle_registry_path)
+    governed_project_output_paths = _governed_project_output_paths(repo_root, project_output_candidates_path)
     entries = [
         entry
         for entry in _git_status_entries(repo_root)
         if entry['path'] not in self_managed_outputs
+        and entry['path'] not in lifecycle_managed_harness_paths
+        and not any(_matches_hint(entry['path'], prefix) for prefix in SELF_MANAGED_ARTIFACT_PREFIXES)
+        and not _is_governed_project_output_path(entry['path'], governed_project_output_paths)
     ]
 
     matched: dict[str, list[dict[str, str]]] = {record['id']: [] for record in slice_records}
@@ -332,6 +460,7 @@ def build_triage_bundle(
         'repo_root': str(repo_root),
         'registry_path': str(registry_path),
         'docs_lifecycle_registry_path': str(docs_lifecycle_registry_path),
+        'project_output_candidates_path': str(project_output_candidates_path),
         'active_sequence_id': str(publication.get('active_sequence_id') or ''),
         'summary': {
             'dirty_entries': len(entries),
@@ -463,6 +592,7 @@ def main() -> int:
     parser.add_argument('--repo-root', type=Path, default=REPO_ROOT)
     parser.add_argument('--registry', type=Path, default=DEFAULT_REGISTRY_PATH)
     parser.add_argument('--docs-lifecycle-registry', type=Path, default=DEFAULT_DOCS_LIFECYCLE_REGISTRY_PATH)
+    parser.add_argument('--project-output-candidates', type=Path, default=DEFAULT_PROJECT_OUTPUT_CANDIDATES_PATH)
     parser.add_argument('--format', choices=('markdown', 'json'), default='markdown')
     parser.add_argument('--limit', type=int, default=12)
     parser.add_argument('--write', type=Path, default=None)
@@ -473,6 +603,7 @@ def main() -> int:
         repo_root=args.repo_root,
         registry_path=args.registry,
         docs_lifecycle_registry_path=args.docs_lifecycle_registry,
+        project_output_candidates_path=args.project_output_candidates,
     )
     rendered = (
         json.dumps(bundle, indent=2, sort_keys=True) + '\n'

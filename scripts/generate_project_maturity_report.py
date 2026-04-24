@@ -3,9 +3,9 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 from collections import Counter
 from pathlib import Path
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_DIR = REPO_ROOT / "config" / "automation-backbone"
@@ -14,9 +14,34 @@ TOPOLOGY_PATH = CONFIG_DIR / "platform-topology.json"
 WORKFLOW_PATH = REPO_ROOT / ".gitea" / "workflows" / "ci.yml"
 OUTPUT_PATH = REPO_ROOT / "docs" / "operations" / "PROJECT-MATURITY-REPORT.md"
 
-
 def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def tracked_newline_style(path: Path) -> str | None:
+    try:
+        relative = path.relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        return None
+    proc = subprocess.run(
+        ["git", "-C", str(REPO_ROOT), "show", f"HEAD:{relative}"],
+        capture_output=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        return None
+    content = proc.stdout.decode("utf-8", errors="ignore")
+    return "\r\n" if "\r\n" in content else "\n"
+
+
+def newline_style(path: Path) -> str:
+    tracked = tracked_newline_style(path)
+    if tracked:
+        return tracked
+    if not path.exists():
+        return "\n"
+    content = path.read_bytes()
+    return "\r\n" if b"\r\n" in content else "\n"
 
 
 def workflow_step_names() -> set[str]:
@@ -229,8 +254,9 @@ def main() -> int:
     args = parser.parse_args()
 
     rendered = render_project_maturity_report(load_json(PORTFOLIO_PATH), load_json(TOPOLOGY_PATH))
+    rendered = rendered.replace("\n", newline_style(OUTPUT_PATH))
     if args.check:
-        existing = OUTPUT_PATH.read_text(encoding="utf-8")
+        existing = OUTPUT_PATH.read_bytes().decode("utf-8")
         if existing != rendered:
             print(f"{OUTPUT_PATH.relative_to(REPO_ROOT).as_posix()} is stale")
             return 1

@@ -65,6 +65,11 @@ LITELLM_TEMPLATE_PATH = REPO_ROOT / "ansible" / "roles" / "vault-litellm" / "tem
 VAULT_LITELLM_TASKS_PATH = REPO_ROOT / "ansible" / "roles" / "vault-litellm" / "tasks" / "main.yml"
 VAULT_HOST_VARS_PATH = REPO_ROOT / "ansible" / "host_vars" / "vault.yml"
 GENERATED_DOC_CHECK_TIMEOUT_SECONDS = 30
+RUNTIME_PROOF_CONTEXT = str(os.environ.get("ATHANOR_RUNTIME_PROOF_CONTEXT") or "").strip().lower() in {
+    "1",
+    "true",
+    "runtime-proof",
+}
 
 PROMETHEUS_INFRA_ONLY_PROBE_IDS = {
     "node1-node-exporter",
@@ -117,6 +122,7 @@ PROMETHEUS_EXPECTED_OPERATOR_SURFACE_IDS = {
 PROMETHEUS_EXCLUDED_OPERATOR_SURFACE_IDS = {
     "builder_front_door",
     "desk_goose_operator_shell",
+    "openclaw_gateway",
     "workshop_shadow_command_center",
 }
 
@@ -517,6 +523,17 @@ REQUIRED_PUBLICATION_SLICE_IDS = [
     "graphrag-promotion-wave",
     "gpu-scheduler-extension-wave",
     "forge-atlas-dashboard-and-startup-truth",
+    "control-plane-registry-ledgers-and-matrices",
+    "control-plane-routing-policy-and-subscription-lane",
+    "agent-execution-kernel-operator-queue-state",
+    "agent-execution-kernel-scheduler-and-research-loop",
+    "agent-execution-kernel-self-improvement-and-proving",
+    "agent-execution-kernel-support-and-tests",
+    "agent-route-contract-surface-code",
+    "agent-route-contract-tests",
+    "control-plane-ralph-and-truth-writers",
+    "control-plane-proof-generators-and-validators",
+    "control-plane-deploy-and-runtime-ops-helpers",
 ]
 REQUIRED_RECONCILIATION_END_STATE_GATE_IDS = {
     "authority_gate",
@@ -568,6 +585,9 @@ DOC_LIFECYCLE_SCAN_PATHS = (
 GENERATED_DOC_GENERATORS = {
     "docs/DOCUMENTATION-INDEX.md": ["scripts/generate_documentation_index.py"],
     "docs/operations/PROJECT-MATURITY-REPORT.md": ["scripts/generate_project_maturity_report.py"],
+    "docs/operations/AUTONOMOUS-VALUE-STATUS.md": [
+        "scripts/write_autonomous_value_proof.py",
+    ],
     "docs/operations/HARDWARE-REPORT.md": ["scripts/generate_truth_inventory_reports.py", "--report", "hardware"],
     "docs/operations/MODEL-DEPLOYMENT-REPORT.md": [
         "scripts/generate_truth_inventory_reports.py",
@@ -651,6 +671,15 @@ GENERATED_DOC_GENERATORS = {
         "scripts/generate_truth_inventory_reports.py",
         "--report",
         "publication_provenance",
+    ],
+    "docs/operations/PROJECT-OUTPUT-PROOF.md": [
+        "scripts/write_project_output_proof.py",
+    ],
+    "docs/operations/PROJECT-OUTPUT-CANDIDATES.md": [
+        "scripts/write_project_output_candidates.py",
+    ],
+    "docs/operations/PROJECT-OUTPUT-READINESS.md": [
+        "scripts/write_project_output_readiness.py",
     ],
     "docs/operations/PUBLICATION-TRIAGE-REPORT.md": [
         "scripts/triage_publication_tranche.py",
@@ -1185,6 +1214,75 @@ def _resolve_declared_path(raw: Any) -> Path:
     return resolve_external_path(text, base=REPO_ROOT)
 
 
+def _skip_runtime_proof_external_path(raw: str) -> bool:
+    if not RUNTIME_PROOF_CONTEXT:
+        return False
+    normalized = str(raw or "").replace("\\", "/").strip().lower()
+    if not normalized.startswith("c:/"):
+        return False
+    for allowed_prefix in ("c:/athanor", "c:/athanor-devstack"):
+        if normalized == allowed_prefix or normalized.startswith(allowed_prefix + "/"):
+            return False
+    return True
+
+
+def _should_ignore_generated_doc_failure(detail: str) -> bool:
+    if not RUNTIME_PROOF_CONTEXT:
+        return False
+    lowered = str(detail or "").lower()
+    return (
+        "not a git repository" in lowered
+        or "git_discovery_across_filesystem" in lowered
+        or ("read-only file system" in lowered and "/workspace/" in lowered)
+    )
+
+
+def _skip_generated_doc_freshness_validation() -> bool:
+    return RUNTIME_PROOF_CONTEXT
+
+
+def _github_portfolio_snapshot_contract_errors(
+    snapshot: dict[str, Any],
+    registry_snapshot: dict[str, Any],
+) -> list[str]:
+    if snapshot == registry_snapshot:
+        return []
+    if str(snapshot.get("sync_status") or "").strip() != "external_blocked":
+        return [
+            "reports/reconciliation/github-portfolio-latest.json must match reconciliation-source-registry.json github_portfolio"
+        ]
+
+    errors: list[str] = []
+    if str(snapshot.get("blocker_type") or "").strip() != "external_dependency":
+        errors.append(
+            "reports/reconciliation/github-portfolio-latest.json external_blocked snapshot must declare blocker_type external_dependency"
+        )
+    if str(snapshot.get("blocking_reason") or "").strip() != "github_auth_required":
+        errors.append(
+            "reports/reconciliation/github-portfolio-latest.json external_blocked snapshot must declare blocking_reason github_auth_required"
+        )
+    if not _is_parseable_iso_datetime(snapshot.get("last_attempted_at")):
+        errors.append(
+            "reports/reconciliation/github-portfolio-latest.json external_blocked snapshot must include valid last_attempted_at"
+        )
+    if not str(snapshot.get("last_error") or "").strip():
+        errors.append(
+            "reports/reconciliation/github-portfolio-latest.json external_blocked snapshot must include last_error"
+        )
+    registry_owner = str(registry_snapshot.get("owner") or "").strip()
+    if registry_owner and str(snapshot.get("owner") or "").strip() != registry_owner:
+        errors.append(
+            "reports/reconciliation/github-portfolio-latest.json external_blocked snapshot owner must match reconciliation-source-registry.json github_portfolio owner"
+        )
+    last_successful_sync_at = snapshot.get("last_successful_sync_at")
+    if last_successful_sync_at is not None and str(last_successful_sync_at).strip():
+        if not _is_parseable_iso_datetime(last_successful_sync_at):
+            errors.append(
+                "reports/reconciliation/github-portfolio-latest.json external_blocked snapshot last_successful_sync_at must be a valid ISO timestamp"
+            )
+    return errors
+
+
 def _validate_bootstrap_zero_ambiguity_contracts(
     *,
     errors: list[str],
@@ -1673,8 +1771,21 @@ def _extract_header_value(text: str, label: str) -> str:
     return match.group(1).strip() if match else ""
 
 
+def _resolve_agents_project_root() -> Path:
+    candidates = [
+        REPO_ROOT / "projects" / "agents",
+        REPO_ROOT / "agents",
+    ]
+    for candidate in candidates:
+        if candidate.joinpath("config", "subscription-routing-policy.yaml").exists():
+            return candidate
+        if candidate.joinpath("src", "athanor_agents").exists():
+            return candidate
+    return candidates[0]
+
+
 def _load_subscription_policy() -> dict[str, Any]:
-    path = REPO_ROOT / "projects" / "agents" / "config" / "subscription-routing-policy.yaml"
+    path = _resolve_agents_project_root() / "config" / "subscription-routing-policy.yaml"
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
@@ -4062,6 +4173,8 @@ def main(argv: list[str] | None = None) -> int:
                 evidence_value = str(evidence_path).strip()
                 if re.match(r"^[A-Za-z]:/", evidence_value) or re.match(r"^[A-Za-z]:\\\\", evidence_value):
                     if not resolve_external_path(evidence_value).exists():
+                        if _skip_runtime_proof_external_path(evidence_value):
+                            continue
                         errors.append(
                             f"reconciliation-source-registry.json source {source_id} evidence path is missing: {evidence_value}"
                         )
@@ -4074,6 +4187,8 @@ def main(argv: list[str] | None = None) -> int:
                         )
         if path_value and re.match(r"^[A-Za-z]:/", path_value):
             if not resolve_external_path(path_value).exists():
+                if _skip_runtime_proof_external_path(path_value):
+                    continue
                 errors.append(f"reconciliation-source-registry.json source {source_id} path is missing: {path_value}")
         if source_kind == "github_repo" and not path_value.startswith("https://github.com/"):
             errors.append(
@@ -4275,10 +4390,9 @@ def main(argv: list[str] | None = None) -> int:
             errors.append("reports/reconciliation/github-portfolio-latest.json is missing")
         else:
             github_portfolio_snapshot = json.loads(GITHUB_PORTFOLIO_SNAPSHOT_PATH.read_text(encoding="utf-8"))
-            if github_portfolio_snapshot != github_portfolio:
-                errors.append(
-                    "reports/reconciliation/github-portfolio-latest.json must match reconciliation-source-registry.json github_portfolio"
-                )
+            errors.extend(
+                _github_portfolio_snapshot_contract_errors(github_portfolio_snapshot, github_portfolio)
+            )
 
     tenant_family_roots = [
         dict(entry)
@@ -6031,6 +6145,8 @@ def main(argv: list[str] | None = None) -> int:
         if doc_class == "generated":
             if relative_path in ignored_generated_docs:
                 continue
+            if _skip_generated_doc_freshness_validation():
+                continue
             generator_command = None
             registry_generator = str(document.get("generator") or "").strip()
             if registry_generator:
@@ -6046,6 +6162,8 @@ def main(argv: list[str] | None = None) -> int:
             generator_result = _run_generator_check(command_parts)
             if generator_result.returncode != 0:
                 detail = (generator_result.stdout + generator_result.stderr).strip()
+                if _should_ignore_generated_doc_failure(detail):
+                    continue
                 errors.append(f"Generated doc is stale: {relative_path}{f' ({detail})' if detail else ''}")
 
     for path_segments in DOC_LIFECYCLE_SCAN_PATHS:

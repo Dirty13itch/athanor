@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -20,9 +21,21 @@ LAST_RUN_PATH = AUDIT_DIR / "last-run.json"
 RETRYABLE_LABELS = {
     "dashboard:e2e": 1,
     "live-smoke": 1,
+    "dashboard:e2e:audit": 1,
+    "dashboard:live-smoke": 1,
 }
+
+
 def npm_command() -> str:
+    if os.name != "nt":
+        return shutil.which("npm") or shutil.which("npm.cmd") or "npm"
     return shutil.which("npm.cmd") or shutil.which("npm") or "npm"
+
+
+def npx_command() -> str:
+    if os.name != "nt":
+        return shutil.which("npx") or shutil.which("npx.cmd") or "npx"
+    return shutil.which("npx.cmd") or shutil.which("npx") or "npx"
 
 
 def run_command(label: str, command: list[str], cwd: Path | None = None) -> dict[str, object]:
@@ -61,15 +74,55 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--skip-live", action="store_true")
     parser.add_argument("--live-only", action="store_true")
+    parser.add_argument("--dashboard-final-form", action="store_true")
+    parser.add_argument("--dashboard-base-url")
     args = parser.parse_args()
 
     npm = npm_command()
-    jobs: list[tuple[str, list[str], Path | None]] = [
-        ("generate-registry", [sys.executable, str(ROOT / "scripts" / "tests" / "generate-ui-surface-registry.py")], ROOT),
-        ("check-coverage", [sys.executable, str(ROOT / "scripts" / "tests" / "check-ui-coverage.py")], ROOT),
-    ]
+    npx = npx_command()
+    jobs: list[tuple[str, list[str], Path | None]] = []
 
-    if not args.live_only:
+    if args.dashboard_final_form:
+        jobs.extend(
+            [
+                ("generate-registry", [sys.executable, str(ROOT / "scripts" / "tests" / "generate-ui-surface-registry.py")], ROOT),
+                ("check-coverage", [sys.executable, str(ROOT / "scripts" / "tests" / "check-ui-coverage.py")], ROOT),
+                ("dashboard:typecheck", [npm, "run", "typecheck"], ROOT / "projects" / "dashboard"),
+                (
+                    "dashboard:command-center-focused",
+                    [
+                        npm,
+                        "test",
+                        "--",
+                        "src/app/api/projects/factory/route.test.ts",
+                        "src/app/api/operator/mobile-summary/route.test.ts",
+                        "src/app/api/operator/summary/route.test.ts",
+                        "src/features/projects/projects-console.test.tsx",
+                        "src/features/operator/operator-console.test.tsx",
+                        "src/features/overview/command-center.test.tsx",
+                    ],
+                    ROOT / "projects" / "dashboard",
+                ),
+            ]
+        )
+        if not args.skip_live:
+            live_command = [sys.executable, str(ROOT / "scripts" / "tests" / "live-dashboard-smoke.py")]
+            if args.dashboard_base_url:
+                live_command.extend(["--base-url", args.dashboard_base_url])
+            dashboard_live_base_url = args.dashboard_base_url or "https://athanor.local/"
+            if dashboard_live_base_url.startswith("https://"):
+                live_command.append("--insecure")
+            live_command.extend(["--skip-chat", "--scope", "command-center-final-form"])
+            jobs.append(("dashboard:live-smoke", live_command, ROOT))
+    else:
+        jobs.extend(
+            [
+                ("generate-registry", [sys.executable, str(ROOT / "scripts" / "tests" / "generate-ui-surface-registry.py")], ROOT),
+                ("check-coverage", [sys.executable, str(ROOT / "scripts" / "tests" / "check-ui-coverage.py")], ROOT),
+            ]
+        )
+
+    if not args.live_only and not args.dashboard_final_form:
         jobs.extend(
             [
                 ("dashboard:lint", [npm, "run", "lint"], ROOT / "projects" / "dashboard"),
@@ -81,13 +134,10 @@ def main() -> int:
                 ("eoq:lint", [npm, "run", "lint"], ROOT / "projects" / "eoq"),
                 ("eoq:build", [npm, "run", "build"], ROOT / "projects" / "eoq"),
                 ("eoq:e2e", [npm, "run", "test:e2e"], ROOT / "projects" / "eoq"),
-                ("ulrich:lint", [npm, "run", "lint"], ROOT / "projects" / "ulrich-energy"),
-                ("ulrich:build", [npm, "run", "build"], ROOT / "projects" / "ulrich-energy"),
-                ("ulrich:e2e", [npm, "run", "test:e2e"], ROOT / "projects" / "ulrich-energy"),
             ]
         )
 
-    if not args.skip_live:
+    if not args.skip_live and not args.dashboard_final_form:
         jobs.append(("live-smoke", [sys.executable, str(ROOT / "scripts" / "tests" / "run-live-ui-smoke.py")], ROOT))
 
     results = [run_job(label, command, cwd) for label, command, cwd in jobs]

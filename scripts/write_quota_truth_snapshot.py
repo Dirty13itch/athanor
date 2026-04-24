@@ -52,6 +52,7 @@ def _load_subscription_burn_module(script_path: Path):
     if spec is None or spec.loader is None:
         raise RuntimeError(f'Unable to load {script_path}')
     module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
     try:
         spec.loader.exec_module(module)
     except ModuleNotFoundError as exc:
@@ -59,6 +60,7 @@ def _load_subscription_burn_module(script_path: Path):
             raise
         _install_fastapi_stubs()
         module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
         spec.loader.exec_module(module)
     return module
 

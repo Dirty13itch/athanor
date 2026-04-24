@@ -34,6 +34,26 @@ from truth_inventory import (
     render_link_list,
 )
 
+RUNTIME_PROOF_CONTEXT = str(os.environ.get("ATHANOR_RUNTIME_PROOF_CONTEXT") or "").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+
+
+def _generated_output_path(path: Path) -> Path:
+    runtime_artifact_root = str(os.environ.get("ATHANOR_RUNTIME_ARTIFACT_ROOT") or "").strip()
+    if not runtime_artifact_root and not RUNTIME_PROOF_CONTEXT:
+        return path
+
+    target_root = Path(runtime_artifact_root) if runtime_artifact_root else Path("/output")
+    try:
+        relative = path.relative_to(REPO_ROOT)
+    except ValueError:
+        return path
+    return target_root / relative
+
 
 def _render_table(headers: list[str], rows: list[list[str]]) -> list[str]:
     lines = [
@@ -76,6 +96,13 @@ GENERATED_LOCAL_GIT_IGNORE_PATHS = {
         REPO_ROOT / "reports" / "truth-inventory" / "publication-deferred-family-queue.json",
         REPO_ROOT / "docs" / "operations" / "STEADY-STATE-STATUS.md",
         REPO_ROOT / "reports" / "truth-inventory" / "steady-state-status.json",
+        REPO_ROOT / "docs" / "operations" / "PROJECT-OUTPUT-READINESS.md",
+        REPO_ROOT / "reports" / "truth-inventory" / "project-output-readiness.json",
+        REPO_ROOT / "docs" / "operations" / "PROJECT-OUTPUT-CANDIDATES.md",
+        REPO_ROOT / "reports" / "truth-inventory" / "project-output-candidates.json",
+        REPO_ROOT / "docs" / "operations" / "PROJECT-OUTPUT-PROOF.md",
+        REPO_ROOT / "reports" / "truth-inventory" / "project-output-proof.json",
+        REPO_ROOT / "reports" / "truth-inventory" / "command-center-final-form-status.json",
         REPO_ROOT / "docs" / "operations" / "ATHANOR-FULL-SYSTEM-AUDIT.md",
         REPO_ROOT / "docs" / "operations" / "DEVSTACK-MEMBRANE-AUDIT.md",
         REPO_ROOT / "docs" / "operations" / "AUDIT-REMEDIATION-BACKLOG.md",
@@ -4361,7 +4388,8 @@ def main() -> int:
     report_ids = args.report or list(REPORT_RENDERERS.keys())
     stale: list[str] = []
     for report_id in report_ids:
-        output_path = REPORT_PATHS[report_id]
+        logical_output_path = REPORT_PATHS[report_id]
+        output_path = _generated_output_path(logical_output_path)
         rendered = REPORT_RENDERERS[report_id]()
         existing = (
             output_path.read_text(encoding="utf-8").replace("\r\n", "\n")
@@ -4370,15 +4398,17 @@ def main() -> int:
         )
         if args.check:
             if _report_is_stale(report_id, existing=existing, rendered=rendered):
-                stale.append(output_path.relative_to(REPO_ROOT).as_posix())
+                stale.append(logical_output_path.relative_to(REPO_ROOT).as_posix())
         elif _report_is_stale(report_id, existing=existing, rendered=rendered):
+            output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_text(rendered, encoding="utf-8", newline="\n")
-            print(f"Wrote {output_path.relative_to(REPO_ROOT).as_posix()}")
+            print(f"Wrote {logical_output_path.relative_to(REPO_ROOT).as_posix()}")
 
         artifact_renderer = GENERATED_ARTIFACT_RENDERERS.get(report_id)
         if artifact_renderer is None:
             continue
-        artifact_path, render_artifact = artifact_renderer
+        logical_artifact_path, render_artifact = artifact_renderer
+        artifact_path = _generated_output_path(logical_artifact_path)
         rendered_artifact = render_artifact()
         existing_artifact = (
             artifact_path.read_text(encoding="utf-8").replace("\r\n", "\n")
@@ -4387,12 +4417,12 @@ def main() -> int:
         )
         if args.check:
             if _artifact_is_stale(report_id, existing=existing_artifact, rendered=rendered_artifact):
-                stale.append(artifact_path.relative_to(REPO_ROOT).as_posix())
+                stale.append(logical_artifact_path.relative_to(REPO_ROOT).as_posix())
             continue
         if _artifact_is_stale(report_id, existing=existing_artifact, rendered=rendered_artifact):
             artifact_path.parent.mkdir(parents=True, exist_ok=True)
             artifact_path.write_text(rendered_artifact, encoding="utf-8", newline="\n")
-            print(f"Wrote {artifact_path.relative_to(REPO_ROOT).as_posix()}")
+            print(f"Wrote {logical_artifact_path.relative_to(REPO_ROOT).as_posix()}")
 
     if stale:
         for path in stale:

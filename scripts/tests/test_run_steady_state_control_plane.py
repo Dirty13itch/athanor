@@ -23,7 +23,7 @@ def test_build_commands_runs_fixed_point_order_with_steady_state_writer():
         ['scripts/generate_documentation_index.py'],
         ['scripts/collect_capacity_telemetry.py'],
         ['scripts/write_quota_truth_snapshot.py'],
-        ['scripts/run_ralph_loop_pass.py', '--skip-refresh', '--skip-validation'],
+        ['scripts/run_ralph_loop_pass.py', '--skip-refresh'],
         ['scripts/collect_truth_inventory.py'],
         ['scripts/generate_truth_inventory_reports.py'],
         ['scripts/write_next_rotation_preflight.py', '--json'],
@@ -31,11 +31,31 @@ def test_build_commands_runs_fixed_point_order_with_steady_state_writer():
         ['scripts/generate_publication_deferred_family_queue.py'],
         ['scripts/write_finish_scoreboard.py', '--json'],
         ['scripts/write_runtime_packet_inbox.py', '--json'],
+        ['scripts/write_runtime_parity.py', '--json'],
+        ['scripts/write_result_evidence_ledger.py', '--json'],
+        ['scripts/write_autonomous_value_proof.py', '--json'],
+        ['scripts/write_stable_operating_day.py', '--json'],
+        ['scripts/run_continuity_control_pass.py', 'status', '--json'],
+        ['scripts/write_blocker_map.py', '--json'],
+        ['scripts/write_blocker_execution_plan.py', '--json'],
+        ['scripts/write_continuity_supervisor_health.py', '--json'],
+        ['scripts/write_project_output_readiness.py', '--json'],
+        ['scripts/write_project_output_candidates.py', '--json'],
+        ['scripts/materialize_project_output_acceptance.py', '--all-pending', '--json'],
+        ['scripts/write_project_output_candidates.py', '--json'],
+        ['scripts/write_project_output_proof.py', '--json'],
+        ['scripts/write_autonomy_failure_ledger.py', '--json'],
+        ['scripts/write_controller_of_controllers.py', '--json'],
         ['scripts/write_steady_state_status.py', '--json'],
+        ['scripts/write_operator_mobile_summary.py', '--json'],
+        ['scripts/refresh_master_atlas_dashboard_feed.py'],
+        ['scripts/write_command_center_final_form_status.py', '--json'],
+        ['scripts/write_system_capability_scorecard.py', '--json'],
         ['scripts/generate_ecosystem_master_plan.py'],
         ['scripts/generate_full_system_audit.py', '--skip-checks'],
-        ['scripts/session_restart_brief.py', '--json'],
         ['scripts/validate_platform_contract.py'],
+        ['scripts/run_contract_healer.py'],
+        ['scripts/session_restart_brief.py', '--json'],
     ]
     assert [cmd[1:] for cmd in commands] == expected
 
@@ -44,13 +64,14 @@ def test_build_commands_can_skip_restart_brief():
     module = _load_module()
     commands = module.build_commands(include_restart_brief=False)
     assert all(cmd[1] != "scripts/session_restart_brief.py" for cmd in commands)
-    assert commands[-1][1:] == ["scripts/validate_platform_contract.py"]
+    assert commands[-1][1:] == ["scripts/run_contract_healer.py"]
 
 
 def test_command_timeout_seconds_uses_script_overrides():
     module = _load_module()
 
     assert module.command_timeout_seconds([module.PYTHON, 'scripts/collect_truth_inventory.py']) == 180
+    assert module.command_timeout_seconds([module.PYTHON, 'scripts/run_ralph_loop_pass.py', '--skip-refresh']) == 300
     assert module.command_timeout_seconds([module.PYTHON, 'scripts/validate_platform_contract.py']) == 90
     assert module.command_timeout_seconds([module.PYTHON, 'scripts/generate_documentation_index.py']) == module.DEFAULT_COMMAND_TIMEOUT_SECONDS
 
@@ -82,3 +103,17 @@ def test_run_commands_records_timeout_and_stops(monkeypatch):
     assert results[1]['timeout_seconds'] == 90
     assert results[1]['stdout'] == 'partial'
     assert 'Timed out after 90s' in str(results[1]['stderr'])
+
+
+def test_command_env_sets_runtime_proof_context_for_validator_and_healer():
+    module = _load_module()
+
+    validator_env = module.command_env([module.PYTHON, 'scripts/validate_platform_contract.py'])
+    healer_env = module.command_env([module.PYTHON, 'scripts/run_contract_healer.py'])
+    unrelated_env = module.command_env([module.PYTHON, 'scripts/generate_documentation_index.py'])
+
+    assert validator_env is not None
+    assert validator_env['ATHANOR_RUNTIME_PROOF_CONTEXT'] == '1'
+    assert healer_env is not None
+    assert healer_env['ATHANOR_RUNTIME_PROOF_CONTEXT'] == '1'
+    assert unrelated_env is None

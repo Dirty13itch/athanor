@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Athanor Cluster Configuration — shell equivalent of cluster_config.py
+# Source this at the top of shell scripts:
+#   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+#   source "${SCRIPT_DIR}/cluster_config.sh"
+
+# Node IPs (override via environment)
+DEV_IP="${ATHANOR_DEV_IP:-192.168.1.189}"
+FOUNDRY_IP="${ATHANOR_FOUNDRY_IP:-192.168.1.244}"
+WORKSHOP_IP="${ATHANOR_WORKSHOP_IP:-192.168.1.225}"
+VAULT_IP="${ATHANOR_VAULT_IP:-192.168.1.203}"
+DESK_IP="${ATHANOR_DESK_IP:-192.168.1.50}"
+
+# Auth
+LITELLM_KEY="${LITELLM_MASTER_KEY:-<REDACTED-see-~/.secrets/litellm-master-key>}"
+
+# Service URLs
+LITELLM_URL="http://${VAULT_IP}:4000"
+VLLM_COORDINATOR_URL="http://${FOUNDRY_IP}:8000"
+VLLM_CODER_URL="http://${FOUNDRY_IP}:8006"
+VLLM_WORKER_URL="http://${WORKSHOP_IP}:8010"
+VLLM_VISION_URL="http://${WORKSHOP_IP}:8000"
+AGENT_SERVER_URL="http://${FOUNDRY_IP}:9000"
+GATEWAY_URL="http://${DEV_IP}:8700"
+MEMORY_URL="http://${DEV_IP}:8720"
+QUALITY_GATE_URL="http://${DEV_IP}:8790"
+SEMANTIC_ROUTER_URL="http://${DEV_IP}:8060"
+EMBEDDING_URL="http://${DEV_IP}:8001"
+RERANKER_URL="http://${DEV_IP}:8003"
+SUBSCRIPTION_BURN_URL="http://${DEV_IP}:8065"
+GPU_ORCHESTRATOR_URL="http://${FOUNDRY_IP}:9200"
+SPEACHES_URL="http://${FOUNDRY_IP}:8200"
+SPEECHES_URL="${SPEACHES_URL}"
+SCORER_URL="http://${WORKSHOP_IP}:8050"
+COMFYUI_URL="http://${WORKSHOP_IP}:8188"
+OLLAMA_WORKSHOP_URL="http://${WORKSHOP_IP}:11434"
+QDRANT_URL="http://${VAULT_IP}:6333"
+NEO4J_BOLT_URL="bolt://${VAULT_IP}:7687"
+NEO4J_HTTP_URL="http://${VAULT_IP}:7474"
+REDIS_URL="redis://${VAULT_IP}:6379/0"
+PROMETHEUS_URL="http://${VAULT_IP}:9090"
+GRAFANA_URL="http://${VAULT_IP}:3000"
+NTFY_URL="http://${VAULT_IP}:8880"
+NTFY_TOPIC_URL="http://${VAULT_IP}:8880/athanor"
+N8N_URL="http://${VAULT_IP}:5678"
+STASH_URL="http://${VAULT_IP}:9999"
+UPTIME_KUMA_URL="http://${VAULT_IP}:3009"
+LANGFUSE_URL="http://${VAULT_IP}:3030"
+MINIFLUX_URL="http://${VAULT_IP}:8070"
+COMMAND_CENTER_URL="https://athanor.local"
+DASHBOARD_URL="http://dev.athanor.local:3001"
+OPENFANG_URL="http://${DEV_IP}:4200"

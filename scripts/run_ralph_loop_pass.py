@@ -20,7 +20,12 @@ from urllib.request import Request, urlopen
 import yaml
 
 from automation_records import AutomationRunRecord, emit_automation_run_record, read_recent_automation_run_records
-from closure_finish_common import build_finish_scoreboard, build_runtime_packet_inbox
+from closure_finish_common import (
+    FINISH_SCOREBOARD_PATH,
+    RUNTIME_PACKET_INBOX_PATH,
+    build_finish_scoreboard,
+    build_runtime_packet_inbox,
+)
 from layered_master_plan import build_publication_debt_summary, build_recovery_drill_summary
 from truth_inventory import resolve_external_path
 
@@ -50,8 +55,13 @@ RALPH_CONTINUITY_STATE_PATH = REPO_ROOT / "reports" / "truth-inventory" / "ralph
 BURN_REGISTRY_PATH = CONFIG_DIR / "subscription-burn-registry.json"
 PROVIDER_CATALOG_PATH = CONFIG_DIR / "provider-catalog.json"
 CAPABILITY_ADOPTION_PATH = CONFIG_DIR / "capability-adoption-registry.json"
+AUTONOMOUS_VALUE_CANARY_REGISTRY_PATH = CONFIG_DIR / "autonomous-value-canary-registry.json"
 APPROVAL_MATRIX_PATH = CONFIG_DIR / "approval-matrix.json"
 RUNTIME_PACKETS_PATH = CONFIG_DIR / "runtime-ownership-packets.json"
+BLOCKER_MAP_PATH = REPO_ROOT / "reports" / "truth-inventory" / "blocker-map.json"
+RUNTIME_PARITY_PATH = REPO_ROOT / "reports" / "truth-inventory" / "runtime-parity.json"
+CONTINUITY_SUPERVISOR_HEALTH_PATH = REPO_ROOT / "reports" / "truth-inventory" / "continuity-supervisor-health.json"
+AUTONOMOUS_VALUE_PROOF_REPORT_PATH = REPO_ROOT / "reports" / "truth-inventory" / "autonomous-value-proof.json"
 SAFE_SURFACE_STATE_PATH = resolve_external_path("C:/Users/Shaun/.codex/control/safe-surface-state.json")
 SAFE_SURFACE_QUEUE_PATH = resolve_external_path("C:/Users/Shaun/.codex/control/safe-surface-queue.json")
 WINDOWS_GIT_CANDIDATES = [
@@ -65,6 +75,18 @@ REFRESH_COMMANDS: list[list[str]] = [
     [sys.executable, "scripts/collect_truth_inventory.py"],
     [sys.executable, "scripts/run_gpu_scheduler_baseline_eval.py"],
     [sys.executable, "scripts/collect_capacity_telemetry.py"],
+    [
+        sys.executable,
+        "scripts/manage_active_overrides.py",
+        "expire",
+        "--reason",
+        "scheduled Ralph freshness sweep",
+        "--actor",
+        "Ralph",
+        "--session-id",
+        "ralph-loop",
+    ],
+    [sys.executable, "scripts/run_full_stack_routing_proof.py"],
     [sys.executable, "scripts/write_quota_truth_snapshot.py"],
     [sys.executable, "scripts/sync_github_portfolio_registry.py"],
     [sys.executable, "scripts/discover_reconciliation_sources.py"],
@@ -79,6 +101,35 @@ REFRESH_COMMANDS: list[list[str]] = [
 ]
 
 VALIDATION_COMMANDS: list[list[str]] = [
+    [sys.executable, "scripts/write_steady_state_status.py", "--json"],
+    [sys.executable, "scripts/generate_full_system_audit.py", "--skip-checks"],
+    [sys.executable, "scripts/write_project_output_readiness.py", "--json"],
+    [sys.executable, "scripts/write_project_output_candidates.py", "--json"],
+    [sys.executable, "scripts/materialize_project_output_acceptance.py", "--all-pending", "--json"],
+    [sys.executable, "scripts/write_project_output_candidates.py", "--json"],
+    [sys.executable, "scripts/write_project_output_proof.py", "--json"],
+    [sys.executable, "scripts/write_command_center_final_form_status.py", "--json"],
+    [sys.executable, "scripts/generate_truth_inventory_reports.py"],
+    [sys.executable, "scripts/generate_ecosystem_master_plan.py"],
+    [sys.executable, "scripts/validate_platform_contract.py"],
+    [sys.executable, "scripts/generate_documentation_index.py", "--check"],
+    [sys.executable, "scripts/generate_project_maturity_report.py", "--check"],
+    [sys.executable, "scripts/generate_truth_inventory_reports.py", "--check"],
+]
+
+LOCAL_VALIDATION_COMMANDS: list[list[str]] = [
+    [sys.executable, "scripts/write_steady_state_status.py", "--json"],
+    [sys.executable, "scripts/generate_full_system_audit.py", "--skip-checks"],
+    [sys.executable, "scripts/write_project_output_readiness.py", "--json"],
+    [sys.executable, "scripts/write_project_output_candidates.py", "--json"],
+    [sys.executable, "scripts/materialize_project_output_acceptance.py", "--all-pending", "--json"],
+    [sys.executable, "scripts/write_project_output_candidates.py", "--json"],
+    [sys.executable, "scripts/write_project_output_proof.py", "--json"],
+    [sys.executable, "scripts/write_command_center_final_form_status.py", "--json"],
+    [sys.executable, "scripts/generate_truth_inventory_reports.py"],
+    [sys.executable, "scripts/triage_publication_tranche.py", "--write", "docs/operations/PUBLICATION-TRIAGE-REPORT.md"],
+    [sys.executable, "scripts/generate_publication_deferred_family_queue.py"],
+    [sys.executable, "scripts/generate_ecosystem_master_plan.py"],
     [sys.executable, "scripts/validate_platform_contract.py"],
     [sys.executable, "scripts/generate_documentation_index.py", "--check"],
     [sys.executable, "scripts/generate_project_maturity_report.py", "--check"],
@@ -151,6 +202,18 @@ NEXT_ACTION_FAMILY_COMMANDS: dict[str, list[list[str]]] = {
     "dispatch_truth_and_queue_replenishment": [
         [sys.executable, "scripts/run_gpu_scheduler_baseline_eval.py"],
         [sys.executable, "scripts/collect_capacity_telemetry.py"],
+        [
+            sys.executable,
+            "scripts/manage_active_overrides.py",
+            "expire",
+            "--reason",
+            "scheduled Ralph freshness sweep",
+            "--actor",
+            "Ralph",
+            "--session-id",
+            "ralph-loop",
+        ],
+        [sys.executable, "scripts/run_full_stack_routing_proof.py"],
         [sys.executable, "scripts/write_quota_truth_snapshot.py"],
         [sys.executable, "scripts/run_ralph_loop_pass.py", "--skip-refresh"],
         [sys.executable, "scripts/validate_platform_contract.py"],
@@ -171,6 +234,18 @@ NEXT_ACTION_FAMILY_COMMANDS: dict[str, list[list[str]]] = {
     "capacity_truth_and_harvest_admission": [
         [sys.executable, "scripts/run_gpu_scheduler_baseline_eval.py"],
         [sys.executable, "scripts/collect_capacity_telemetry.py"],
+        [
+            sys.executable,
+            "scripts/manage_active_overrides.py",
+            "expire",
+            "--reason",
+            "scheduled Ralph freshness sweep",
+            "--actor",
+            "Ralph",
+            "--session-id",
+            "ralph-loop",
+        ],
+        [sys.executable, "scripts/run_full_stack_routing_proof.py"],
         [sys.executable, "scripts/write_quota_truth_snapshot.py"],
     ],
     "ranked_autonomous_dispatch": [],
@@ -181,6 +256,8 @@ AUTONOMOUS_VALUE_CLASS_ORDER = {
     "dispatch_truth_drift": 900,
     "promotion_wave_closure": 850,
     "failing_eval_or_validator": 800,
+    "operator_value": 780,
+    "product_value": 760,
     "repo_safe_system_hardening": 700,
     "secondary_tenant_or_product_work": 600,
 }
@@ -208,6 +285,7 @@ READY_ROUTING_POSTURES = {"ordinary_auto"}
 DISPATCH_ELIGIBLE_BACKLOG_STATUSES = {"captured", "triaged", "ready"}
 DISPATCH_ACTIVE_BACKLOG_STATUSES = {"scheduled", "running", "waiting_approval"}
 DISPATCH_TERMINAL_BACKLOG_STATUSES = {"completed", "failed", "archived", "blocked"}
+DISPATCH_TERMINAL_TASK_STATUSES = {"completed", "failed", "cancelled", "blocked"}
 GOVERNED_DISPATCH_TASK_CLASS_DEFAULTS = {
     "coding-agent": "async_backlog_execution",
     "research-agent": "repo_wide_audit",
@@ -319,6 +397,63 @@ def _clean_str(value: Any) -> str:
     return str(value or "").strip()
 
 
+def _normalize_validation_state(payload: Any) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        return {}
+    results = payload.get("results")
+    normalized_results = [dict(item) for item in results if isinstance(item, dict)] if isinstance(results, list) else []
+    all_passed = payload.get("all_passed")
+    if all_passed not in (True, False, None):
+        all_passed = None
+    ran = payload.get("ran")
+    if not isinstance(ran, bool):
+        ran = bool(normalized_results) or all_passed is not None
+    return {
+        "ran": ran,
+        "results": normalized_results,
+        "all_passed": all_passed,
+    }
+
+
+def _resolve_validation_state(
+    *,
+    skip_validation: bool,
+    previous_validation: dict[str, Any],
+    validation_results: list[dict[str, Any]],
+) -> dict[str, Any]:
+    if skip_validation:
+        if previous_validation:
+            return dict(previous_validation)
+        return {
+            "ran": False,
+            "results": [],
+            "all_passed": None,
+        }
+    return {
+        "ran": True,
+        "results": validation_results,
+        "all_passed": all(result["returncode"] == 0 for result in validation_results) if validation_results else None,
+    }
+
+
+def _persist_finish_artifacts(
+    report: dict[str, Any],
+    publication_deferred_queue: dict[str, Any],
+    runtime_packets_payload: dict[str, Any],
+) -> None:
+    runtime_packet_inbox = build_runtime_packet_inbox(runtime_packets_payload)
+    finish_scoreboard = build_finish_scoreboard(
+        report,
+        publication_deferred_queue,
+        runtime_packet_inbox,
+    )
+    report["runtime_packet_inbox"] = runtime_packet_inbox
+    report["finish_scoreboard"] = finish_scoreboard
+    RUNTIME_PACKET_INBOX_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _write_json(RUNTIME_PACKET_INBOX_PATH, runtime_packet_inbox)
+    _write_json(FINISH_SCOREBOARD_PATH, finish_scoreboard)
+
+
 def _load_agent_runtime() -> tuple[str, str]:
     load_optional_runtime_env(env_names=["ATHANOR_AGENT_API_TOKEN"])
     base_url = _clean_str(os.environ.get("ATHANOR_AGENT_SERVER_URL")) or _clean_str(get_url("agent_server"))
@@ -363,11 +498,16 @@ def _request_agent_json(
 
 def _run_command(command: list[str]) -> CommandResult:
     started = time.perf_counter()
+    env = None
+    if command[1:] == ["scripts/validate_platform_contract.py"] or command[1:] == ["scripts/run_contract_healer.py"]:
+        env = os.environ.copy()
+        env["ATHANOR_RUNTIME_PROOF_CONTEXT"] = "1"
     completed = subprocess.run(
         command,
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
+        env=env,
         check=False,
     )
     stdout = (completed.stdout or "").strip()
@@ -792,7 +932,7 @@ def _artifact_freshness(now_ts: float) -> dict[str, dict[str, Any]]:
             age_seconds = max(0, int(now_ts - mtime))
             stale = age_seconds > int(config["max_age_seconds"])
             mtime_iso = datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
-        results[artifact_id] = {
+        row = {
             "id": artifact_id,
             "path": str(path.relative_to(REPO_ROOT).as_posix()),
             "kind": str(config["kind"]),
@@ -802,6 +942,22 @@ def _artifact_freshness(now_ts: float) -> dict[str, dict[str, Any]]:
             "age_seconds": age_seconds,
             "modified_at": mtime_iso,
         }
+        if artifact_id == "github_portfolio" and exists:
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+            except Exception:
+                payload = None
+            if isinstance(payload, dict) and str(payload.get("sync_status") or "").strip() == "external_blocked":
+                row["stale"] = False
+                row["freshness_state"] = "external_dependency_blocked"
+                row["blocking_reason"] = str(payload.get("blocking_reason") or "").strip() or None
+                row["last_error"] = str(payload.get("last_error") or "").strip() or None
+                row["last_attempted_at"] = str(payload.get("last_attempted_at") or "").strip() or None
+            else:
+                row["freshness_state"] = "stale" if row["stale"] else "fresh"
+        else:
+            row["freshness_state"] = "stale" if row["stale"] else "fresh"
+        results[artifact_id] = row
     return results
 
 
@@ -829,6 +985,7 @@ def _evidence_state_for_workstream(
     workstream_artifacts = [str(item).strip() for item in workstream.get("evidence_artifacts", []) if str(item).strip()]
     artifact_rows: list[dict[str, Any]] = []
     stale_count = 0
+    external_blocked_count = 0
     for artifact in workstream_artifacts:
         artifact_path = str(Path(artifact).as_posix())
         freshness_match = next(
@@ -854,15 +1011,23 @@ def _evidence_state_for_workstream(
                 "stale": freshness_match["stale"],
                 "age_seconds": freshness_match["age_seconds"],
                 "kind": freshness_match["kind"],
+                "freshness_state": freshness_match.get("freshness_state"),
+                "blocking_reason": freshness_match.get("blocking_reason"),
+                "last_error": freshness_match.get("last_error"),
+                "last_attempted_at": freshness_match.get("last_attempted_at"),
             }
         if row.get("stale"):
             stale_count += 1
+        if row.get("freshness_state") == "external_dependency_blocked":
+            external_blocked_count += 1
         artifact_rows.append(row)
+    state = "stale_evidence" if stale_count else "external_dependency_blocked" if external_blocked_count else "fresh"
     return {
         "artifacts": artifact_rows,
         "stale_count": stale_count,
+        "external_blocked_count": external_blocked_count,
         "fresh_count": sum(1 for row in artifact_rows if row.get("tracked") and not row.get("stale")),
-        "state": "stale_evidence" if stale_count else "fresh",
+        "state": state,
     }
 
 
@@ -877,7 +1042,7 @@ def _rank_workstream(workstream: dict[str, Any], dependency_state: str, evidence
     elif execution_state == "steady_state_monitoring":
         status_bonus = 4
     dependency_bonus = 0 if dependency_state == "satisfied" else 5
-    evidence_bonus = 0 if evidence_state == "fresh" else -1
+    evidence_bonus = 0 if evidence_state in {"fresh", "external_dependency_blocked"} else -1
     return (priority_value, dependency_bonus, status_bonus, order_index + evidence_bonus)
 
 
@@ -1486,6 +1651,8 @@ def _automation_run_outcome(record: dict[str, Any]) -> str:
     dispatch_outcome = str(result.get("dispatch_outcome") or "").strip().lower()
     dispatch_execution_status = str(result.get("dispatch_execution_status") or "").strip().lower()
     claimed_task_id = str(result.get("claimed_task_id") or "").strip()
+    if dispatch_execution_status == "stale_dispatched_task":
+        return "failure"
     if dispatch_outcome == "claimed" and claimed_task_id and dispatch_execution_status in {"", "claimed", "already_dispatched", "spin_detected"}:
         return "success"
 
@@ -1567,7 +1734,13 @@ def _build_automation_feedback_summary(recent_records: list[dict[str, Any]]) -> 
         parsed_timestamp = _parse_automation_timestamp(raw_timestamp)
         dispatch_execution_status = str(result.get("dispatch_execution_status") or "").strip()
         dispatch_outcome = str(result.get("dispatch_outcome") or "").strip()
-        no_new_delta = dispatch_execution_status in {"already_dispatched", "spin_detected"} or (dispatch_outcome == "claimed" and not str(result.get("dispatched_task_id") or "").strip())
+        no_new_delta = (
+            dispatch_execution_status in {"already_dispatched", "spin_detected", "stale_dispatched_task"}
+            or (
+                dispatch_outcome == "claimed"
+                and not str(result.get("dispatched_task_id") or "").strip()
+            )
+        )
         ralph_claims.append(
             {
                 "task_id": claimed_task_id,
@@ -1745,7 +1918,7 @@ def _autonomous_ranking_score(
     slot_capacity_bonus: float = 0.0,
 ) -> float:
     priority_bonus = {"critical": 120, "high": 80, "medium": 45, "low": 20}.get(priority, 20)
-    evidence_bonus = {"stale_evidence": 120, "missing_evidence": 140, "fresh": 35}.get(evidence_state, 35)
+    evidence_bonus = {"stale_evidence": 120, "missing_evidence": 140, "external_dependency_blocked": 20, "fresh": 35}.get(evidence_state, 35)
     dispatch_bonus = 75 if dispatchable else 0
     blocker_penalty = 40 if blocker_type == "external_dependency" else 0
     return float(
@@ -2229,6 +2402,109 @@ def _build_capability_adoption_items(
     return rows
 
 
+def _validator_contract_healer_green(blocker_map: dict[str, Any]) -> bool:
+    proof_gate = dict(blocker_map.get("proof_gate") or {})
+    checks = list(proof_gate.get("checks") or [])
+    for check in checks:
+        if not isinstance(check, dict):
+            continue
+        if str(check.get("id") or "").strip() == "validator_and_contract_healer":
+            return bool(check.get("met"))
+    return False
+
+
+def _build_value_canary_items(
+    registry: dict[str, Any],
+    blocker_map: dict[str, Any],
+    runtime_parity: dict[str, Any],
+    supervisor_health: dict[str, Any],
+    autonomous_value_proof: dict[str, Any],
+) -> list[dict[str, Any]]:
+    registry = dict(registry or {})
+    if not registry:
+        return []
+
+    guardrails = dict(registry.get("guardrails") or {})
+    if bool(guardrails.get("require_runtime_parity_clean", True)) and str(runtime_parity.get("drift_class") or "").strip() not in {"clean", "generated_surface_drift"}:
+        return []
+    if bool(guardrails.get("require_validator_and_contract_healer_green", True)) and not _validator_contract_healer_green(blocker_map):
+        return []
+    if bool(guardrails.get("require_continuity_health_healthy", True)) and str(supervisor_health.get("health_status") or "").strip() != "healthy":
+        return []
+
+    stage_status = dict(autonomous_value_proof.get("stage_status") or {})
+    operator_value_stage = dict(stage_status.get("operator_value") or {})
+    operator_stage_met = bool(operator_value_stage.get("met"))
+
+    rows: list[dict[str, Any]] = []
+    for canary in registry.get("canaries", []):
+        if not isinstance(canary, dict):
+            continue
+        if not bool(canary.get("enabled", True)):
+            continue
+        canary_id = str(canary.get("id") or "").strip()
+        stage = str(canary.get("stage") or "").strip()
+        value_class = str(canary.get("value_class") or "").strip() or "operator_value"
+        if not canary_id or value_class not in {"operator_value", "product_value"}:
+            continue
+        if stage == "product_value" and not operator_stage_met:
+            continue
+        if stage == "operator_value" and operator_stage_met:
+            continue
+
+        proof_surface = str(canary.get("proof_command_or_eval_surface") or "").strip() or None
+        deliverable_refs = [
+            str(item).strip()
+            for item in list(canary.get("deliverable_refs") or [])
+            if str(item).strip()
+        ]
+        if not deliverable_refs and proof_surface:
+            deliverable_refs = [proof_surface]
+        ranking_score = _autonomous_ranking_score(
+            value_class=value_class,
+            priority="high" if stage == "operator_value" else "medium",
+            evidence_state="fresh",
+            dispatchable=True,
+            blocker_type="none",
+        ) + float(canary.get("ranking_bonus") or 0.0)
+        rows.append(
+            {
+                "id": f"autonomous_value_canary:{canary_id}",
+                "task_id": f"autonomous_value_canary:{canary_id}",
+                "title": str(canary.get("title") or canary_id.replace("-", " ").title()),
+                "repo": str(REPO_ROOT),
+                "source_type": "autonomous_value_canary",
+                "workstream_id": None,
+                "autonomous_value_canary_id": canary_id,
+                "value_stage": stage,
+                "value_class": value_class,
+                "family": str(canary.get("family_hint") or ("builder" if stage == "product_value" else "research_audit")).strip(),
+                "risk_class": "low",
+                "approved_mutation_class": str(canary.get("approved_mutation_class") or "auto_read_only").strip() or "auto_read_only",
+                "preferred_lane_family": str(canary.get("preferred_lane_family") or "safe_surface_execution").strip() or "safe_surface_execution",
+                "fallback_lane_family": "operator_follow_through",
+                "proof_command_or_eval_surface": proof_surface,
+                "closure_rule": str(canary.get("closure_rule") or "").strip() or None,
+                "ranking_score": ranking_score,
+                "status": "canary_ready",
+                "dispatchable": True,
+                "blocking_reason": None,
+                "evidence_state": "fresh",
+                "priority": "high" if stage == "operator_value" else "medium",
+                "deliverable_kind": str(canary.get("deliverable_kind") or "").strip() or None,
+                "deliverable_refs": deliverable_refs,
+                "beneficiary_surface": str(canary.get("beneficiary_surface") or "").strip() or None,
+                "task_brief": str(canary.get("task_brief") or "").strip() or None,
+                "acceptance_mode": "hybrid",
+                "acceptance_proof_refs": [
+                    str(canary.get("acceptance_artifact") or "").strip()
+                ] if str(canary.get("acceptance_artifact") or "").strip() else [],
+                "rollback_path": str(canary.get("rollback_path") or "").strip() or None,
+            }
+        )
+    return rows
+
+
 def _repo_git_probe_context(path: Path) -> tuple[list[str], str]:
     normalized = path.as_posix()
     return ['git'], normalized
@@ -2299,12 +2575,18 @@ def _build_ranked_autonomous_queue(
     work_economy_detail: dict[str, Any],
     provider_gate_detail: dict[str, Any],
     quota_truth: dict[str, Any],
-    publication_queue: dict[str, Any],
-    continuity_state: dict[str, Any],
+    publication_queue: dict[str, Any] | None = None,
+    continuity_state: dict[str, Any] | None = None,
     capacity_telemetry: dict[str, Any] | None = None,
     capability_registry: dict[str, Any] | None = None,
     runtime_packets_payload: dict[str, Any] | None = None,
+    autonomous_value_canary_registry: dict[str, Any] | None = None,
+    blocker_map: dict[str, Any] | None = None,
+    runtime_parity: dict[str, Any] | None = None,
+    supervisor_health: dict[str, Any] | None = None,
+    autonomous_value_proof: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
+    continuity_state = dict(continuity_state or {})
     workstream_items = _build_workstream_autonomous_items(workstream_rows, quota_truth, capacity_telemetry)
     continuity_policy = _continuity_policy(completion_program)
     repo_delta_paths = (
@@ -2326,6 +2608,13 @@ def _build_ranked_autonomous_queue(
         _queue_item_effectively_dispatchable(item) for item in workstream_items
     )
     rows = [
+        *_build_value_canary_items(
+            autonomous_value_canary_registry or {},
+            blocker_map or {},
+            runtime_parity or {},
+            supervisor_health or {},
+            autonomous_value_proof or {},
+        ),
         *_build_capability_adoption_items(capability_registry or {}, runtime_packets_payload or {}),
         *_build_burn_class_autonomous_items(burn_registry, work_economy_detail),
         *_build_safe_surface_autonomous_items(queue),
@@ -2348,7 +2637,7 @@ def _build_ranked_autonomous_queue(
             or validation_publication_is_unsuppressed_dispatchable
         )
     ):
-        rows.extend(_build_publication_deferred_family_items(publication_queue))
+        rows.extend(_build_publication_deferred_family_items(publication_queue or {}))
     rows = _apply_continuity_suppression(
         rows,
         continuity_state,
@@ -2508,13 +2797,18 @@ def _build_governed_dispatch_claim(
         }
     )
     claim_rotation_reason = None
-    if any(
-        bool(item.get("dispatchable")) and str(item.get("task_id") or "").strip() in suppressed_task_ids
-        for item in ranked_autonomous_queue
-    ):
+    preferred_items = [
+        item
+        for item in eligible_items
+        if str(item.get("task_id") or "").strip() not in suppressed_task_ids
+    ]
+    if preferred_items and top_task_id in suppressed_task_ids:
+        top_item = preferred_items[0]
+        top_task_id = str((top_item or {}).get("task_id") or "").strip() or None
+        claim_rotation_reason = "recent_no_delta_suppressed"
+    elif top_task_id in suppressed_task_ids:
         claim_rotation_reason = "recent_no_delta_suppressed"
 
-    top_task_id = str((top_item or {}).get("task_id") or "").strip() or None
     redirect_task_id = _prior_spin_redirect_task_id(
         dict(previous_ralph_report or {}),
         current_task_id=top_task_id,
@@ -2591,7 +2885,10 @@ def _build_governed_dispatch_claim(
         "current_repo": str(top_item.get("repo") or "").strip() or None,
         "current_source_type": str(top_item.get("source_type") or "").strip() or None,
         "current_workstream_id": str(top_item.get("workstream_id") or "").strip() or None,
+        "family": str(top_item.get("family") or "").strip() or None,
         "value_class": str(top_item.get("value_class") or "").strip() or None,
+        "value_stage": str(top_item.get("value_stage") or "").strip() or None,
+        "autonomous_value_canary_id": str(top_item.get("autonomous_value_canary_id") or "").strip() or None,
         "risk_class": str(top_item.get("risk_class") or "").strip() or None,
         "approved_mutation_class": approved_mutation_class or None,
         "approved_mutation_label": str(approval_class.get("label") or "").strip() or None,
@@ -2601,6 +2898,14 @@ def _build_governed_dispatch_claim(
         "fallback_lane_family": str(top_item.get("fallback_lane_family") or "").strip() or None,
         "proof_command_or_eval_surface": str(top_item.get("proof_command_or_eval_surface") or "").strip() or None,
         "closure_rule": str(top_item.get("closure_rule") or "").strip() or None,
+        "deliverable_kind": str(top_item.get("deliverable_kind") or "").strip() or None,
+        "deliverable_refs": [str(item).strip() for item in top_item.get("deliverable_refs", []) if str(item).strip()],
+        "beneficiary_surface": str(top_item.get("beneficiary_surface") or "").strip() or None,
+        "acceptance_mode": str(top_item.get("acceptance_mode") or "").strip() or None,
+        "acceptance_proof_refs": [
+            str(item).strip() for item in top_item.get("acceptance_proof_refs", []) if str(item).strip()
+        ],
+        "rollback_path": str(top_item.get("rollback_path") or "").strip() or None,
         "blocking_reason": str(top_item.get("blocking_reason") or "").strip() or None,
         "capacity_signal": dict(top_item.get("capacity_signal") or {}),
         "repo_side_no_delta": bool(top_item.get("repo_side_no_delta")),
@@ -2671,6 +2976,9 @@ def _build_governed_dispatch_runtime_state(
         "current_repo": claim_row.get("current_repo"),
         "current_source_type": claim_row.get("current_source_type"),
         "value_class": claim_row.get("value_class"),
+        "family": claim_row.get("family"),
+        "value_stage": claim_row.get("value_stage"),
+        "autonomous_value_canary_id": claim_row.get("autonomous_value_canary_id"),
         "risk_class": claim_row.get("risk_class"),
         "approved_mutation_class": claim_row.get("approved_mutation_class"),
         "approved_mutation_label": claim_row.get("approved_mutation_label"),
@@ -2679,6 +2987,12 @@ def _build_governed_dispatch_runtime_state(
         "preferred_lane_family": claim_row.get("preferred_lane_family"),
         "fallback_lane_family": claim_row.get("fallback_lane_family"),
         "closure_rule": claim_row.get("closure_rule"),
+        "deliverable_kind": claim_row.get("deliverable_kind"),
+        "deliverable_refs": list(claim_row.get("deliverable_refs") or []),
+        "beneficiary_surface": claim_row.get("beneficiary_surface"),
+        "acceptance_mode": claim_row.get("acceptance_mode"),
+        "acceptance_proof_refs": list(claim_row.get("acceptance_proof_refs") or []),
+        "rollback_path": claim_row.get("rollback_path"),
         "blocking_reason": claim_row.get("blocking_reason"),
         "claim_id": claim_row.get("claim_id"),
         "claimed_at": claim_row.get("claimed_at"),
@@ -2728,6 +3042,27 @@ def _matches_governed_dispatch_materialization(
     if metadata_source == "governed_dispatch_state" and metadata_task_id and metadata_task_id == task_id:
         return True
     return bool(item_title) and item_title == title and prompt.startswith('Advance the governed dispatch claim for "')
+
+
+def _select_governed_dispatch_materialization(
+    backlog_rows: list[dict[str, Any]],
+    claim_id: str,
+    task_id: str,
+    title: str,
+) -> dict[str, Any] | None:
+    matching_rows = [
+        dict(item)
+        for item in backlog_rows
+        if _matches_governed_dispatch_materialization(dict(item), claim_id, task_id, title)
+    ]
+    if not matching_rows:
+        return None
+
+    for item in matching_rows:
+        status = _clean_str(item.get("status")).lower()
+        if status not in DISPATCH_TERMINAL_BACKLOG_STATUSES:
+            return item
+    return None
 
 
 def _task_lookup_fields(task_row: dict[str, Any]) -> dict[str, Any]:
@@ -2868,20 +3203,80 @@ def _build_governed_dispatch_materialization_prompt(
     claim_id = _clean_str(claim.get("claim_id"))
     provider_gate_state = _clean_str(dispatch_authority.get("provider_gate_state")) or "unknown"
     work_economy_status = _clean_str(dispatch_authority.get("work_economy_status")) or "unknown"
+    value_stage = _clean_str(claim.get("value_stage"))
+    beneficiary_surface = _clean_str(claim.get("beneficiary_surface"))
+    deliverable_kind = _clean_str(claim.get("deliverable_kind"))
+    task_brief = _clean_str(claim.get("task_brief"))
+    deliverable_refs = [
+        _clean_str(item)
+        for item in claim.get("deliverable_refs", [])
+        if _clean_str(item)
+    ]
+    closure_rule = _clean_str(claim.get("closure_rule"))
 
     lines = [
         f'Advance the governed dispatch claim for "{current_task_title}".',
         f"Current task id: {current_task_id}" if current_task_id else None,
         f"Claim id: {claim_id}" if claim_id else None,
+        f"Value stage: {value_stage}" if value_stage else None,
+        f"Beneficiary surface: {beneficiary_surface}" if beneficiary_surface else None,
+        f"Deliverable kind: {deliverable_kind}" if deliverable_kind else None,
+        f"Deliverable refs: {', '.join(deliverable_refs)}" if deliverable_refs else None,
+        f"Task brief: {task_brief}" if task_brief else None,
         f"Preferred lane family: {lane_family}",
         f"Approved mutation class: {mutation_label}",
         f"Provider gate: {provider_gate_state}",
         f"Work economy: {work_economy_status}",
         f"Proof surface: {proof_surface}" if proof_surface else None,
+        f"Closure rule: {closure_rule}" if closure_rule else None,
         "Dispatch artifact: reports/truth-inventory/governed-dispatch-state.json",
-        "Stay within repo-safe, non-runtime work unless a governed approval surface explicitly widens scope.",
+        "Stay within repo-safe, non-runtime work unless a governed approval surface widens scope.",
     ]
     return "\n".join(line for line in lines if line)
+
+
+def _proof_commands_for_governed_claim(claim: dict[str, Any]) -> list[list[str]]:
+    preferred_lane_family = _clean_str(claim.get("preferred_lane_family"))
+    if preferred_lane_family in {"validation_and_checkpoint", "publication_freeze"}:
+        return [list(command) for command in VALIDATION_COMMANDS]
+    if preferred_lane_family == "capacity_truth_repair":
+        return [
+            [sys.executable, "scripts/run_gpu_scheduler_baseline_eval.py"],
+            [sys.executable, "scripts/collect_capacity_telemetry.py"],
+            [sys.executable, "scripts/write_quota_truth_snapshot.py"],
+        ]
+    if preferred_lane_family == "safe_surface_execution":
+        canary_id = _clean_str(claim.get("autonomous_value_canary_id"))
+        if canary_id == "dashboard-visible-proof":
+            return [[sys.executable, "scripts/run_dashboard_value_proof.py", "--surface", "dashboard_overview"]]
+        if canary_id == "builder-front-door-visible-proof":
+            return [[sys.executable, "scripts/run_dashboard_value_proof.py", "--surface", "builder_operator_surface"]]
+    return []
+
+
+def _proof_artifact_paths_for_governed_claim(claim: dict[str, Any]) -> list[str]:
+    preferred_lane_family = _clean_str(claim.get("preferred_lane_family"))
+    if preferred_lane_family in {"validation_and_checkpoint", "publication_freeze"}:
+        return [
+            "reports/truth-inventory/steady-state-status.json",
+            "reports/truth-inventory/ecosystem-master-plan.json",
+            "docs/operations/REPO-ROOTS-REPORT.md",
+            "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+            "reports/truth-inventory/surface-owner-matrix.json",
+        ]
+    if preferred_lane_family == "capacity_truth_repair":
+        return [
+            "reports/truth-inventory/gpu-scheduler-baseline-eval.json",
+            "reports/truth-inventory/capacity-telemetry.json",
+            "reports/truth-inventory/quota-truth.json",
+        ]
+    if preferred_lane_family == "safe_surface_execution":
+        return [
+            _clean_str(item)
+            for item in claim.get("deliverable_refs", [])
+            if _clean_str(item)
+        ]
+    return []
 
 
 def _materialize_governed_dispatch_claim(
@@ -2949,14 +3344,7 @@ def _materialize_governed_dispatch_claim(
         for item in list(query_payload.get("backlog") or [])
         if isinstance(item, dict)
     ]
-    existing = next(
-        (
-            item
-            for item in backlog_rows
-            if _matches_governed_dispatch_materialization(item, claim_id, task_id, title)
-        ),
-        None,
-    )
+    existing = _select_governed_dispatch_materialization(backlog_rows, claim_id, task_id, title)
     if existing is not None:
         existing_metadata = dict(existing.get("metadata") or {})
         materialization["status"] = "already_materialized"
@@ -2971,6 +3359,11 @@ def _materialize_governed_dispatch_claim(
 
     owner_agent = "coding-agent"
     governed_profile = _governed_dispatch_task_profile(owner_agent=owner_agent)
+    proof_commands = _proof_commands_for_governed_claim(claim_row)
+    proof_artifact_paths = _proof_artifact_paths_for_governed_claim(claim_row)
+    proof_surface = _clean_str(claim_row.get("proof_command_or_eval_surface")) or (
+        _command_surface_label(proof_commands[0]) if proof_commands else ""
+    )
     payload = {
         "actor": "ralph-loop",
         "session_id": "ralph-loop",
@@ -2983,6 +3376,7 @@ def _materialize_governed_dispatch_claim(
         "scope_type": "global",
         "scope_id": "athanor",
         "work_class": "system_improvement",
+        "family": _clean_str(claim_row.get("family")) or "",
         "priority": 1,
         "approval_mode": "none",
         "dispatch_policy": "planner_eligible",
@@ -2999,9 +3393,61 @@ def _materialize_governed_dispatch_claim(
             "preferred_lane_family": _clean_str(claim_row.get("preferred_lane_family")) or None,
             "approved_mutation_class": _clean_str(claim_row.get("approved_mutation_class")) or None,
             "approved_mutation_label": _clean_str(claim_row.get("approved_mutation_label")) or None,
+            "value_stage": _clean_str(claim_row.get("value_stage")) or None,
+            "autonomous_value_canary_id": _clean_str(claim_row.get("autonomous_value_canary_id")) or None,
+            "value_class": _clean_str(claim_row.get("value_class")) or None,
+            "family": _clean_str(claim_row.get("family")) or None,
+            "deliverable_kind": _clean_str(claim_row.get("deliverable_kind")) or None,
+            "deliverable_refs": [
+                _clean_str(item)
+                for item in claim_row.get("deliverable_refs", [])
+                if _clean_str(item)
+            ],
+            "beneficiary_surface": _clean_str(claim_row.get("beneficiary_surface")) or None,
+            "task_brief": _clean_str(claim_row.get("task_brief")) or None,
+            "acceptance_mode": _clean_str(claim_row.get("acceptance_mode")) or None,
+            "acceptance_proof_refs": [
+                _clean_str(item)
+                for item in claim_row.get("acceptance_proof_refs", [])
+                if _clean_str(item)
+            ],
+            "operator_steered": False,
             "provider_gate_state": _clean_str(dispatch_authority.get("provider_gate_state")) or None,
             "work_economy_status": _clean_str(dispatch_authority.get("work_economy_status")) or None,
             "report_path": "reports/truth-inventory/governed-dispatch-state.json",
+            "proof_commands": proof_commands,
+            "proof_command_surface": proof_surface or None,
+            "proof_artifact_paths": proof_artifact_paths,
+            "proof_execution_stage": (
+                "after_agent"
+                if _clean_str(claim_row.get("preferred_lane_family")) == "safe_surface_execution"
+                else None
+            ),
+            "proof_timeout_seconds": (
+                900
+                if _clean_str(claim_row.get("preferred_lane_family")) == "safe_surface_execution"
+                else None
+            ),
+            "preferred_provider_id": (
+                "google_gemini"
+                if _clean_str(claim_row.get("preferred_lane_family")) == "safe_surface_execution"
+                else "openai_codex"
+                if _clean_str(claim_row.get("preferred_lane_family")) in {"validation_and_checkpoint", "publication_freeze"}
+                else None
+            ),
+            "policy_class": (
+                "private_but_cloud_allowed"
+                if _clean_str(claim_row.get("preferred_lane_family")) in {"validation_and_checkpoint", "publication_freeze"}
+                else None
+            ),
+            "meta_lane": (
+                "frontier_cloud"
+                if _clean_str(claim_row.get("preferred_lane_family")) in {"validation_and_checkpoint", "publication_freeze"}
+                else None
+            ),
+            "requires_mutable_implementation_authority": (
+                _clean_str(claim_row.get("preferred_lane_family")) == "safe_surface_execution"
+            ),
         },
     }
     post_status, post_payload = request_fn(
@@ -3119,6 +3565,48 @@ def _dispatch_governed_dispatch_claim(
                 execution["advisory_blockers"] = ["agent_runtime_restart_interfering"]
             elif execution.get("resilience_state") == "restart_recovered":
                 execution["advisory_blockers"] = ["agent_runtime_restart_recovered"]
+            existing_task_status = _clean_str(existing_task.get("status")).lower()
+            if existing_task_status in {"completed", "cancelled", "blocked"} and backlog_status in DISPATCH_ACTIVE_BACKLOG_STATUSES:
+                execution["repair_reason"] = "stale_terminal_dispatch"
+                execution["repaired_task_id"] = latest_task_id or None
+                execution["repaired_stale_task_id"] = latest_task_id or None
+                transition_status, transition_payload = request_fn(
+                    base_url,
+                    token,
+                    f"/v1/operator/backlog/{backlog_id}/transition",
+                    method="POST",
+                    payload={
+                        "actor": "ralph-loop",
+                        "session_id": "ralph-loop",
+                        "correlation_id": uuid.uuid4().hex,
+                        "status": "ready",
+                        "note": (
+                            f"Reopened stale governed dispatch backlog after latest task {latest_task_id} "
+                            f"ended {existing_task_status} while backlog remained {backlog_status}."
+                        ),
+                    },
+                    timeout=20,
+                )
+                execution["repair_status_code"] = transition_status
+                if transition_status != 200:
+                    execution["status"] = "repair_failed"
+                    execution["dispatch_outcome"] = "failed"
+                    execution["error"] = (
+                        _clean_str(transition_payload.get("error"))
+                        or f"operator backlog transition failed with {transition_status}"
+                    )
+                    return execution
+                repaired_backlog = dict(transition_payload.get("backlog") or {})
+                reopened_backlog_status = _clean_str(repaired_backlog.get("status")).lower() or "ready"
+                if reopened_backlog_status not in DISPATCH_ELIGIBLE_BACKLOG_STATUSES:
+                    execution["status"] = "repair_failed"
+                    execution["dispatch_outcome"] = "failed"
+                    execution["error"] = (
+                        f"backlog {backlog_id} transition returned non-dispatchable status '{reopened_backlog_status}'"
+                    )
+                    return execution
+                backlog_status = reopened_backlog_status
+                execution["backlog_status"] = backlog_status or None
 
     if existing_task and _governed_dispatch_task_requires_repair(existing_task):
         existing_task_status = _clean_str(existing_task.get("status")).lower()
@@ -3174,6 +3662,73 @@ def _dispatch_governed_dispatch_claim(
             return execution
         backlog_status = "ready"
         execution["backlog_status"] = backlog_status
+    elif backlog_status == "blocked":
+        backlog_lookup_status, backlog_lookup_payload = request_fn(
+            base_url,
+            token,
+            "/v1/operator/backlog?limit=200",
+            timeout=20,
+        )
+        execution["lookup_backlog_status_code"] = backlog_lookup_status
+        blocked_backlog = {}
+        if backlog_lookup_status == 200:
+            blocked_backlog = next(
+                (
+                    dict(item)
+                    for item in backlog_lookup_payload.get("backlog") or []
+                    if _clean_str(dict(item).get("id")) == backlog_id
+                ),
+                {},
+            )
+        blocked_metadata = dict(blocked_backlog.get("metadata") or {})
+        blocked_reason = _clean_str(
+            blocked_backlog.get("blocking_reason") or blocked_metadata.get("blocking_reason")
+        ).lower()
+        verification_pending_reason = _clean_str(blocked_metadata.get("verification_pending_reason")).lower()
+        existing_task_status = _clean_str((existing_task or {}).get("status")).lower()
+        if (
+            existing_task_status == "completed"
+            and "verification_evidence_missing" in {blocked_reason, verification_pending_reason}
+        ):
+            execution["repair_reason"] = "stale_verification_block"
+            execution["repaired_task_id"] = latest_task_id or None
+            transition_status, transition_payload = request_fn(
+                base_url,
+                token,
+                f"/v1/operator/backlog/{backlog_id}/transition",
+                method="POST",
+                payload={
+                    "actor": "ralph-loop",
+                    "session_id": "ralph-loop",
+                    "correlation_id": uuid.uuid4().hex,
+                    "status": "ready",
+                    "note": (
+                        f"Reopened blocked backlog after latest task {latest_task_id or 'unknown'} "
+                        "completed without retained verification evidence and requires redispatch."
+                    ),
+                },
+                timeout=20,
+            )
+            execution["repair_status_code"] = transition_status
+            if transition_status != 200:
+                execution["status"] = "repair_failed"
+                execution["dispatch_outcome"] = "failed"
+                execution["error"] = (
+                    _clean_str(transition_payload.get("error"))
+                    or f"operator backlog transition failed with {transition_status}"
+                )
+                return execution
+            repaired_backlog = dict(transition_payload.get("backlog") or {})
+            reopened_backlog_status = _clean_str(repaired_backlog.get("status")).lower() or "ready"
+            if reopened_backlog_status not in DISPATCH_ELIGIBLE_BACKLOG_STATUSES:
+                execution["status"] = "repair_failed"
+                execution["dispatch_outcome"] = "failed"
+                execution["error"] = (
+                    f"backlog {backlog_id} transition returned non-dispatchable status '{reopened_backlog_status}'"
+                )
+                return execution
+            backlog_status = reopened_backlog_status
+            execution["backlog_status"] = backlog_status
 
     if backlog_status in DISPATCH_ACTIVE_BACKLOG_STATUSES:
         execution["status"] = "already_dispatched"
@@ -3464,12 +4019,15 @@ def _build_operator_facing_state_aliases(
     ranked_autonomous_queue: list[dict[str, Any]],
     autonomous_queue_summary: dict[str, Any],
     dispatch_authority: dict[str, Any],
-    governed_dispatch_claim: dict[str, Any],
-    continuity_status: dict[str, Any],
-    publication_next_family: dict[str, Any],
+    governed_dispatch_claim: dict[str, Any] | None = None,
+    continuity_status: dict[str, Any] | None = None,
+    publication_next_family: dict[str, Any] | None = None,
     *,
-    any_stale_evidence: bool,
+    any_stale_evidence: bool = False,
 ) -> dict[str, Any]:
+    governed_dispatch_claim = dict(governed_dispatch_claim or {})
+    continuity_status = dict(continuity_status or {})
+    publication_next_family = dict(publication_next_family or {})
     top_queue_item = next(
         (row for row in ranked_autonomous_queue if _queue_item_effectively_dispatchable(row)),
         ranked_autonomous_queue[0] if ranked_autonomous_queue else None,
@@ -3813,7 +4371,11 @@ def _build_executive_brief(report: dict[str, Any], continuity_policy: dict[str, 
         "landed_or_delta": {
             "summary": latest_delta_summary,
             "dispatch_status": dispatch_status,
-            "dispatch_outcome": pick_string(governed_claim.get("dispatch_outcome"), report.get("dispatch_status")),
+            "dispatch_outcome": pick_string(
+                governed_execution.get("dispatch_outcome"),
+                governed_claim.get("dispatch_outcome"),
+                report.get("dispatch_status"),
+            ),
             "rotation_reason": rotation_reason,
             "repo_side_no_delta": repo_side_no_delta,
             "rotation_ready": rotation_ready,
@@ -3968,6 +4530,7 @@ def main() -> int:
     burn_registry = _load_json(BURN_REGISTRY_PATH)
     provider_catalog = _load_json(PROVIDER_CATALOG_PATH)
     capability_registry = _load_json(CAPABILITY_ADOPTION_PATH)
+    autonomous_value_canary_registry = _load_json(AUTONOMOUS_VALUE_CANARY_REGISTRY_PATH)
     approval_matrix = _load_json(APPROVAL_MATRIX_PATH)
     provider_gate_detail = _provider_gate_detail(provider_catalog)
     _sync_provider_gate_registry_state(completion_program, provider_gate_detail)
@@ -3979,6 +4542,14 @@ def main() -> int:
     safe_surface_queue = _load_json(SAFE_SURFACE_QUEUE_PATH) if SAFE_SURFACE_QUEUE_PATH.exists() else {}
     publication_deferred_queue = _load_json(PUBLICATION_DEFERRED_QUEUE_PATH) if PUBLICATION_DEFERRED_QUEUE_PATH.exists() else {}
     runtime_packets_payload = _load_json(RUNTIME_PACKETS_PATH)
+    blocker_map = _load_json(BLOCKER_MAP_PATH) if BLOCKER_MAP_PATH.exists() else {}
+    runtime_parity = _load_json(RUNTIME_PARITY_PATH) if RUNTIME_PARITY_PATH.exists() else {}
+    supervisor_health = _load_json(CONTINUITY_SUPERVISOR_HEALTH_PATH) if CONTINUITY_SUPERVISOR_HEALTH_PATH.exists() else {}
+    autonomous_value_proof = (
+        _load_json(AUTONOMOUS_VALUE_PROOF_REPORT_PATH)
+        if AUTONOMOUS_VALUE_PROOF_REPORT_PATH.exists()
+        else {}
+    )
     previous_continuity_state = _load_json(RALPH_CONTINUITY_STATE_PATH) if RALPH_CONTINUITY_STATE_PATH.exists() else {}
     now_ts = time.time()
     freshness_index = _artifact_freshness(now_ts)
@@ -3993,6 +4564,7 @@ def main() -> int:
     )
     generated_at = _iso_now()
     previous_ralph_report = _load_json(REPORT_PATH) if REPORT_PATH.exists() else {}
+    previous_validation = _normalize_validation_state(previous_ralph_report.get("validation"))
     preexisting_automation_feedback_summary = _build_automation_feedback_summary(
         asyncio.run(read_recent_automation_run_records(limit=AUTOMATION_FEEDBACK_RECENT_LIMIT))
     )
@@ -4036,6 +4608,11 @@ def main() -> int:
         capacity_telemetry=capacity_telemetry,
         capability_registry=capability_registry,
         runtime_packets_payload=runtime_packets_payload,
+        autonomous_value_canary_registry=autonomous_value_canary_registry,
+        blocker_map=blocker_map,
+        runtime_parity=runtime_parity,
+        supervisor_health=supervisor_health,
+        autonomous_value_proof=autonomous_value_proof,
     )
     reopened_task_ids = {
         str(item.get("task_id") or "").strip()
@@ -4259,11 +4836,11 @@ def main() -> int:
             for row in workstream_rows
         ],
         "next_actions": _build_next_actions(selected_family, selected_workstream, ranked_autonomous_queue),
-        "validation": {
-            "ran": not args.skip_validation,
-            "results": [],
-            "all_passed": None,
-        },
+        "validation": _resolve_validation_state(
+            skip_validation=bool(args.skip_validation),
+            previous_validation=previous_validation,
+            validation_results=[],
+        ),
     }
     report["next_checkpoint_slice_id"] = _clean_str(dict(report.get("publication_debt") or {}).get("next_checkpoint_slice_id"))
     report["next_checkpoint_slice_title"] = _clean_str(dict(report.get("publication_debt") or {}).get("next_checkpoint_slice_title"))
@@ -4279,13 +4856,13 @@ def main() -> int:
 
     validation_results: list[dict[str, Any]] = []
     if not args.skip_validation:
-        for command in VALIDATION_COMMANDS:
+        for command in LOCAL_VALIDATION_COMMANDS:
             validation_results.append(_run_command(command).to_dict())
-    report["validation"] = {
-        "ran": not args.skip_validation,
-        "results": validation_results,
-        "all_passed": all(result["returncode"] == 0 for result in validation_results) if validation_results else None,
-    }
+    report["validation"] = _resolve_validation_state(
+        skip_validation=bool(args.skip_validation),
+        previous_validation=previous_validation,
+        validation_results=validation_results,
+    )
     completion_program = _load_json(CONFIG_DIR / "completion-program-registry.json")
     end_state_summary = _summarize_reconciliation_end_state(
         completion_program,
@@ -4324,7 +4901,7 @@ def main() -> int:
         action_class="autonomous_planning",
         inputs={
             "refresh_commands": REFRESH_COMMANDS,
-            "validation_commands": VALIDATION_COMMANDS,
+            "validation_commands": LOCAL_VALIDATION_COMMANDS,
             "report_path": str(REPORT_PATH),
             "governed_dispatch_state_path": str(SAFE_SURFACE_STATE_PATH),
             "skip_refresh": bool(args.skip_refresh),
@@ -4418,11 +4995,10 @@ def main() -> int:
             governed_execution_block["status"] = "spin_detected"
     report["automation_record_persisted"] = emit_result.persisted
     report["automation_record_error"] = emit_result.error
-    report["runtime_packet_inbox"] = build_runtime_packet_inbox(runtime_packets_payload)
-    report["finish_scoreboard"] = build_finish_scoreboard(
+    _persist_finish_artifacts(
         report,
         publication_deferred_queue,
-        report["runtime_packet_inbox"],
+        runtime_packets_payload,
     )
     report["executive_brief"] = _build_executive_brief(report, continuity_policy)
     _write_json(REPORT_PATH, report)

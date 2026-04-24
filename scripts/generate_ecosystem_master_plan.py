@@ -591,7 +591,7 @@ def build_payload() -> dict[str, Any]:
     front_door_sequence = [
         {
             'order': 1,
-            'surface': str(STEADY_STATE_LIVE_MD_PATH),
+            'surface': STEADY_STATE_LIVE_MD_PATH.as_posix(),
             'purpose': 'Volatile adopted-system feed for current work, queue posture, and recent activity without repo-tracked churn.',
             'use_when': 'First read for daily operation.',
         },

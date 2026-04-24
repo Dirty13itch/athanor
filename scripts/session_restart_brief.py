@@ -4,6 +4,7 @@ import argparse
 import json
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -73,6 +74,32 @@ def _pick_string(*values: Any) -> str | None:
         if isinstance(value, str) and value.strip():
             return value.strip()
     return None
+
+
+def _parse_generated_at(value: Any) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if not text:
+        return None
+    try:
+        return datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def _prefer_fresher_mapping(primary: dict[str, Any], fallback: dict[str, Any]) -> dict[str, Any]:
+    if not primary:
+        return fallback
+    if not fallback:
+        return primary
+    primary_at = _parse_generated_at(primary.get("generated_at"))
+    fallback_at = _parse_generated_at(fallback.get("generated_at"))
+    if primary_at and fallback_at:
+        return primary if primary_at >= fallback_at else fallback
+    if primary_at:
+        return primary
+    return fallback
 
 
 def _pick_queue(payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -209,6 +236,10 @@ def build_restart_snapshot() -> dict[str, Any]:
     continuity = _load_optional_json(RALPH_CONTINUITY_STATE_PATH)
     next_rotation_preflight = _load_optional_json(NEXT_ROTATION_PREFLIGHT_PATH)
     finish_scoreboard = _load_optional_json(FINISH_SCOREBOARD_PATH)
+    finish_scoreboard = _prefer_fresher_mapping(
+        dict(ralph.get("finish_scoreboard") or {}) if isinstance(ralph.get("finish_scoreboard"), dict) else {},
+        finish_scoreboard,
+    )
     runtime_packet_inbox = _load_optional_json(RUNTIME_PACKET_INBOX_PATH)
     steady_state_status = _load_optional_json(STEADY_STATE_STATUS_PATH)
     atlas = _load_optional_json(ATLAS_LATEST_PATH)

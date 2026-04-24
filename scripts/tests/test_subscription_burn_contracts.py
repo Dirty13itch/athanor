@@ -32,6 +32,18 @@ def _load_module(name: str, path: Path):
     return module
 
 
+def test_subscription_burn_registers_cli_router_module_for_dynamic_import() -> None:
+    sys.modules.pop("athanor_cli_router", None)
+
+    module = _load_module(
+        f"subscription_burn_contract_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "subscription-burn.py",
+    )
+
+    assert "athanor_cli_router" in sys.modules
+    assert module.CLIRouter.__module__ == "athanor_cli_router"
+
+
 @pytest.fixture()
 def subscription_burn_client(
     tmp_path: Path,

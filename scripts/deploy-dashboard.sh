@@ -13,6 +13,8 @@ DEV_HOST="${ATHANOR_DEV_SSH_HOST:-dev}"
 SRC_DASHBOARD_DIR="${REPO_DIR}/projects/dashboard"
 REMOTE_ROOT="/opt/athanor"
 REMOTE_DASHBOARD_DIR="${REMOTE_ROOT}/dashboard"
+REMOTE_REPORTS_DIR="${REMOTE_ROOT}/reports"
+REMOTE_TRUTH_INVENTORY_DIR="${REMOTE_REPORTS_DIR}/truth-inventory"
 BACKUP_ROOT="${REMOTE_ROOT}/backups/dashboard/$(date +%Y%m%d-%H%M%S)"
 SESSION_URL="${COMMAND_CENTER_URL%/}/api/operator/session"
 RUNTIME_URL="${DASHBOARD_URL%/}/api/operator/session"
@@ -139,7 +141,8 @@ fi
 
 echo "[1/4] Backing up current compose roots..."
 ssh "${DEV_HOST}" "sudo mkdir -p '${BACKUP_ROOT}' && \
-  if [ -d '${REMOTE_DASHBOARD_DIR}' ]; then sudo cp -a '${REMOTE_DASHBOARD_DIR}' '${BACKUP_ROOT}/dashboard'; fi"
+  if [ -d '${REMOTE_DASHBOARD_DIR}' ]; then sudo cp -a '${REMOTE_DASHBOARD_DIR}' '${BACKUP_ROOT}/dashboard'; fi && \
+  if [ -d '${REMOTE_TRUTH_INVENTORY_DIR}' ]; then sudo cp -a '${REMOTE_TRUTH_INVENTORY_DIR}' '${BACKUP_ROOT}/truth-inventory'; fi"
 
 echo "[2/4] Syncing dashboard sources..."
 ARCHIVE_BASENAME="athanor-dashboard-sync.tar"
@@ -166,6 +169,11 @@ tar \
   .
 scp "${LOCAL_ARCHIVE}" "${DEV_HOST}:${REMOTE_ARCHIVE}"
 ssh "${DEV_HOST}" "mkdir -p '${REMOTE_DASHBOARD_DIR}' && find '${REMOTE_DASHBOARD_DIR}' -mindepth 1 -maxdepth 1 ! -name '.env' -exec rm -rf {} + && tar -xf '${REMOTE_ARCHIVE}' -C '${REMOTE_DASHBOARD_DIR}' && rm -f '${REMOTE_ARCHIVE}'"
+if [[ -d "${REPO_DIR}/reports/truth-inventory" ]]; then
+  echo "[2b/4] Syncing truth inventory..."
+  tar -C "${REPO_DIR}/reports" -cf - truth-inventory \
+    | ssh "${DEV_HOST}" "sudo mkdir -p '${REMOTE_REPORTS_DIR}' && sudo rm -rf '${REMOTE_TRUTH_INVENTORY_DIR}' && sudo tar -xf - -C '${REMOTE_REPORTS_DIR}'"
+fi
 
 if [[ "${1:-}" == "--no-build" ]]; then
   echo "[3/4] Skipped build/restart (--no-build)"
@@ -177,7 +185,7 @@ echo "[3/4] Rebuilding and restarting dashboard lane..."
 ssh "${DEV_HOST}" "cd '${REMOTE_DASHBOARD_DIR}' && docker compose build dashboard && docker compose up -d dashboard"
 
 echo "[4/4] Verifying dashboard health..."
-if wait_for_dashboard_health; then
+if wait_for_dashboard_health && python3 "${REPO_DIR}/scripts/tests/live-dashboard-smoke.py" --scope command-center-final-form --insecure --skip-chat; then
   echo "=== Dashboard deploy complete ==="
   exit 0
 fi

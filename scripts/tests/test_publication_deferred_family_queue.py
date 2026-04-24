@@ -104,6 +104,147 @@ def test_build_queue_bundle_orders_families_and_surfaces_next_tranche(monkeypatc
 
 
 
+def test_build_queue_bundle_surfaces_first_control_plane_subfamily_as_next_tranche(monkeypatch, tmp_path: Path) -> None:
+    queue_module = _load_module(
+        f"publication_deferred_queue_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / 'generate_publication_deferred_family_queue.py',
+    )
+
+    triage_bundle = {
+        'active_sequence_id': 'sequence',
+        'summary': {
+            'dirty_entries': 4,
+            'slice_matched_entries': 0,
+            'deferred_entries': 3,
+        },
+        'deferred_families': [
+            {
+                'id': 'control-plane-registry-and-routing',
+                'title': 'Control-Plane Registry and Routing',
+                'disposition': 'deferred_out_of_sequence',
+                'execution_rank': 6,
+                'execution_class': 'program_slice',
+                'next_action': 'Split registry and routing policy residue.',
+                'success_condition': 'Registry/routing residue is isolated.',
+                'owner_workstreams': ['authority-and-mainline'],
+                'match_count': 2,
+                'path_hints': ['config/automation-backbone/'],
+                'matched_entries': [{'path': 'config/automation-backbone/economic-dispatch-ledger.json'}],
+                'scope': 'Registry and routing policy surfaces.',
+            },
+            {
+                'id': 'agent-execution-kernel-follow-on',
+                'title': 'Agent Execution Kernel Follow-on',
+                'disposition': 'deferred_out_of_sequence',
+                'execution_rank': 7,
+                'execution_class': 'program_slice',
+                'next_action': 'Bound the execution kernel.',
+                'success_condition': 'Execution-kernel residue is isolated.',
+                'owner_workstreams': ['authority-and-mainline'],
+                'match_count': 1,
+                'path_hints': ['projects/agents/src/athanor_agents/operator_work.py'],
+                'matched_entries': [{'path': 'projects/agents/src/athanor_agents/operator_work.py'}],
+                'scope': 'Execution kernel surfaces.',
+            },
+            {
+                'id': 'control-plane-proof-and-ops-follow-on',
+                'title': 'Control-Plane Proof and Ops Follow-on',
+                'disposition': 'deferred_out_of_sequence',
+                'execution_rank': 9,
+                'execution_class': 'program_slice',
+                'next_action': 'Split proof and ops residue.',
+                'success_condition': 'Proof/ops residue is isolated.',
+                'owner_workstreams': ['validation-and-publication'],
+                'match_count': 0,
+                'path_hints': ['scripts/'],
+                'matched_entries': [],
+                'scope': 'Proof and ops surfaces.',
+            },
+        ],
+    }
+
+    monkeypatch.setattr(
+        queue_module,
+        'build_triage_bundle',
+        lambda repo_root, registry_path=None, docs_lifecycle_registry_path=None: triage_bundle,
+    )
+    monkeypatch.setattr(queue_module, '_publication_config_fingerprint', lambda _path: 'fingerprint')
+
+    bundle = queue_module.build_queue_bundle(
+        repo_root=tmp_path,
+        registry_path=tmp_path / 'completion-program-registry.json',
+        docs_lifecycle_registry_path=tmp_path / 'docs-lifecycle-registry.json',
+    )
+
+    assert bundle['next_recommended_family']['id'] == 'control-plane-registry-and-routing'
+    assert [item['id'] for item in bundle['families']] == [
+        'control-plane-registry-and-routing',
+        'agent-execution-kernel-follow-on',
+        'control-plane-proof-and-ops-follow-on',
+    ]
+
+
+def test_build_queue_bundle_advances_to_next_family_once_control_plane_family_is_fully_claimed(monkeypatch, tmp_path: Path) -> None:
+    queue_module = _load_module(
+        f"publication_deferred_queue_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / 'generate_publication_deferred_family_queue.py',
+    )
+
+    triage_bundle = {
+        'active_sequence_id': 'sequence',
+        'summary': {
+            'dirty_entries': 6,
+            'slice_matched_entries': 6,
+            'deferred_entries': 3,
+        },
+        'deferred_families': [
+            {
+                'id': 'control-plane-registry-and-routing',
+                'title': 'Control-Plane Registry and Routing',
+                'disposition': 'deferred_out_of_sequence',
+                'execution_rank': 6,
+                'execution_class': 'program_slice',
+                'next_action': 'Split registry and routing policy residue.',
+                'success_condition': 'Registry/routing residue is isolated.',
+                'owner_workstreams': ['authority-and-mainline'],
+                'match_count': 0,
+                'path_hints': ['config/automation-backbone/'],
+                'matched_entries': [],
+                'scope': 'Registry and routing policy surfaces.',
+            },
+            {
+                'id': 'agent-execution-kernel-follow-on',
+                'title': 'Agent Execution Kernel Follow-on',
+                'disposition': 'deferred_out_of_sequence',
+                'execution_rank': 7,
+                'execution_class': 'program_slice',
+                'next_action': 'Bound the execution kernel.',
+                'success_condition': 'Execution-kernel residue is isolated.',
+                'owner_workstreams': ['authority-and-mainline'],
+                'match_count': 3,
+                'path_hints': ['projects/agents/src/athanor_agents/operator_work.py'],
+                'matched_entries': [{'path': 'projects/agents/src/athanor_agents/operator_work.py'}],
+                'scope': 'Execution kernel surfaces.',
+            },
+        ],
+    }
+
+    monkeypatch.setattr(
+        queue_module,
+        'build_triage_bundle',
+        lambda repo_root, registry_path=None, docs_lifecycle_registry_path=None: triage_bundle,
+    )
+    monkeypatch.setattr(queue_module, '_publication_config_fingerprint', lambda _path: 'fingerprint')
+
+    bundle = queue_module.build_queue_bundle(
+        repo_root=tmp_path,
+        registry_path=tmp_path / 'completion-program-registry.json',
+        docs_lifecycle_registry_path=tmp_path / 'docs-lifecycle-registry.json',
+    )
+
+    assert bundle['next_recommended_family']['id'] == 'agent-execution-kernel-follow-on'
+
+
 def test_check_does_not_report_stale_when_triage_is_newer_but_outputs_match(monkeypatch, tmp_path: Path) -> None:
     queue_module = _load_module(
         f"publication_deferred_queue_{uuid.uuid4().hex}",

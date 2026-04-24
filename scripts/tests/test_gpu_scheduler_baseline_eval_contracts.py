@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import importlib.util
+import subprocess
 import sys
 import uuid
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -94,3 +96,40 @@ def test_capacity_truth_check_blocks_when_slot_inventory_drifts() -> None:
     assert "scheduler_queue_depth_matches" in check["mismatches"]
     assert "scheduler_slot_count_matches" in check["mismatches"]
     assert "scheduler_slot_inventory_matches" in check["mismatches"]
+
+
+def test_ssh_probe_handles_missing_ssh_binary_without_crashing() -> None:
+    module = _load_module(
+        f"gpu_scheduler_baseline_eval_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_gpu_scheduler_baseline_eval.py",
+    )
+
+    with patch.object(module.subprocess, "run", side_effect=FileNotFoundError("ssh")):
+        result = module._ssh_probe("192.168.1.244", "echo test")
+
+    assert result["ok"] is False
+    assert result["returncode"] is None
+    assert result["error"].startswith("FileNotFoundError:")
+
+
+def test_ssh_probe_uses_batch_mode_options() -> None:
+    module = _load_module(
+        f"gpu_scheduler_baseline_eval_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_gpu_scheduler_baseline_eval.py",
+    )
+
+    completed = subprocess.CompletedProcess(
+        args=["ssh"],
+        returncode=0,
+        stdout="ok\n",
+        stderr="",
+    )
+    runner = Mock(return_value=completed)
+    with patch.object(module.subprocess, "run", runner):
+        result = module._ssh_probe("192.168.1.244", "echo test")
+
+    command = runner.call_args.args[0]
+    assert command[:3] == ["ssh", "-o", "BatchMode=yes"]
+    assert "StrictHostKeyChecking=no" in command
+    assert command[-2:] == ["192.168.1.244", "echo test"]
+    assert result["ok"] is True

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -12,6 +13,7 @@ DEFAULT_REMOTE = "dev"
 DEFAULT_REMOTE_REPO = "/home/shaun/repos/athanor"
 DEFAULT_BACKUP_ROOT = "/home/shaun/.athanor/backups/runtime-ownership/runtime-repo-sync"
 DEFAULT_RETENTION_COUNT = 3
+RUNTIME_SYNC_STATE_PATH = Path.home() / ".athanor" / "runtime-ownership" / "dev-runtime-repo-sync-state.json"
 DEFAULT_RESTART_UNITS = [
     "athanor-brain.service",
     "athanor-classifier.service",
@@ -56,6 +58,38 @@ def _ensure_clean_worktree() -> None:
 def _git_head() -> str:
     result = _run(["git", "rev-parse", "HEAD"], cwd=REPO_ROOT, capture_output=True)
     return result.stdout.strip()
+
+
+def _local_proof_manifest_hash() -> str:
+    from write_runtime_parity import _local_proof_manifest_hash as compute_manifest_hash
+
+    return str(compute_manifest_hash() or "missing")
+
+
+def _write_runtime_sync_state(
+    *,
+    head_sha: str,
+    synced_at_iso: str,
+    remote: str,
+    remote_repo: str,
+    temp_branch: str,
+    backup_branch: str,
+    backup_root: str,
+) -> None:
+    payload = {
+        "synced_at": synced_at_iso,
+        "source_root": str(REPO_ROOT),
+        "source_commit": head_sha,
+        "source_clean": True,
+        "source_proof_manifest_hash": _local_proof_manifest_hash(),
+        "remote": remote,
+        "remote_repo": remote_repo,
+        "temp_branch": temp_branch,
+        "backup_branch": backup_branch,
+        "backup_root": backup_root,
+    }
+    RUNTIME_SYNC_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    RUNTIME_SYNC_STATE_PATH.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def _push_temp_ref(remote: str, remote_repo: str, head_sha: str, temp_branch: str) -> None:
@@ -243,7 +277,8 @@ def main() -> int:
     args = _parse_args()
     if args.retention_count < 0:
         raise SystemExit("--retention-count must be >= 0")
-    timestamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d-%H%M%S")
+    started_at = dt.datetime.now(dt.timezone.utc)
+    timestamp = started_at.strftime("%Y%m%d-%H%M%S")
     head_sha = _git_head()
     short_sha = head_sha[:12]
     temp_branch = f"runtime-sync/{timestamp}-{short_sha}"
@@ -281,6 +316,16 @@ def main() -> int:
         cleanup_only=args.cleanup_only,
     )
     print(summary)
+    if not args.cleanup_only:
+        _write_runtime_sync_state(
+            head_sha=head_sha,
+            synced_at_iso=started_at.isoformat(),
+            remote=args.remote,
+            remote_repo=args.remote_repo,
+            temp_branch=temp_branch,
+            backup_branch=backup_branch,
+            backup_root=backup_root,
+        )
     return 0
 
 

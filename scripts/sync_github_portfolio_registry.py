@@ -106,6 +106,13 @@ def _build_blocked_portfolio_snapshot(registry: dict[str, Any], reason: str) -> 
     existing_registry = registry.get("github_portfolio") if isinstance(registry.get("github_portfolio"), dict) else {}
     snapshot = dict(existing_registry or {})
     snapshot.setdefault("owner", GITHUB_OWNER)
+    last_verified_at = str(snapshot.get("last_verified_at") or "").strip() or None
+    snapshot["sync_status"] = "external_blocked"
+    snapshot["blocker_type"] = "external_dependency"
+    snapshot["blocking_reason"] = "github_auth_required"
+    snapshot["last_attempted_at"] = datetime.now(timezone.utc).isoformat()
+    snapshot["last_error"] = str(reason or "").strip()
+    snapshot["last_successful_sync_at"] = last_verified_at
     return snapshot
 
 def _mirror_registry_rows(table_rows: list[dict[str, str]], live_repos: list[dict[str, Any]]) -> dict[str, Any]:

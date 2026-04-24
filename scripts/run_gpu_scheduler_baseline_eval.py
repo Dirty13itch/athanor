@@ -5,6 +5,7 @@ import argparse
 import ast
 import importlib
 import json
+import os
 import subprocess
 import sys
 import urllib.error
@@ -37,6 +38,16 @@ MODEL_ENDPOINTS = {
     "workshop-vision": "http://192.168.1.225:8012/v1/models",
 }
 IDLE_SLOT_STATES = {"IDLE", "SLEEPING_L1"}
+SSH_BATCH_OPTIONS = (
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "ConnectTimeout=10",
+    "-o",
+    "StrictHostKeyChecking=no",
+    "-o",
+    "UserKnownHostsFile=/dev/null",
+)
 
 
 def _perform_request(request: urllib.request.Request, *, timeout: int) -> dict[str, Any]:
@@ -87,12 +98,33 @@ def _http_get(url: str, *, timeout: int = 20) -> dict[str, Any]:
 
 def _ssh_probe(host: str, command: str) -> dict[str, Any]:
     started_at = iso_now()
-    completed = subprocess.run(
-        ["ssh", host, command],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    try:
+        completed = subprocess.run(
+            ["ssh", *SSH_BATCH_OPTIONS, host, command],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError as exc:
+        return {
+            "ok": False,
+            "returncode": None,
+            "started_at": started_at,
+            "completed_at": iso_now(),
+            "stdout": "",
+            "stderr": "",
+            "error": f"FileNotFoundError: {exc}",
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "ok": False,
+            "returncode": None,
+            "started_at": started_at,
+            "completed_at": iso_now(),
+            "stdout": "",
+            "stderr": "",
+            "error": f"{type(exc).__name__}: {exc}",
+        }
     return {
         "ok": completed.returncode == 0,
         "returncode": completed.returncode,
@@ -100,6 +132,7 @@ def _ssh_probe(host: str, command: str) -> dict[str, Any]:
         "completed_at": iso_now(),
         "stdout": completed.stdout.strip(),
         "stderr": completed.stderr.strip(),
+        "error": None if completed.returncode == 0 else completed.stderr.strip() or f"ssh exited {completed.returncode}",
     }
 
 
@@ -475,11 +508,11 @@ def main() -> int:
     ]
 
     foundry_runtime_env = _ssh_probe(
-        "foundry",
+        str(os.environ.get("ATHANOR_NODE1_HOST") or "foundry").strip() or "foundry",
         "docker inspect athanor-gpu-orchestrator --format '{{range .Config.Env}}{{println .}}{{end}}' | grep '^GPU_ORCH_' | sort",
     )
     workshop_runtime = _ssh_probe(
-        "workshop",
+        str(os.environ.get("ATHANOR_NODE2_HOST") or "workshop").strip() or "workshop",
         "cd /opt/athanor && docker ps --format '{{.Names}}\\t{{.Status}}\\t{{.Ports}}' | grep -E 'vllm|comfy|ollama'",
     )
 

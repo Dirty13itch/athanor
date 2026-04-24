@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -13,8 +14,14 @@ PYTHON = sys.executable
 DEFAULT_COMMAND_TIMEOUT_SECONDS = 120
 COMMAND_TIMEOUT_OVERRIDES: dict[tuple[str, ...], int] = {
     ('scripts/collect_truth_inventory.py',): 180,
+    ('scripts/run_ralph_loop_pass.py', '--skip-refresh'): 300,
     ('scripts/validate_platform_contract.py',): 90,
 }
+
+RUNTIME_PROOF_CONTEXT_COMMANDS: tuple[tuple[str, ...], ...] = (
+    ('scripts/validate_platform_contract.py',),
+    ('scripts/run_contract_healer.py',),
+)
 
 
 def build_commands(include_restart_brief: bool = True) -> List[List[str]]:
@@ -22,7 +29,7 @@ def build_commands(include_restart_brief: bool = True) -> List[List[str]]:
         [PYTHON, 'scripts/generate_documentation_index.py'],
         [PYTHON, 'scripts/collect_capacity_telemetry.py'],
         [PYTHON, 'scripts/write_quota_truth_snapshot.py'],
-        [PYTHON, 'scripts/run_ralph_loop_pass.py', '--skip-refresh', '--skip-validation'],
+        [PYTHON, 'scripts/run_ralph_loop_pass.py', '--skip-refresh'],
         [PYTHON, 'scripts/collect_truth_inventory.py'],
         [PYTHON, 'scripts/generate_truth_inventory_reports.py'],
         [PYTHON, 'scripts/write_next_rotation_preflight.py', '--json'],
@@ -30,19 +37,48 @@ def build_commands(include_restart_brief: bool = True) -> List[List[str]]:
         [PYTHON, 'scripts/generate_publication_deferred_family_queue.py'],
         [PYTHON, 'scripts/write_finish_scoreboard.py', '--json'],
         [PYTHON, 'scripts/write_runtime_packet_inbox.py', '--json'],
+        [PYTHON, 'scripts/write_runtime_parity.py', '--json'],
+        [PYTHON, 'scripts/write_result_evidence_ledger.py', '--json'],
+        [PYTHON, 'scripts/write_autonomous_value_proof.py', '--json'],
+        [PYTHON, 'scripts/write_stable_operating_day.py', '--json'],
+        [PYTHON, 'scripts/run_continuity_control_pass.py', 'status', '--json'],
+        [PYTHON, 'scripts/write_blocker_map.py', '--json'],
+        [PYTHON, 'scripts/write_blocker_execution_plan.py', '--json'],
+        [PYTHON, 'scripts/write_continuity_supervisor_health.py', '--json'],
+        [PYTHON, 'scripts/write_project_output_readiness.py', '--json'],
+        [PYTHON, 'scripts/write_project_output_candidates.py', '--json'],
+        [PYTHON, 'scripts/materialize_project_output_acceptance.py', '--all-pending', '--json'],
+        [PYTHON, 'scripts/write_project_output_candidates.py', '--json'],
+        [PYTHON, 'scripts/write_project_output_proof.py', '--json'],
+        [PYTHON, 'scripts/write_autonomy_failure_ledger.py', '--json'],
+        [PYTHON, 'scripts/write_controller_of_controllers.py', '--json'],
         [PYTHON, 'scripts/write_steady_state_status.py', '--json'],
+        [PYTHON, 'scripts/write_operator_mobile_summary.py', '--json'],
+        [PYTHON, 'scripts/refresh_master_atlas_dashboard_feed.py'],
+        [PYTHON, 'scripts/write_command_center_final_form_status.py', '--json'],
+        [PYTHON, 'scripts/write_system_capability_scorecard.py', '--json'],
         [PYTHON, 'scripts/generate_ecosystem_master_plan.py'],
         [PYTHON, 'scripts/generate_full_system_audit.py', '--skip-checks'],
+        [PYTHON, 'scripts/validate_platform_contract.py'],
+        [PYTHON, 'scripts/run_contract_healer.py'],
     ]
     if include_restart_brief:
         commands.append([PYTHON, 'scripts/session_restart_brief.py', '--json'])
-    commands.append([PYTHON, 'scripts/validate_platform_contract.py'])
     return commands
 
 
 def command_timeout_seconds(command: List[str]) -> int:
     script_and_args = tuple(command[1:])
     return COMMAND_TIMEOUT_OVERRIDES.get(script_and_args, DEFAULT_COMMAND_TIMEOUT_SECONDS)
+
+
+def command_env(command: List[str]) -> dict[str, str] | None:
+    script_and_args = tuple(command[1:])
+    if script_and_args in RUNTIME_PROOF_CONTEXT_COMMANDS:
+        env = os.environ.copy()
+        env['ATHANOR_RUNTIME_PROOF_CONTEXT'] = '1'
+        return env
+    return None
 
 
 def run_commands(commands: Iterable[List[str]]) -> list[dict[str, object]]:
@@ -55,6 +91,7 @@ def run_commands(commands: Iterable[List[str]]) -> list[dict[str, object]]:
                 cwd=REPO_ROOT,
                 capture_output=True,
                 text=True,
+                env=command_env(command),
                 timeout=timeout_seconds,
             )
             result = {

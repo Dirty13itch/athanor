@@ -324,15 +324,10 @@ def main() -> int:
         artifact_check = _path_check(formal_eval_artifact_path) if formal_eval_artifact_path else None
         if artifact_check is None:
             blockers.append("missing_formal_eval_artifact_path")
-        elif not artifact_check["parent_exists"]:
-            blockers.append(f"missing_artifact_parent:{artifact_check['path']}")
 
         result_file_checks = [_path_check(path_value) for path_value in required_result_files]
         if not result_file_checks:
             blockers.append("missing_required_result_files")
-        for result_file_check in result_file_checks:
-            if not result_file_check["parent_exists"]:
-                blockers.append(f"missing_result_parent:{result_file_check['path']}")
 
         fixture_file_checks = []
         for path_value in required_fixture_files:

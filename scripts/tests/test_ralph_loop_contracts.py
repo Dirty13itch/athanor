@@ -236,6 +236,52 @@ def test_provider_gate_item_skips_empty_blocker_sets_even_if_registry_lags() -> 
     assert rows == []
 
 
+def test_artifact_freshness_treats_external_blocked_github_portfolio_as_fresh_block() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+
+    artifact_path = module.REPO_ROOT / "reports" / "reconciliation" / "github-portfolio-latest.json"
+    original_text = artifact_path.read_text(encoding="utf-8") if artifact_path.exists() else None
+    try:
+        artifact_path.parent.mkdir(parents=True, exist_ok=True)
+        artifact_path.write_text(
+            '{\n'
+            '  "sync_status": "external_blocked",\n'
+            '  "blocking_reason": "github_auth_required",\n'
+            '  "last_attempted_at": "2026-04-19T02:40:00+00:00",\n'
+            '  "last_error": "HTTP 401: Bad credentials"\n'
+            '}\n',
+            encoding="utf-8",
+        )
+
+        freshness = module._artifact_freshness(now_ts=0)
+        github_portfolio = freshness["github_portfolio"]
+
+        assert github_portfolio["stale"] is False
+        assert github_portfolio["freshness_state"] == "external_dependency_blocked"
+        assert github_portfolio["blocking_reason"] == "github_auth_required"
+
+        evidence_state = module._evidence_state_for_workstream(
+            {
+                "evidence_artifacts": [
+                    "reports/reconciliation/github-portfolio-latest.json",
+                ]
+            },
+            freshness,
+        )
+
+        assert evidence_state["stale_count"] == 0
+        assert evidence_state["external_blocked_count"] == 1
+        assert evidence_state["state"] == "external_dependency_blocked"
+    finally:
+        if original_text is None:
+            artifact_path.unlink(missing_ok=True)
+        else:
+            artifact_path.write_text(original_text, encoding="utf-8")
+
+
 def test_work_economy_detail_marks_compounding_ready_when_burn_classes_have_eligible_lanes() -> None:
     module = _load_module(
         f"run_ralph_loop_pass_{uuid.uuid4().hex}",
@@ -754,6 +800,47 @@ def test_workstream_autonomous_items_gain_slot_capacity_bonus_for_capacity_and_d
     assert with_by_id["dispatch-and-work-economy-closure"]["capacity_signal"]["open_harvest_slot_ids"] == ["F:TP4", "W:1"]
 
 
+def test_resolve_validation_state_preserves_previous_validation_when_skip_validation_is_requested() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+
+    previous = {
+        "ran": True,
+        "results": [{"command": ["python3", "validate.py"], "returncode": 0}],
+        "all_passed": True,
+    }
+
+    resolved = module._resolve_validation_state(
+        skip_validation=True,
+        previous_validation=previous,
+        validation_results=[],
+    )
+
+    assert resolved == previous
+
+
+def test_resolve_validation_state_records_new_validation_results_when_validation_runs() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+
+    resolved = module._resolve_validation_state(
+        skip_validation=False,
+        previous_validation={"ran": True, "results": [], "all_passed": True},
+        validation_results=[
+            {"command": ["python3", "check-a.py"], "returncode": 0},
+            {"command": ["python3", "check-b.py"], "returncode": 0},
+        ],
+    )
+
+    assert resolved["ran"] is True
+    assert resolved["all_passed"] is True
+    assert len(resolved["results"]) == 2
+
+
 def test_workstream_autonomous_items_carry_scheduler_backed_capacity_signal_freshness() -> None:
     module = _load_module(
         f"run_ralph_loop_pass_{uuid.uuid4().hex}",
@@ -908,6 +995,82 @@ def test_governed_dispatch_claim_selects_top_eligible_item_and_preserves_existin
     assert claim["on_deck_task_id"] == "workstream:dispatch-and-work-economy-closure"
     assert claim["approved_mutation_label"] == "Auto harvest"
     assert claim["approved_actions"] == ["eval_run", "safe_surface_repo_task"]
+
+
+def test_governed_dispatch_claim_rotates_off_recent_no_delta_task_when_alternative_exists() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+    ranked_autonomous_queue = [
+        {
+            "task_id": "workstream:validation-and-publication",
+            "title": "Validation and Publication",
+            "repo": "C:/Athanor",
+            "source_type": "workstream",
+            "workstream_id": "validation-and-publication",
+            "value_class": "failing_eval_or_validator",
+            "risk_class": "low",
+            "approved_mutation_class": "auto_harvest",
+            "preferred_lane_family": "validation_and_checkpoint",
+            "fallback_lane_family": "operator_follow_through",
+            "proof_command_or_eval_surface": "scripts/run_full_validation.py",
+            "closure_rule": "Close validator drift",
+            "dispatchable": True,
+        },
+        {
+            "task_id": "capability:agent-governance-toolkit-policy-plane",
+            "title": "Agent Governance Toolkit Policy Plane",
+            "repo": "C:/Athanor",
+            "source_type": "capability",
+            "value_class": "promotion_wave_closure",
+            "risk_class": "low",
+            "approved_mutation_class": "auto_harvest",
+            "preferred_lane_family": "promotion_wave_closure",
+            "fallback_lane_family": "operator_follow_through",
+            "proof_command_or_eval_surface": "reports/promotions/latest.json",
+            "closure_rule": "Close the policy-plane promotion tranche",
+            "dispatchable": True,
+        },
+    ]
+    dispatch_authority = {
+        "governed_dispatch_ready": True,
+        "approved_mutation_classes": ["auto_harvest"],
+        "work_economy_ready_now": True,
+    }
+    approval_matrix = {
+        "classes": [
+            {
+                "id": "auto_harvest",
+                "label": "Auto harvest",
+                "allowed_actions": ["eval_run", "safe_surface_repo_task"],
+            },
+        ]
+    }
+    safe_surface_state = {
+        "governed_dispatch": {
+            "current_task_id": "workstream:validation-and-publication",
+            "claimed_at": "2026-04-13T17:50:48.654544+00:00",
+            "claim_id": "ralph-claim-preserved",
+        },
+    }
+
+    claim = module._build_governed_dispatch_claim(
+        ranked_autonomous_queue,
+        dispatch_authority,
+        approval_matrix,
+        safe_surface_state,
+        generated_at="2026-04-13T18:05:00+00:00",
+        automation_feedback_summary={
+            "recent_no_delta_task_ids": ["workstream:validation-and-publication"],
+        },
+    )
+
+    assert claim["status"] == "claimed"
+    assert claim["current_task_id"] == "capability:agent-governance-toolkit-policy-plane"
+    assert claim["claim_rotation_reason"] == "recent_no_delta_suppressed"
+    assert claim["claim_id"] != "ralph-claim-preserved"
+    assert claim["on_deck_task_id"] == "workstream:validation-and-publication"
 
 
 def test_sync_governed_dispatch_state_preserves_safe_surface_current_task_fields() -> None:
@@ -1168,6 +1331,203 @@ def test_materialize_governed_dispatch_claim_reuses_existing_backlog_item() -> N
     assert materialization["latest_task_id"] == "task-old"
 
 
+def test_materialize_governed_dispatch_claim_ignores_completed_backlog_and_rematerializes() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+    module._load_agent_runtime = lambda: ("http://agent.local", "token")
+
+    calls: list[tuple[str, str, dict[str, object] | None]] = []
+
+    def fake_request_json(base_url: str, token: str, path: str, *, method: str = "GET", payload=None, timeout: int = 20):
+        calls.append((method, path, payload))
+        if method == "GET":
+            return 200, {
+                "backlog": [
+                    {
+                        "id": "backlog-completed",
+                        "status": "completed",
+                        "title": "Capacity and Harvest Truth",
+                        "prompt": 'Advance the governed dispatch claim for "Capacity and Harvest Truth".',
+                        "metadata": {
+                            "materialization_source": "governed_dispatch_state",
+                            "claim_id": "ralph-claim-99",
+                            "current_task_id": "workstream:capacity-and-harvest-truth",
+                            "latest_task_id": "task-old",
+                        },
+                    }
+                ]
+            }
+        return 200, {"backlog": {"id": "backlog-new", "status": "ready"}}
+
+    materialization = module._materialize_governed_dispatch_claim(
+        {
+            "status": "claimed",
+            "claim_id": "ralph-claim-99",
+            "current_task_id": "workstream:capacity-and-harvest-truth",
+            "current_task_title": "Capacity and Harvest Truth",
+            "preferred_lane_family": "capacity_truth_repair",
+        },
+        {
+            "provider_gate_state": "completed",
+            "work_economy_status": "ready",
+        },
+        generated_at="2026-04-21T05:05:00+00:00",
+        request_json=fake_request_json,
+    )
+
+    assert materialization["status"] == "materialized"
+    assert materialization["backlog_id"] == "backlog-new"
+    assert materialization["backlog_status"] == "ready"
+    assert [entry[1] for entry in calls] == [
+        "/v1/operator/backlog?limit=120",
+        "/v1/operator/backlog",
+    ]
+
+
+def test_materialize_governed_dispatch_claim_carries_validation_proof_commands() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+    module._load_agent_runtime = lambda: ("http://agent.local", "token")
+
+    calls: list[tuple[str, str, dict | None]] = []
+
+    def fake_request_json(base_url: str, token: str, path: str, *, method: str = "GET", payload=None, timeout: int = 20):
+        calls.append((method, path, payload))
+        if method == "GET":
+            return 200, {"backlog": []}
+        return 200, {"backlog": {"id": "backlog-proof-1", "status": "ready"}}
+
+    materialization = module._materialize_governed_dispatch_claim(
+        {
+            "status": "claimed",
+            "claim_id": "ralph-claim-proof-1",
+            "current_task_id": "workstream:validation-and-publication",
+            "current_task_title": "Validation and Publication",
+            "preferred_lane_family": "validation_and_checkpoint",
+            "approved_mutation_class": "auto_read_only",
+            "approved_mutation_label": "Auto read only",
+            "proof_command_or_eval_surface": f"{module.sys.executable} scripts/validate_platform_contract.py",
+        },
+        {
+            "provider_gate_state": "completed",
+            "work_economy_status": "ready",
+        },
+        generated_at="2026-04-19T01:20:00+00:00",
+        request_json=fake_request_json,
+    )
+
+    assert materialization["status"] == "materialized"
+    created_payload = calls[1][2] or {}
+    assert created_payload["metadata"]["proof_commands"] == module.VALIDATION_COMMANDS
+    assert created_payload["metadata"]["proof_command_surface"] == f"{module.sys.executable} scripts/validate_platform_contract.py"
+    assert created_payload["metadata"]["preferred_provider_id"] == "openai_codex"
+    assert created_payload["metadata"]["policy_class"] == "private_but_cloud_allowed"
+    assert created_payload["metadata"]["meta_lane"] == "frontier_cloud"
+
+
+def test_materialize_governed_dispatch_claim_carries_capacity_proof_commands() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+    module._load_agent_runtime = lambda: ("http://agent.local", "token")
+
+    calls: list[tuple[str, str, dict | None]] = []
+
+    def fake_request_json(base_url: str, token: str, path: str, *, method: str = "GET", payload=None, timeout: int = 20):
+        calls.append((method, path, payload))
+        if method == "GET":
+            return 200, {"backlog": []}
+        return 200, {"backlog": {"id": "backlog-proof-2", "status": "ready"}}
+
+    materialization = module._materialize_governed_dispatch_claim(
+        {
+            "status": "claimed",
+            "claim_id": "ralph-claim-proof-2",
+            "current_task_id": "workstream:capacity-and-harvest-truth",
+            "current_task_title": "Capacity and Harvest Truth",
+            "preferred_lane_family": "capacity_truth_repair",
+            "approved_mutation_class": "auto_harvest",
+            "approved_mutation_label": "Auto harvest",
+            "proof_command_or_eval_surface": f"{module.sys.executable} scripts/run_gpu_scheduler_baseline_eval.py",
+        },
+        {
+            "provider_gate_state": "completed",
+            "work_economy_status": "ready",
+        },
+        generated_at="2026-04-19T01:20:00+00:00",
+        request_json=fake_request_json,
+    )
+
+    assert materialization["status"] == "materialized"
+    created_payload = calls[1][2] or {}
+    assert created_payload["metadata"]["proof_commands"] == [
+        [module.sys.executable, "scripts/run_gpu_scheduler_baseline_eval.py"],
+        [module.sys.executable, "scripts/collect_capacity_telemetry.py"],
+        [module.sys.executable, "scripts/write_quota_truth_snapshot.py"],
+    ]
+    assert created_payload["metadata"]["proof_command_surface"] == f"{module.sys.executable} scripts/run_gpu_scheduler_baseline_eval.py"
+
+
+def test_materialize_governed_dispatch_claim_carries_product_value_proof_commands() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+    module._load_agent_runtime = lambda: ("http://agent.local", "token")
+
+    calls: list[tuple[str, str, dict | None]] = []
+
+    def fake_request_json(base_url: str, token: str, path: str, *, method: str = "GET", payload=None, timeout: int = 20):
+        calls.append((method, path, payload))
+        if method == "GET":
+            return 200, {"backlog": []}
+        return 200, {"backlog": {"id": "backlog-proof-3", "status": "ready"}}
+
+    materialization = module._materialize_governed_dispatch_claim(
+        {
+            "status": "claimed",
+            "claim_id": "ralph-claim-proof-3",
+            "current_task_id": "autonomous_value_canary:dashboard-visible-proof",
+            "current_task_title": "Produce a visible dashboard value proof",
+            "preferred_lane_family": "safe_surface_execution",
+            "approved_mutation_class": "auto_read_only",
+            "approved_mutation_label": "Auto read only",
+            "autonomous_value_canary_id": "dashboard-visible-proof",
+            "value_stage": "product_value",
+            "beneficiary_surface": "dashboard",
+            "deliverable_kind": "ui_change",
+            "deliverable_refs": ["projects/dashboard/src/features/overview/command-center.tsx"],
+            "task_brief": "Add a visible dashboard proof card.",
+            "proof_command_or_eval_surface": "projects/dashboard/src/features/overview/command-center.tsx",
+        },
+        {
+            "provider_gate_state": "completed",
+            "work_economy_status": "ready",
+        },
+        generated_at="2026-04-20T04:50:00+00:00",
+        request_json=fake_request_json,
+    )
+
+    assert materialization["status"] == "materialized"
+    created_payload = calls[1][2] or {}
+    assert created_payload["metadata"]["proof_commands"] == [
+        [module.sys.executable, "scripts/run_dashboard_value_proof.py", "--surface", "dashboard_overview"]
+    ]
+    assert created_payload["metadata"]["proof_artifact_paths"] == [
+        "projects/dashboard/src/features/overview/command-center.tsx"
+    ]
+    assert created_payload["metadata"]["proof_execution_stage"] == "after_agent"
+    assert created_payload["metadata"]["proof_timeout_seconds"] == 900
+    assert created_payload["metadata"]["preferred_provider_id"] == "google_gemini"
+    assert created_payload["metadata"]["requires_mutable_implementation_authority"] is True
+    assert created_payload["metadata"]["task_brief"] == "Add a visible dashboard proof card."
+
+
 def test_refresh_governed_dispatch_materialization_after_dispatch_requeries_backlog() -> None:
     module = _load_module(
         f"run_ralph_loop_pass_{uuid.uuid4().hex}",
@@ -1395,6 +1755,237 @@ def test_dispatch_governed_dispatch_claim_skips_already_scheduled_backlog_item()
     assert execution["dispatch_outcome"] == "claimed"
     assert execution["backlog_id"] == "backlog-42"
     assert execution["backlog_status"] == "scheduled"
+
+
+def test_dispatch_governed_dispatch_claim_repairs_completed_scheduled_backlog_then_redispatches() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+    module._load_agent_runtime = lambda: ("http://agent.local", "token")
+
+    calls: list[tuple[str, str, dict[str, object] | None]] = []
+
+    def fake_request_json(base_url: str, token: str, path: str, *, method: str = "GET", payload=None, timeout: int = 20):
+        calls.append((method, path, payload))
+        if method == "GET" and path == "/v1/tasks/task-old":
+            return 200, {
+                "task": {
+                    "id": "task-old",
+                    "status": "completed",
+                    "source": "operator_backlog_dispatch",
+                    "metadata": {
+                        "materialization_source": "governed_dispatch_state",
+                        "_autonomy_managed": True,
+                        "task_class": "async_backlog_execution",
+                        "workload_class": "coding_implementation",
+                    },
+                }
+            }
+        if method == "POST" and path == "/v1/operator/backlog/backlog-42/transition":
+            return 200, {
+                "status": "updated",
+                "backlog": {"id": "backlog-42", "status": "ready"},
+            }
+        if method == "POST" and path == "/v1/operator/backlog/backlog-42/dispatch":
+            return 200, {
+                "backlog": {"id": "backlog-42", "status": "scheduled"},
+                "task": {"id": "task-new", "status": "scheduled"},
+                "governor": {"reason": "phase_gate_auto", "level": "A"},
+            }
+        raise AssertionError(f"Unexpected request: {method} {path}")
+
+    execution = module._dispatch_governed_dispatch_claim(
+        {
+            "status": "claimed",
+            "claim_id": "ralph-claim-42",
+            "current_task_id": "workstream:validation-and-publication",
+            "current_task_title": "Validation and Publication",
+            "approved_mutation_class": "auto_harvest",
+            "dispatch_outcome": "claimed",
+        },
+        {
+            "approved_mutation_classes": ["auto_harvest"],
+        },
+        {
+            "status": "already_materialized",
+            "backlog_id": "backlog-42",
+            "backlog_status": "scheduled",
+            "latest_task_id": "task-old",
+        },
+        generated_at="2026-04-13T21:10:00+00:00",
+        request_json=fake_request_json,
+    )
+
+    assert execution["status"] == "dispatched"
+    assert execution["dispatch_outcome"] == "success"
+    assert execution["task_id"] == "task-new"
+    assert execution["task_status"] == "scheduled"
+    assert execution["repair_reason"] == "stale_terminal_dispatch"
+    assert execution["repair_status_code"] == 200
+    assert execution["repaired_task_id"] == "task-old"
+    assert execution["repaired_stale_task_id"] == "task-old"
+    assert [entry[1] for entry in calls] == [
+        "/v1/tasks/task-old",
+        "/v1/operator/backlog/backlog-42/transition",
+        "/v1/operator/backlog/backlog-42/dispatch",
+    ]
+    assert calls[1][2]["status"] == "ready"
+    assert "task-old" in str(calls[1][2]["note"])
+
+
+def test_dispatch_governed_dispatch_claim_reports_repair_failure_when_stale_terminal_backlog_cannot_reopen() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+    module._load_agent_runtime = lambda: ("http://agent.local", "token")
+
+    calls: list[tuple[str, str, dict[str, object] | None]] = []
+
+    def fake_request_json(base_url: str, token: str, path: str, *, method: str = "GET", payload=None, timeout: int = 20):
+        calls.append((method, path, payload))
+        if method == "GET" and path == "/v1/tasks/task-old":
+            return 200, {
+                "task": {
+                    "id": "task-old",
+                    "status": "completed",
+                    "metadata": {
+                        "materialization_source": "governed_dispatch_state",
+                        "_autonomy_managed": True,
+                        "task_class": "async_backlog_execution",
+                        "workload_class": "coding_implementation",
+                    },
+                }
+            }
+        if method == "POST" and path == "/v1/operator/backlog/backlog-42/transition":
+            return 409, {"error": "cannot reopen backlog item"}
+        raise AssertionError(f"Unexpected request: {method} {path}")
+
+    execution = module._dispatch_governed_dispatch_claim(
+        {
+            "status": "claimed",
+            "claim_id": "ralph-claim-42",
+            "current_task_id": "workstream:validation-and-publication",
+            "current_task_title": "Validation and Publication",
+            "approved_mutation_class": "auto_harvest",
+            "dispatch_outcome": "claimed",
+        },
+        {
+            "approved_mutation_classes": ["auto_harvest"],
+        },
+        {
+            "status": "already_materialized",
+            "backlog_id": "backlog-42",
+            "backlog_status": "scheduled",
+            "latest_task_id": "task-old",
+        },
+        generated_at="2026-04-13T21:10:00+00:00",
+        request_json=fake_request_json,
+    )
+
+    assert execution["status"] == "repair_failed"
+    assert execution["dispatch_outcome"] == "failed"
+    assert execution["repair_status_code"] == 409
+    assert execution["repair_reason"] == "stale_terminal_dispatch"
+    assert execution["repaired_task_id"] == "task-old"
+    assert execution["repaired_stale_task_id"] == "task-old"
+    assert "cannot reopen backlog item" in str(execution["error"])
+    assert [entry[1] for entry in calls] == [
+        "/v1/tasks/task-old",
+        "/v1/operator/backlog/backlog-42/transition",
+    ]
+
+
+def test_dispatch_governed_dispatch_claim_repairs_blocked_verification_backlog_then_redispatches() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+    module._load_agent_runtime = lambda: ("http://agent.local", "token")
+
+    calls: list[tuple[str, str, dict[str, object] | None]] = []
+
+    def fake_request_json(base_url: str, token: str, path: str, *, method: str = "GET", payload=None, timeout: int = 20):
+        calls.append((method, path, payload))
+        if method == "GET" and path == "/v1/tasks/task-old":
+            return 200, {
+                "task": {
+                    "id": "task-old",
+                    "status": "completed",
+                    "source": "auto-retry",
+                    "metadata": {
+                        "materialization_source": "governed_dispatch_state",
+                        "_autonomy_managed": True,
+                        "task_class": "async_backlog_execution",
+                        "workload_class": "coding_implementation",
+                    },
+                }
+            }
+        if method == "GET" and path == "/v1/operator/backlog?limit=200":
+            return 200, {
+                "backlog": [
+                    {
+                        "id": "backlog-42",
+                        "status": "blocked",
+                        "blocking_reason": "verification_evidence_missing",
+                        "metadata": {
+                            "verification_pending_reason": "verification_evidence_missing",
+                            "failure_detail": "old proof bundle failure",
+                        },
+                    }
+                ]
+            }
+        if method == "POST" and path == "/v1/operator/backlog/backlog-42/transition":
+            return 200, {
+                "status": "updated",
+                "backlog": {"id": "backlog-42", "status": "ready"},
+            }
+        if method == "POST" and path == "/v1/operator/backlog/backlog-42/dispatch":
+            return 200, {
+                "backlog": {"id": "backlog-42", "status": "scheduled"},
+                "task": {"id": "task-new", "status": "scheduled"},
+                "governor": {"reason": "phase_gate_auto", "level": "A"},
+            }
+        raise AssertionError(f"Unexpected request: {method} {path}")
+
+    execution = module._dispatch_governed_dispatch_claim(
+        {
+            "status": "claimed",
+            "claim_id": "ralph-claim-42",
+            "current_task_id": "workstream:validation-and-publication",
+            "current_task_title": "Validation and Publication",
+            "approved_mutation_class": "auto_harvest",
+            "dispatch_outcome": "claimed",
+        },
+        {
+            "approved_mutation_classes": ["auto_harvest"],
+        },
+        {
+            "status": "already_materialized",
+            "backlog_id": "backlog-42",
+            "backlog_status": "blocked",
+            "latest_task_id": "task-old",
+        },
+        generated_at="2026-04-13T21:10:00+00:00",
+        request_json=fake_request_json,
+    )
+
+    assert execution["status"] == "dispatched"
+    assert execution["dispatch_outcome"] == "success"
+    assert execution["repair_reason"] == "stale_verification_block"
+    assert execution["repair_status_code"] == 200
+    assert execution["repaired_task_id"] == "task-old"
+    assert execution["task_id"] == "task-new"
+    assert execution["task_status"] == "scheduled"
+    assert [entry[1] for entry in calls] == [
+        "/v1/tasks/task-old",
+        "/v1/operator/backlog?limit=200",
+        "/v1/operator/backlog/backlog-42/transition",
+        "/v1/operator/backlog/backlog-42/dispatch",
+    ]
+    assert calls[2][2]["status"] == "ready"
+    assert "verification evidence" in str(calls[2][2]["note"]).lower()
 
 
 def test_dispatch_governed_dispatch_claim_surfaces_restart_recovered_retry_truth() -> None:
@@ -1908,6 +2499,39 @@ def test_automation_feedback_summary_treats_already_dispatched_claims_as_non_fai
     assert summary["dispatch_last_outcome"] == "claimed"
 
 
+def test_automation_feedback_summary_treats_stale_dispatched_terminal_claims_as_failures() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+    recent_records = [
+        {
+            "timestamp": "2026-04-13T18:05:00+00:00",
+            "automation_id": "ralph-loop",
+            "lane": "ralph_loop",
+            "action_class": "autonomous_planning",
+            "result": {
+                "dispatch_outcome": "failed",
+                "dispatch_execution_status": "stale_dispatched_task",
+                "dispatched_backlog_status": "scheduled",
+                "dispatched_task_id": "task-old",
+                "dispatched_task_status": "completed",
+                "claimed_task_id": "workstream:validation-and-publication",
+                "claimed_task_title": "Validation and Publication",
+            },
+            "operator_visible_summary": "Ralph loop found a stale scheduled backlog claim whose latest task already completed.",
+        }
+    ]
+
+    summary = module._build_automation_feedback_summary(recent_records)
+
+    assert summary["success_count"] == 0
+    assert summary["failure_count"] == 1
+    assert summary["feedback_state"] == "degraded"
+    assert summary["dispatch_last_outcome"] == "failed"
+    assert summary["recent_no_delta_task_ids"] == ["workstream:validation-and-publication"]
+
+
 def test_automation_feedback_summary_treats_null_validation_idle_runs_as_neutral() -> None:
     module = _load_module(
         f"run_ralph_loop_pass_{uuid.uuid4().hex}",
@@ -2170,14 +2794,62 @@ def test_sync_registry_loop_state_avoids_timestamp_only_registry_rewrites(tmp_pa
         module.CONFIG_DIR = original_config_dir
 
 
-def test_refresh_commands_include_capacity_telemetry_collection() -> None:
+def test_refresh_commands_cover_capacity_override_and_routing_evidence() -> None:
     module = _load_module(
         f"run_ralph_loop_pass_{uuid.uuid4().hex}",
         SCRIPTS_DIR / "run_ralph_loop_pass.py",
     )
 
     assert [module.sys.executable, "scripts/collect_capacity_telemetry.py"] in module.REFRESH_COMMANDS
+    assert [
+        module.sys.executable,
+        "scripts/manage_active_overrides.py",
+        "expire",
+        "--reason",
+        "scheduled Ralph freshness sweep",
+        "--actor",
+        "Ralph",
+        "--session-id",
+        "ralph-loop",
+    ] in module.REFRESH_COMMANDS
+    assert [module.sys.executable, "scripts/run_full_stack_routing_proof.py"] in module.REFRESH_COMMANDS
     assert module.LOOP_FAMILY_NEXT_COMMANDS["evidence_refresh"] == module.REFRESH_COMMANDS
+
+
+def test_validation_commands_refresh_steady_state_and_ecosystem_docs_before_validator() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+
+    assert module.VALIDATION_COMMANDS[:11] == [
+        [module.sys.executable, "scripts/write_steady_state_status.py", "--json"],
+        [module.sys.executable, "scripts/generate_full_system_audit.py", "--skip-checks"],
+        [module.sys.executable, "scripts/write_project_output_readiness.py", "--json"],
+        [module.sys.executable, "scripts/write_project_output_candidates.py", "--json"],
+        [module.sys.executable, "scripts/materialize_project_output_acceptance.py", "--all-pending", "--json"],
+        [module.sys.executable, "scripts/write_project_output_candidates.py", "--json"],
+        [module.sys.executable, "scripts/write_project_output_proof.py", "--json"],
+        [module.sys.executable, "scripts/write_command_center_final_form_status.py", "--json"],
+        [module.sys.executable, "scripts/generate_truth_inventory_reports.py"],
+        [module.sys.executable, "scripts/generate_ecosystem_master_plan.py"],
+        [module.sys.executable, "scripts/validate_platform_contract.py"],
+    ]
+    assert module.LOCAL_VALIDATION_COMMANDS[:13] == [
+        [module.sys.executable, "scripts/write_steady_state_status.py", "--json"],
+        [module.sys.executable, "scripts/generate_full_system_audit.py", "--skip-checks"],
+        [module.sys.executable, "scripts/write_project_output_readiness.py", "--json"],
+        [module.sys.executable, "scripts/write_project_output_candidates.py", "--json"],
+        [module.sys.executable, "scripts/materialize_project_output_acceptance.py", "--all-pending", "--json"],
+        [module.sys.executable, "scripts/write_project_output_candidates.py", "--json"],
+        [module.sys.executable, "scripts/write_project_output_proof.py", "--json"],
+        [module.sys.executable, "scripts/write_command_center_final_form_status.py", "--json"],
+        [module.sys.executable, "scripts/generate_truth_inventory_reports.py"],
+        [module.sys.executable, "scripts/triage_publication_tranche.py", "--write", "docs/operations/PUBLICATION-TRIAGE-REPORT.md"],
+        [module.sys.executable, "scripts/generate_publication_deferred_family_queue.py"],
+        [module.sys.executable, "scripts/generate_ecosystem_master_plan.py"],
+        [module.sys.executable, "scripts/validate_platform_contract.py"],
+    ]
 
 
 def test_workstream_scoped_repo_delta_reopen_keeps_dispatch_closed_on_unrelated_churn() -> None:
@@ -2378,6 +3050,46 @@ def test_build_executive_brief_adds_burn_class_preflight_guidance() -> None:
         "burn_class:local_bulk_sovereign" in item and "preflight_burn_class.py local_bulk_sovereign --json" in item
         for item in brief["next_moves"]
     )
+
+
+def test_build_executive_brief_prefers_execution_dispatch_outcome_over_claim() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+
+    brief = module._build_executive_brief(
+        {
+            "active_claim_task_id": "workstream:validation-and-publication",
+            "active_claim_task_title": "Validation and Publication",
+            "selected_workstream": "dispatch-and-work-economy-closure",
+            "selected_workstream_title": "Dispatch and Work-Economy Closure",
+            "continue_allowed": True,
+            "repo_side_no_delta": False,
+            "rotation_ready": False,
+            "dispatch_authority": {
+                "governed_dispatch_execution": {
+                    "status": "stale_dispatched_task",
+                    "dispatch_outcome": "failed",
+                }
+            },
+            "governed_dispatch_claim": {
+                "current_task_id": "workstream:validation-and-publication",
+                "current_task_title": "Validation and Publication",
+                "dispatch_outcome": "claimed",
+            },
+            "autonomous_queue_summary": {
+                "blocked_queue_count": 0,
+                "dispatchable_queue_count": 2,
+                "suppressed_queue_count": 0,
+            },
+            "validation": {"ran": False, "results": [], "all_passed": None},
+        },
+        {"executive_reporting_contract": {}},
+    )
+
+    assert brief["landed_or_delta"]["dispatch_status"] == "stale_dispatched_task"
+    assert brief["landed_or_delta"]["dispatch_outcome"] == "failed"
 
 
 def test_build_ranked_autonomous_queue_keeps_cash_now_deferred_family_ahead_of_burn_class_during_validation() -> None:
