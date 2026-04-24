@@ -10,6 +10,10 @@ services:
     volumes:
       # Read-only access to deployed Athanor codebase
       - /opt/athanor:/workspace:ro
+      # Writable implementation-authority mount for bounded safe-surface changes
+      - /opt/athanor:/implementation
+      # Governed proof commands publish truth artifacts under reports/.
+      - /opt/athanor/reports:/workspace/reports
       # Writable staging area for task outputs
       - /opt/athanor/agent-output:/output
       # Data curator: personal data synced from DEV (read-only)
@@ -25,6 +29,7 @@ services:
       - ATHANOR_LITELLM_URL=${ATHANOR_LITELLM_URL:-{{ agent_litellm_url }}}
       - ATHANOR_LITELLM_API_KEY={{ agent_litellm_api_key }}
       - ATHANOR_LLM_MODEL={{ agent_llm_model }}
+      - ATHANOR_TASK_EXECUTION_MODEL=${ATHANOR_TASK_EXECUTION_MODEL:-{{ agent_llm_model }}}
       - ATHANOR_LLM_MODEL_FAST={{ agent_llm_model_fast }}
       - ATHANOR_VLLM_COORDINATOR_URL=${ATHANOR_VLLM_COORDINATOR_URL:-{{ agent_vllm_coordinator_url }}}
       - ATHANOR_VLLM_CODER_URL=${ATHANOR_VLLM_CODER_URL:-{{ agent_vllm_coder_url }}}
@@ -33,6 +38,7 @@ services:
       - ATHANOR_VLLM_RERANKER_URL=${ATHANOR_VLLM_RERANKER_URL:-{{ agent_vllm_reranker_url }}}
       - ATHANOR_AGENT_SERVER_URL=${ATHANOR_AGENT_SERVER_URL:-{{ agent_agent_server_url }}}
       - ATHANOR_DASHBOARD_URL=${ATHANOR_DASHBOARD_URL:-{{ agent_dashboard_url }}}
+      - ATHANOR_IMPLEMENTATION_AUTHORITY=${ATHANOR_IMPLEMENTATION_AUTHORITY:-/implementation}
       - ATHANOR_QDRANT_URL=${ATHANOR_QDRANT_URL:-{{ agent_qdrant_url }}}
       - ATHANOR_REDIS_URL=${ATHANOR_REDIS_URL:-{{ agent_redis_url }}}
       - ATHANOR_REDIS_PASSWORD={{ agent_redis_password }}

@@ -7,6 +7,17 @@
     group: athanor
     mode: "0755"
 
+- name: Create dashboard reports directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: athanor
+    group: athanor
+    mode: "0755"
+  loop:
+    - "{{ dashboard_reports_dir }}"
+    - "{{ dashboard_truth_inventory_dir }}"
+
 - name: Gather service facts
   ansible.builtin.service_facts:
 
@@ -29,6 +40,15 @@
       - "--exclude=.next"
       - "--exclude=.git"
   register: dashboard_src
+
+- name: Sync dashboard truth inventory
+  ansible.posix.synchronize:
+    src: "{{ playbook_dir }}/../../reports/truth-inventory/"
+    dest: "{{ dashboard_truth_inventory_dir }}/"
+    delete: true
+    rsync_opts:
+      - "--exclude=.git"
+  register: dashboard_truth_inventory_src
 
 - name: Ensure ws-pty-bridge deploy directory exists
   ansible.builtin.file:
@@ -69,7 +89,7 @@
     project_src: "{{ dashboard_deploy_dir }}"
     state: present
     build: "{{ 'always' if (dashboard_src.changed or dashboard_image_info.images | length == 0 or (dashboard_include_ws_pty_bridge | bool and ws_pty_bridge_src.changed | default(false))) else 'never' }}"
-    recreate: "{{ 'always' if (dashboard_compose.changed or dashboard_src.changed or (dashboard_include_ws_pty_bridge | bool and ws_pty_bridge_src.changed | default(false))) else 'never' }}"
+    recreate: "{{ 'always' if (dashboard_compose.changed or dashboard_src.changed or dashboard_truth_inventory_src.changed or (dashboard_include_ws_pty_bridge | bool and ws_pty_bridge_src.changed | default(false))) else 'never' }}"
 
 - name: Wait for dashboard health
   ansible.builtin.uri:

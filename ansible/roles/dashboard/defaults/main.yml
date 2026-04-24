@@ -1,5 +1,8 @@
 ---
 dashboard_deploy_dir: /opt/athanor/dashboard
+dashboard_reports_dir: /opt/athanor/reports
+dashboard_truth_inventory_dir: "{{ dashboard_reports_dir }}/truth-inventory"
+dashboard_truth_inventory_mount_path: /opt/athanor/reports/truth-inventory
 dashboard_port: 3001
 dashboard_prometheus_url: "http://{{ vault_ip | default('192.168.1.203') }}:9090"
 dashboard_image: "athanor/dashboard:latest"

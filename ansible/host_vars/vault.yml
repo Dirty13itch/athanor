@@ -165,7 +165,7 @@ prometheus_probe_targets:
     category: experience
     node_id: workshop
   - id: ulrich_energy
-    name: "Ulrich Energy"
+    name: "Ulrich Energy (retired lineage)"
     url: "http://{{ node2_ip }}:3003"
     category: experience
     node_id: workshop
